@@ -57,74 +57,141 @@ export interface RotationData {
   rotCxC: number
 }
 
-// Generate mock data for the last 12 months
-const generateMockRotationData = (): RotationData[] => {
-  const data: RotationData[] = []
-  const now = new Date()
-  
-  for (let i = 11; i >= 0; i--) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const periodo = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}`
-    
-    // Generate realistic values
-    const ventaBruta = Math.floor(Math.random() * 500000000) + 800000000
-    const rebate = Math.floor(ventaBruta * (Math.random() * 0.08 + 0.02))
-    const ventaNeta = ventaBruta - rebate
-    const cartera = Math.floor(Math.random() * 300000000) + 400000000
-    
-    data.push({
-      periodo,
-      cartera,
-      ventaBruta,
-      rebate,
-      ventaNeta,
-      promedioVentas3m: 0, // Will be calculated
-      acumuladoVenta12m: 0, // Will be calculated
-      rotCxC: 0, // Will be calculated
-    })
-  }
-  
-  // Calculate derived fields
-  for (let i = 0; i < data.length; i++) {
-    // Promedio últimos 3 meses
-    if (i >= 2) {
-      data[i].promedioVentas3m = Math.floor(
-        (data[i].ventaNeta + data[i - 1].ventaNeta + data[i - 2].ventaNeta) / 3
-      )
-    } else if (i === 1) {
-      data[i].promedioVentas3m = Math.floor(
-        (data[i].ventaNeta + data[i - 1].ventaNeta) / 2
-      )
-    } else {
-      data[i].promedioVentas3m = data[i].ventaNeta
-    }
-    
-    // Acumulado últimos 12 meses
-    const startIdx = Math.max(0, i - 11)
-    data[i].acumuladoVenta12m = data
-      .slice(startIdx, i + 1)
-      .reduce((acc, d) => acc + d.ventaNeta, 0)
-    
-    // Rotación CxC (días)
-    data[i].rotCxC = Math.round(
-      (data[i].cartera / data[i].acumuladoVenta12m) * 360
-    )
-  }
-  
-  return data
-}
+const mockRotationData: RotationData[] = [
+  {
+    periodo: "202505",
+    cartera: 653610396,
+    ventaBruta: 1215000000,
+    rebate: 74000000,
+    ventaNeta: 1140342704,
+    promedioVentas3m: 1140000000,
+    acumuladoVenta12m: 1140000000,
+    rotCxC: 206,
+  },
+  {
+    periodo: "202506",
+    cartera: 699284396,
+    ventaBruta: 855000000,
+    rebate: 44000000,
+    ventaNeta: 810096668,
+    promedioVentas3m: 975000000,
+    acumuladoVenta12m: 1950000000,
+    rotCxC: 129,
+  },
+  {
+    periodo: "202507",
+    cartera: 617256392,
+    ventaBruta: 901000000,
+    rebate: 83000000,
+    ventaNeta: 817271697,
+    promedioVentas3m: 923000000,
+    acumuladoVenta12m: 2768000000,
+    rotCxC: 80,
+  },
+  {
+    periodo: "202508",
+    cartera: 407896236,
+    ventaBruta: 1204000000,
+    rebate: 79000000,
+    ventaNeta: 1124562805,
+    promedioVentas3m: 917000000,
+    acumuladoVenta12m: 3892000000,
+    rotCxC: 38,
+  },
+  {
+    periodo: "202509",
+    cartera: 534969660,
+    ventaBruta: 911000000,
+    rebate: 77000000,
+    ventaNeta: 834291188,
+    promedioVentas3m: 925000000,
+    acumuladoVenta12m: 4727000000,
+    rotCxC: 41,
+  },
+  {
+    periodo: "202510",
+    cartera: 491196081,
+    ventaBruta: 966000000,
+    rebate: 45000000,
+    ventaNeta: 920281796,
+    promedioVentas3m: 960000000,
+    acumuladoVenta12m: 5647000000,
+    rotCxC: 31,
+  },
+  {
+    periodo: "202511",
+    cartera: 471454815,
+    ventaBruta: 945000000,
+    rebate: 25000000,
+    ventaNeta: 920524964,
+    promedioVentas3m: 892000000,
+    acumuladoVenta12m: 6567000000,
+    rotCxC: 26,
+  },
+  {
+    periodo: "202512",
+    cartera: 666583570,
+    ventaBruta: 937000000,
+    rebate: 43000000,
+    ventaNeta: 893899919,
+    promedioVentas3m: 912000000,
+    acumuladoVenta12m: 7461000000,
+    rotCxC: 32,
+  },
+  {
+    periodo: "202601",
+    cartera: 499139798,
+    ventaBruta: 1094000000,
+    rebate: 47000000,
+    ventaNeta: 1047608980,
+    promedioVentas3m: 954000000,
+    acumuladoVenta12m: 8509000000,
+    rotCxC: 21,
+  },
+  {
+    periodo: "202602",
+    cartera: 478712963,
+    ventaBruta: 1054000000,
+    rebate: 88000000,
+    ventaNeta: 965610506,
+    promedioVentas3m: 969000000,
+    acumuladoVenta12m: 9474000000,
+    rotCxC: 18,
+  },
+  {
+    periodo: "202603",
+    cartera: 537328519,
+    ventaBruta: 966000000,
+    rebate: 59000000,
+    ventaNeta: 907583775,
+    promedioVentas3m: 974000000,
+    acumuladoVenta12m: 10000000000,
+    rotCxC: 19,
+  },
+  {
+    periodo: "202604",
+    cartera: 607853936,
+    ventaBruta: 960000000,
+    rebate: 26000000,
+    ventaNeta: 934050547,
+    promedioVentas3m: 936000000,
+    acumuladoVenta12m: 11000000000,
+    rotCxC: 19,
+  },
+]
 
-const mockRotationData = generateMockRotationData()
-
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-    notation: "compact",
-    compactDisplay: "short",
-  }).format(value)
+// ✅ Reemplaza con esto:
+const formatCurrency = (value: number): string => {
+  if (value >= 1_000_000_000_000) {
+    return `$${(value / 1_000_000_000_000).toFixed(1)} B`
+  }
+  if (value >= 1_000_000_000) {
+    return `$${(value / 1_000_000_000).toFixed(0)} MRD`
+  }
+  if (value >= 1_000_000) {
+    return `$${(value / 1_000_000).toFixed(0)} M`
+  }
+  return `$${value.toLocaleString("es-CO")}`
 }
 
 const formatCurrencyFull = (value: number) => {

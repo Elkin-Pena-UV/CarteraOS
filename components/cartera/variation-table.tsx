@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   useReactTable,
   getCoreRowModel,
@@ -421,10 +421,14 @@ export function VariationTable() {
   const variacionTotal = carteraTotalMesActual - carteraTotalMesAnterior
   const variacionTotalPct = (variacionTotal / carteraTotalMesAnterior) * 100
 
-  const currentMonth = new Date().toLocaleDateString("es-CO", {
+  const [currentMonth, setCurrentMonth] = useState("")
+
+  useEffect(() => {
+  setCurrentMonth(new Date().toLocaleDateString("es-CO", {
     month: "long",
     year: "numeric",
-  })
+  }))}, [])
+
 
   return (
     <div className="space-y-6">
