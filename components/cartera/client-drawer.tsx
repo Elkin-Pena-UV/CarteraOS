@@ -26,15 +26,6 @@ interface Invoice {
 
 const invoices: Invoice[] = [
   {
-    number: "FV-2024-001234",
-    issueDate: "15/01/2024",
-    dueDate: "15/02/2024",
-    value: 45000000,
-    payments: 45000000,
-    balance: 0,
-    status: "pagada",
-  },
-  {
     number: "FV-2024-001456",
     issueDate: "01/02/2024",
     dueDate: "03/03/2024",
@@ -113,7 +104,7 @@ export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
       {/* Backdrop */}
       <div
         className={cn(
-          "fixed inset-0 z-50 bg-black/50 transition-opacity",
+          "fixed inset-0 z-50 h-full bg-black/50 transition-opacity",
           open ? "opacity-100" : "pointer-events-none opacity-0"
         )}
         onClick={onClose}
@@ -122,7 +113,7 @@ export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
       {/* Drawer */}
       <div
         className={cn(
-          "fixed right-0 top-0 z-50 h-full w-[420px] bg-card shadow-xl transition-transform duration-300",
+          "fixed right-0 top-0 z-50 h-full w-[720px] max-w-[90vw] bg-card shadow-xl transition-transform duration-300",
           open ? "translate-x-0" : "translate-x-full"
         )}
       >
@@ -274,12 +265,6 @@ export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
               </div>
             </div>
           </div>
-
-          {/* Action Button */}
-          <Button className="mt-6 w-full bg-[#ff6600] text-white hover:bg-[#e65c00]">
-            <Phone className="mr-2 h-4 w-4" />
-            Iniciar Gestión de Cobro
-          </Button>
         </div>
       </div>
     </>
