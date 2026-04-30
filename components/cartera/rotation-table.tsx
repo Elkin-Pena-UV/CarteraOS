@@ -4,8 +4,11 @@ import { useState } from "react"
 import {
   useReactTable,
   getCoreRowModel,
+  getSortedRowModel,
   type ColumnDef,
+  type SortingState,
   flexRender,
+  type Column,
 } from "@tanstack/react-table"
 import {
   Table,
@@ -43,7 +46,7 @@ import {
   ReferenceArea,
   LabelList,
 } from "recharts"
-import { Download, Info } from "lucide-react"
+import { Download, Info, ArrowUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export interface RotationData {
@@ -180,13 +183,13 @@ const mockRotationData: RotationData[] = [
   },
 ]
 
-// ✅ Reemplaza con esto:
+
 const formatCurrency = (value: number): string => {
   if (value >= 1_000_000_000_000) {
     return `$${(value / 1_000_000_000_000).toFixed(1)} B`
   }
   if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(0)} MRD`
+    return `$${(value / 1_000_000_000).toFixed(0)} MM`
   }
   if (value >= 1_000_000) {
     return `$${(value / 1_000_000).toFixed(0)} M`
@@ -220,26 +223,47 @@ const columnTooltips: Record<string, string> = {
   cartera: "Saldo en $$ de cuenta 13050505 (Clientes nacionales) y cuenta 28050505 (Anticipos recibidos)",
   ventaBruta: "Saldo en $$ de cuenta 41 (mayor de ingresos)",
   rebate: "Saldo en $$ de cuenta 53053501 (descuentos comerciales)",
-  ventaNeta: "Venta Bruta − Rebate",
+  ventaNeta: "(Venta Bruta − Rebate)",
   promedioVentas3m: "Promedio aritmético de Venta Neta de los últimos 3 períodos",
   acumuladoVenta12m: "Suma acumulada de Venta Neta de los últimos 12 períodos",
   rotCxC: "(Cartera / Acumulado Venta N últimos 12 meses) × 360",
 }
 
-const HeaderWithTooltip = ({ label, tooltipKey }: { label: string; tooltipKey: string }) => (
-  <TooltipProvider>
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div className="flex cursor-help items-center gap-1">
-          {label}
-          <Info className="h-3.5 w-3.5 text-muted-foreground" />
-        </div>
-      </TooltipTrigger>
-      <TooltipContent className="max-w-xs">
-        <p className="text-xs">{columnTooltips[tooltipKey]}</p>
-      </TooltipContent>
-    </Tooltip>
-  </TooltipProvider>
+const HeaderWithTooltip = ({
+  label,
+  tooltipKey,
+  column,
+}: {
+  label: string
+  tooltipKey: string
+  column?: Column<RotationData, unknown>
+}) => (
+  <div className="flex items-center gap-1">
+    {column ? (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="-ml-4"
+      >
+        {label}
+        <ArrowUpDown className="ml-1 h-4 w-4" />
+      </Button>
+    ) : (
+      <span>{label}</span>
+    )}
+
+    {/* El tooltip queda solo en el ícono Info, independiente del botón */}
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground" />
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">
+          <p className="text-xs">{columnTooltips[tooltipKey]}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  </div>
 )
 
 const columns: ColumnDef<RotationData>[] = [
@@ -258,20 +282,25 @@ const columns: ColumnDef<RotationData>[] = [
   },
   {
     accessorKey: "cartera",
-    header: () => <HeaderWithTooltip label="Cartera" tooltipKey="cartera" />,
+    header: ({ column }) => (
+    <HeaderWithTooltip label="Cartera" tooltipKey="cartera" column={column} />
+    ),
     cell: ({ row }) => {
       const periodo = row.original.periodo
       const isCurrentMonth = periodo === mockRotationData[mockRotationData.length - 1].periodo
       return (
         <span className={cn("font-mono text-sm", isCurrentMonth && "font-bold")}>
           {formatCurrency(row.getValue("cartera"))}
+          {/* {row.getValue("cartera")} */}
         </span>
       )
     },
   },
   {
     accessorKey: "ventaBruta",
-    header: () => <HeaderWithTooltip label="Venta Bruta" tooltipKey="ventaBruta" />,
+    header: ({ column }) => (
+    <HeaderWithTooltip label="Venta Bruta" tooltipKey="ventaBruta" column={column} />
+   ),
     cell: ({ row }) => {
       const periodo = row.original.periodo
       const isCurrentMonth = periodo === mockRotationData[mockRotationData.length - 1].periodo
@@ -284,7 +313,9 @@ const columns: ColumnDef<RotationData>[] = [
   },
   {
     accessorKey: "rebate",
-    header: () => <HeaderWithTooltip label="Rebate" tooltipKey="rebate" />,
+    header: ({ column }) => (
+    <HeaderWithTooltip label="Rebate" tooltipKey="rebate" column={column} />
+    ),
     cell: ({ row }) => {
       const periodo = row.original.periodo
       const isCurrentMonth = periodo === mockRotationData[mockRotationData.length - 1].periodo
@@ -297,7 +328,9 @@ const columns: ColumnDef<RotationData>[] = [
   },
   {
     accessorKey: "ventaNeta",
-    header: () => <HeaderWithTooltip label="Venta Neta" tooltipKey="ventaNeta" />,
+    header: ({ column }) => (
+    <HeaderWithTooltip label="Venta Neta" tooltipKey="ventaNeta" column={column} />
+    ),
     cell: ({ row }) => {
       const periodo = row.original.periodo
       const isCurrentMonth = periodo === mockRotationData[mockRotationData.length - 1].periodo
@@ -310,7 +343,9 @@ const columns: ColumnDef<RotationData>[] = [
   },
   {
     accessorKey: "promedioVentas3m",
-    header: () => <HeaderWithTooltip label="Prom. Ventas (3m)" tooltipKey="promedioVentas3m" />,
+    header: ({ column }) => (
+    <HeaderWithTooltip label="Prom. Ventas (3m)" tooltipKey="promedioVentas3m" column={column} />
+    ),
     cell: ({ row }) => {
       const periodo = row.original.periodo
       const isCurrentMonth = periodo === mockRotationData[mockRotationData.length - 1].periodo
@@ -323,7 +358,9 @@ const columns: ColumnDef<RotationData>[] = [
   },
   {
     accessorKey: "acumuladoVenta12m",
-    header: () => <HeaderWithTooltip label="Acum. Venta (12m)" tooltipKey="acumuladoVenta12m" />,
+    header: ({ column }) => (
+    <HeaderWithTooltip label="Acum. Venta (12m)" tooltipKey="acumuladoVenta12m" column={column} />
+    ),
     cell: ({ row }) => {
       const periodo = row.original.periodo
       const isCurrentMonth = periodo === mockRotationData[mockRotationData.length - 1].periodo
@@ -336,7 +373,9 @@ const columns: ColumnDef<RotationData>[] = [
   },
   {
     accessorKey: "rotCxC",
-    header: () => <HeaderWithTooltip label="Rot CxC (días)" tooltipKey="rotCxC" />,
+    header: ({ column }) => (
+    <HeaderWithTooltip label="Rot CxC (días)" tooltipKey="rotCxC" column={column} />
+    ),
     cell: ({ row }) => {
       const days = row.getValue("rotCxC") as number
       const periodo = row.original.periodo
@@ -392,11 +431,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export function RotationTable() {
   const [rangeFilter, setRangeFilter] = useState("12")
+  const [sorting, setSorting] = useState<SortingState>([])
 
   const table = useReactTable({
     data: mockRotationData,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),  // 👈 agregar
+    onSortingChange: setSorting,             // 👈 agregar
+    state: { sorting }, 
   })
 
   // Calculate totals/averages
