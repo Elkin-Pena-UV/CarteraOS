@@ -243,7 +243,7 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
           </Button>
         ),
         cell: ({ row }) => (
-          <span className="font-medium text-[#ff6600]">
+          <span className="font-medium text-[#22b859]">
             {formatCurrency(row.getValue("quota"))}
           </span>
         ),
@@ -301,11 +301,14 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
-        cell: ({ row }) => (
-          <span className="font-medium text-[#ff6600]">
-            {formatCurrency(row.getValue("overcapacity"))}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const value = row.getValue("overcapacity") as number
+          return (
+            <span className={cn("font-medium", value > 0 && "text-destructive")}>
+              {formatCurrency(value)}
+            </span>
+          )
+        },
       },
       {
         accessorKey: "maxDaysOverdue",
@@ -325,8 +328,8 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
             <span
               className={cn(
                 "font-medium",
-                days > 90 && "text-destructive font-bold",
-                days > 60 && days <= 90 && "text-amber-600 dark:text-amber-400"
+                days > 70 && "text-destructive font-bold",
+                days > 50 && days <= 70 && "text-amber-600 dark:text-amber-400"
               )}
             >
               {days > 0 ? `${days} días` : "-"}

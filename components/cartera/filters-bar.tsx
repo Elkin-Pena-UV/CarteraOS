@@ -29,7 +29,7 @@ export function FiltersBar() {
   const [channel, setChannel] = useState<string>("")
   const [advisor, setAdvisor] = useState<string>("")
   const [status, setStatus] = useState<string>("")
-  const [nit, setNit] = useState<string>("")
+  const [clientName, setClientName] = useState<string>("")
   const [minValue, setMinValue] = useState<string>("")
   const [maxValue, setMaxValue] = useState<string>("")
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
@@ -45,7 +45,7 @@ export function FiltersBar() {
     setChannel("")
     setAdvisor("")
     setStatus("")
-    setNit("")
+    setClientName("")
     setMinValue("")
     setMaxValue("")
     setDateRange(undefined)
@@ -145,7 +145,7 @@ export function FiltersBar() {
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
-                initialFocus
+                autoFocus
                 mode="range"
                 defaultMonth={dateRange?.from}
                 selected={dateRange}
@@ -156,13 +156,13 @@ export function FiltersBar() {
           </Popover>
         </div>
 
-        {/* NIT */}
+        {/* Nombre cliente */}
         <div className="min-w-[140px] space-y-1.5">
-          <Label className="text-xs text-muted-foreground">NIT Cliente</Label>
+          <Label className="text-xs text-muted-foreground">Nombre Cliente</Label>
           <Input
-            placeholder="Buscar NIT..."
-            value={nit}
-            onChange={(e) => setNit(e.target.value)}
+            placeholder="Buscar nombre..."
+            value={clientName}
+            onChange={(e) => setClientName(e.target.value)}
             className="h-9"
           />
         </div>
