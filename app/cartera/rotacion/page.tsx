@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell"
 import { RotationTable } from "@/components/cartera/rotation-table"
+import { FiltersBarCopy } from "@/components/cartera/filters-barcopy"
 
 export default function RotacionPage() {
   return (
@@ -11,6 +12,7 @@ export default function RotacionPage() {
             Análisis de rotación de cuentas por cobrar
           </p>
         </div>
+        <FiltersBarCopy />
         <RotationTable />
       </div>
     </AppShell>

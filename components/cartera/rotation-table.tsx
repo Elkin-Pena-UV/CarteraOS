@@ -555,10 +555,6 @@ export function RotationTable() {
               </SelectContent>
             </Select>
           </div>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Mail className="h-4 w-4" />
-            Enviar reporte
-          </Button>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
@@ -618,9 +614,6 @@ export function RotationTable() {
                       </TableCell>
                       <TableCell className="font-mono text-[#00359a]">
                         {formatCurrency(totals.ventaNeta)}
-                      </TableCell>
-                      <TableCell className="font-mono text-muted-foreground">
-                        —
                       </TableCell>
                       <TableCell className="font-mono text-muted-foreground">
                         —
