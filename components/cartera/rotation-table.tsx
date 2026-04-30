@@ -46,7 +46,7 @@ import {
   ReferenceArea,
   LabelList,
 } from "recharts"
-import { Download, Info, ArrowUpDown } from "lucide-react"
+import { Download, Info, ArrowUpDown, Mail } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export interface RotationData {
@@ -357,21 +357,6 @@ const columns: ColumnDef<RotationData>[] = [
     },
   },
   {
-    accessorKey: "acumuladoVenta12m",
-    header: ({ column }) => (
-    <HeaderWithTooltip label="Acum. Venta (12m)" tooltipKey="acumuladoVenta12m" column={column} />
-    ),
-    cell: ({ row }) => {
-      const periodo = row.original.periodo
-      const isCurrentMonth = periodo === mockRotationData[mockRotationData.length - 1].periodo
-      return (
-        <span className={cn("font-mono text-sm text-muted-foreground", isCurrentMonth && "font-bold text-foreground")}>
-          {formatCurrency(row.getValue("acumuladoVenta12m"))}
-        </span>
-      )
-    },
-  },
-  {
     accessorKey: "rotCxC",
     header: ({ column }) => (
     <HeaderWithTooltip label="Rot CxC (días)" tooltipKey="rotCxC" column={column} />
@@ -571,8 +556,8 @@ export function RotationTable() {
             </Select>
           </div>
           <Button variant="outline" size="sm" className="gap-2">
-            <Download className="h-4 w-4" />
-            Exportar Excel
+            <Mail className="h-4 w-4" />
+            Enviar reporte
           </Button>
         </CardHeader>
         <CardContent>

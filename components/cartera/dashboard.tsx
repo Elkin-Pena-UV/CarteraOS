@@ -30,14 +30,14 @@ export function CarteraDashboard() {
         </p>
       </div>
 
+      {/* Filters */}
+      <FiltersBar />
+
       {/* KPI Cards */}
       <KPICards />
 
       {/* Charts */}
       <AgingCharts />
-
-      {/* Filters */}
-      <FiltersBar />
 
       {/* Clients Table */}
       <div>

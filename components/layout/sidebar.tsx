@@ -40,7 +40,7 @@ const menuItems: MenuItem[] = [
   {
     title: "Cartera",
     icon: Wallet,
-    badge: "87",
+    badge: "",
     children: [
       {
         title: "Resumen General",

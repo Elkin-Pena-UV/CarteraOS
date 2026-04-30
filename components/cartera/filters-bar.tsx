@@ -17,7 +17,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { CalendarIcon, Download, Filter, X } from "lucide-react"
+import { CalendarIcon, Download, Filter, X, Mail } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -57,8 +57,8 @@ export function FiltersBar() {
 
   const handleExportExcel = () => {
     toast({
-      title: "Exportando a Excel",
-      description: "El archivo se descargará en unos segundos...",
+      title: "Enviando reporte",
+      description: "El reporte se enviará en unos segundos...",
     })
   }
 
@@ -213,8 +213,8 @@ export function FiltersBar() {
             onClick={handleExportExcel}
             className="h-9"
           >
-            <Download className="mr-2 h-4 w-4" />
-            Exportar Excel
+            <Mail className="mr-2 h-4 w-4" />
+            Enviar reporte
           </Button>
         </div>
       </div>
