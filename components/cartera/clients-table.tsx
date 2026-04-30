@@ -70,113 +70,132 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
 
   const data: Client[] = useMemo(
-    () => [
-      {
-        nit: "890.123.456-7",
-        name: "DROGAS LA REBAJA",
-        advisor: "Carlos Méndez",
-        channel: "VTD - Venta Directa",
-        current: 245000000,
-        overdue: 89000000,
-        maxDaysOverdue: 95,
-        status: "vencida",
-      },
-      {
-        nit: "800.456.789-1",
-        name: "ÉXITO S.A.",
-        advisor: "María González",
-        channel: "Industrial",
-        current: 520000000,
-        overdue: 0,
-        maxDaysOverdue: 0,
-        status: "corriente",
-      },
-      {
-        nit: "900.789.012-3",
-        name: "DISTRIBUIDORA ABC",
-        advisor: "Pedro Ramírez",
-        channel: "Comercializador",
-        current: 180000000,
-        overdue: 45000000,
-        maxDaysOverdue: 67,
-        status: "gestion",
-      },
-      {
-        nit: "860.234.567-8",
-        name: "CARULLA VIVERO",
-        advisor: "María González",
-        channel: "VTD - Venta Directa",
-        current: 380000000,
-        overdue: 125000000,
-        maxDaysOverdue: 120,
-        status: "vencida",
-      },
-      {
-        nit: "830.567.890-2",
-        name: "OLÍMPICA S.A.",
-        advisor: "Carlos Méndez",
-        channel: "VTD - Venta Directa",
-        current: 290000000,
-        overdue: 35000000,
-        maxDaysOverdue: 28,
-        status: "gestion",
-        isNew: true,
-      },
-      {
-        nit: "891.234.567-0",
-        name: "LOCATEL COLOMBIA",
-        advisor: "Laura Torres",
-        channel: "Industrial",
-        current: 156000000,
-        overdue: 0,
-        maxDaysOverdue: 0,
-        status: "corriente",
-      },
-      {
-        nit: "800.890.123-4",
-        name: "RESTAURANT LA FRAGATA",
-        advisor: "Pedro Ramírez",
-        channel: "Industrial",
-        current: 42000000,
-        overdue: 18000000,
-        maxDaysOverdue: 45,
-        status: "vencida",
-        isNew: true,
-      },
-      {
-        nit: "900.345.678-9",
-        name: "SUPERMERCADOS ARA",
-        advisor: "María González",
-        channel: "Industrial",
-        current: 410000000,
-        overdue: 78000000,
-        maxDaysOverdue: 55,
-        status: "gestion",
-      },
-      {
-        nit: "860.678.901-5",
-        name: "D1 COLOMBIA",
-        advisor: "Carlos Méndez",
-        channel: "Industrial",
-        current: 380000000,
-        overdue: 0,
-        maxDaysOverdue: 0,
-        status: "corriente",
-      },
-      {
-        nit: "830.012.345-6",
-        name: "JUMBO COLOMBIA",
-        advisor: "Laura Torres",
-        channel: "Comercializador",
-        current: 295000000,
-        overdue: 92000000,
-        maxDaysOverdue: 105,
-        status: "vencida",
-      },
-    ],
-    []
-  )
-
+  () => [
+    {
+      nit: "890.123.456-7",
+      name: "DROGAS LA REBAJA",
+      advisor: "Carlos Méndez",
+      channel: "VTD - Venta Directa",
+      quota: 300000000,
+      current: 245000000,
+      overdue: 89000000,
+      overcapacity: 34000000,
+      maxDaysOverdue: 95,
+      status: "vencida",
+    },
+    {
+      nit: "800.456.789-1",
+      name: "ÉXITO S.A.",
+      advisor: "María González",
+      channel: "Industrial",
+      quota: 600000000,
+      current: 520000000,
+      overdue: 0,
+      overcapacity: 0,
+      maxDaysOverdue: 0,
+      status: "corriente",
+    },
+    {
+      nit: "900.789.012-3",
+      name: "DISTRIBUIDORA ABC",
+      advisor: "Pedro Ramírez",
+      channel: "Comercializador",
+      quota: 200000000,
+      current: 180000000,
+      overdue: 45000000,
+      overcapacity: 25000000,
+      maxDaysOverdue: 67,
+      status: "gestion",
+    },
+    {
+      nit: "860.234.567-8",
+      name: "CARULLA VIVERO",
+      advisor: "María González",
+      channel: "VTD - Venta Directa",
+      quota: 350000000,
+      current: 380000000,
+      overdue: 125000000,
+      overcapacity: 55000000,
+      maxDaysOverdue: 120,
+      status: "vencida",
+    },
+    {
+      nit: "830.567.890-2",
+      name: "OLÍMPICA S.A.",
+      advisor: "Carlos Méndez",
+      channel: "VTD - Venta Directa",
+      quota: 400000000,
+      current: 290000000,
+      overdue: 35000000,
+      overcapacity: 0,
+      maxDaysOverdue: 28,
+      status: "gestion",
+      isNew: true,
+    },
+    {
+      nit: "891.234.567-0",
+      name: "LOCATEL COLOMBIA",
+      advisor: "Laura Torres",
+      channel: "Industrial",
+      quota: 180000000,
+      current: 156000000,
+      overdue: 0,
+      overcapacity: 0,
+      maxDaysOverdue: 0,
+      status: "corriente",
+    },
+    {
+      nit: "800.890.123-4",
+      name: "RESTAURANT LA FRAGATA",
+      advisor: "Pedro Ramírez",
+      channel: "Industrial",
+      quota: 50000000,
+      current: 42000000,
+      overdue: 18000000,
+      overcapacity: 10000000,
+      maxDaysOverdue: 45,
+      status: "vencida",
+      isNew: true,
+    },
+    {
+      nit: "900.345.678-9",
+      name: "SUPERMERCADOS ARA",
+      advisor: "María González",
+      channel: "Industrial",
+      quota: 500000000,
+      current: 410000000,
+      overdue: 78000000,
+      overcapacity: 0,
+      maxDaysOverdue: 55,
+      status: "gestion",
+    },
+    {
+      nit: "860.678.901-5",
+      name: "D1 COLOMBIA",
+      advisor: "Carlos Méndez",
+      channel: "Industrial",
+      quota: 450000000,
+      current: 380000000,
+      overdue: 0,
+      overcapacity: 0,
+      maxDaysOverdue: 0,
+      status: "corriente",
+    },
+    {
+      nit: "830.012.345-6",
+      name: "JUMBO COLOMBIA",
+      advisor: "Laura Torres",
+      channel: "Comercializador",
+      quota: 280000000,
+      current: 295000000,
+      overdue: 92000000,
+      overcapacity: 47000000,
+      maxDaysOverdue: 105,
+      status: "vencida",
+    },
+  ],
+  []
+);
   const columns: ColumnDef<Client>[] = useMemo(
     () => [
       {
@@ -203,15 +222,29 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
         ),
       },
       {
-        accessorKey: "advisor",
-        header: "Asesor",
-      },
-      {
         accessorKey: "channel",
         header: "Canal",
         cell: ({ row }) => (
           <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
             {row.getValue("channel")}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "quota",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="-ml-4"
+          >
+            Cupo (COP)
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <span className="font-medium text-[#ff6600]">
+            {formatCurrency(row.getValue("quota"))}
           </span>
         ),
       },
@@ -255,6 +288,24 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
             </span>
           )
         },
+      },
+      {
+        accessorKey: "overcapacity",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="-ml-4"
+          >
+            Sobrecupo (COP)
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <span className="font-medium text-[#ff6600]">
+            {formatCurrency(row.getValue("overcapacity"))}
+          </span>
+        ),
       },
       {
         accessorKey: "maxDaysOverdue",
@@ -312,13 +363,6 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
             >
               <Eye className="mr-1 h-3.5 w-3.5" />
               Ver
-            </Button>
-            <Button
-              size="sm"
-              className="h-8 bg-[#00359a] text-white hover:bg-[#002a7a]"
-            >
-              <Phone className="mr-1 h-3.5 w-3.5" />
-              Cobrar
             </Button>
           </div>
         ),
