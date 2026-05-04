@@ -269,7 +269,9 @@ const HeaderWithTooltip = ({
 const columns: ColumnDef<RotationData>[] = [
   {
     accessorKey: "periodo",
-    header: () => <HeaderWithTooltip label="Período" tooltipKey="periodo" />,
+    header: ({ column }) => (
+      <HeaderWithTooltip label="Período" tooltipKey="periodo" column={column} />
+    ),
     cell: ({ row }) => {
       const periodo = row.getValue("periodo") as string
       const isCurrentMonth = periodo === mockRotationData[mockRotationData.length - 1].periodo
@@ -415,8 +417,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 }
 
 export function RotationTable() {
-  const [rangeFilter, setRangeFilter] = useState("12")
-  const [sorting, setSorting] = useState<SortingState>([])
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "periodo", desc: false },
+  ])
 
   const table = useReactTable({
     data: mockRotationData,
@@ -544,16 +547,6 @@ export function RotationTable() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-4">
             <CardTitle>Rotación de Cartera</CardTitle>
-            <Select value={rangeFilter} onValueChange={setRangeFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Seleccionar rango" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="6">Últimos 6 meses</SelectItem>
-                <SelectItem value="12">Últimos 12 meses</SelectItem>
-                <SelectItem value="24">Últimos 24 meses</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardHeader>
         <CardContent>
