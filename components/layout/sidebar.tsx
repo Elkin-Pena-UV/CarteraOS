@@ -44,7 +44,7 @@ const menuItems: MenuItem[] = [
     children: [
       {
         title: "Resumen General",
-        href: "/",
+        href: "/cartera/general",
         icon: BarChart3,
       },
       {
