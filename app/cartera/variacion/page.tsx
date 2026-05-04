@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell"
 import { VariationTable } from "@/components/cartera/variation-table"
+import { KPICards } from "@/components/cartera/kpi-variation-cards"
 
 export default function VariacionPage() {
   return (
@@ -11,6 +12,7 @@ export default function VariacionPage() {
             Comparativo de cartera mes actual vs mes anterior
           </p>
         </div>
+        <KPICards />
         <VariationTable />
       </div>
     </AppShell>

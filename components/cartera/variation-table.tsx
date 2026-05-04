@@ -28,9 +28,6 @@ import {
   TrendingUp,
   TrendingDown,
   AlertTriangle,
-  Users,
-  AlertCircle,
-  DollarSign,
   ArrowUpDown,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -402,25 +399,6 @@ export function VariationTable() {
     },
   })
 
-  // Calculate KPIs
-  const clientesEnSobrecupo = mockVariationData.filter(
-    (c) => c.sobrecupoCop > 0
-  ).length
-  const mayorSobrecupo = Math.max(...mockVariationData.map((c) => c.sobrecupoCop))
-  const mayorSobrecupoCliente = mockVariationData.find(
-    (c) => c.sobrecupoCop === mayorSobrecupo
-  )
-  const carteraTotalMesActual = mockVariationData.reduce(
-    (acc, c) => acc + c.carteraMesActual,
-    0
-  )
-  const carteraTotalMesAnterior = mockVariationData.reduce(
-    (acc, c) => acc + c.carteraUltimoMes,
-    0
-  )
-  const variacionTotal = carteraTotalMesActual - carteraTotalMesAnterior
-  const variacionTotalPct = (variacionTotal / carteraTotalMesAnterior) * 100
-
   const [currentMonth, setCurrentMonth] = useState("")
 
   useEffect(() => {
@@ -432,68 +410,6 @@ export function VariationTable() {
 
   return (
     <div className="space-y-6">
-      {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Clientes en Sobrecupo
-            </CardTitle>
-            <Users className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {clientesEnSobrecupo}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              de {mockVariationData.length} clientes totales
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Mayor Sobrecupo</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(mayorSobrecupo)}
-            </div>
-            <p className="truncate text-xs text-muted-foreground">
-              {mayorSobrecupoCliente?.razonSocial}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Cartera Total del Mes
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-[#ff6600]" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(carteraTotalMesActual)}
-            </div>
-            <p
-              className={cn(
-                "flex items-center gap-1 text-xs",
-                variacionTotal >= 0 ? "text-green-600" : "text-red-600"
-              )}
-            >
-              {variacionTotal >= 0 ? (
-                <TrendingUp className="h-3 w-3" />
-              ) : (
-                <TrendingDown className="h-3 w-3" />
-              )}
-              {formatPercent(variacionTotalPct)} vs mes anterior
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Table Section */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
