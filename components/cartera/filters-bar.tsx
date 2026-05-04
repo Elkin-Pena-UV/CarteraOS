@@ -17,7 +17,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { CalendarIcon, X, Mail } from "lucide-react"
+import { CalendarIcon, X, Mail, ChevronDown, ChevronUp } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -87,6 +87,11 @@ export function FiltersBar({ value, onChange }: FiltersBarProps) {
           onClick={() => setIsExpanded((value) => !value)}
           className={cn("gap-2", isExpanded ? "h-9 px-3" : "h-8 px-2 text-xs")}
         >
+          {isExpanded ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
           {isExpanded ? "Minimizar" : "Desplegar"}
         </Button>
       </div>
