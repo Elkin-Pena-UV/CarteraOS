@@ -181,15 +181,22 @@ const mockRotationData: RotationData[] = [
     acumuladoVenta12m: 11000000000,
     rotCxC: 19,
   },
+  {
+    periodo: "202605",
+    cartera: 707343936,
+    ventaBruta: 1060000000,
+    rebate: 25000000,
+    ventaNeta: 1035000000,
+    promedioVentas3m: 936000000,
+    acumuladoVenta12m: 11000000000,
+    rotCxC: 19,
+  },
 ]
 
 
 const formatCurrency = (value: number): string => {
   if (value >= 1_000_000_000_000) {
     return `$${(value / 1_000_000_000_000).toFixed(1)} B`
-  }
-  if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(0)} MM`
   }
   if (value >= 1_000_000) {
     return `$${(value / 1_000_000).toFixed(0)} M`
