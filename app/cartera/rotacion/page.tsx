@@ -2,6 +2,11 @@ import { AppShell } from "@/components/layout/app-shell"
 import { RotationTable } from "@/components/cartera/rotation-table"
 import { FiltersBarCopy } from "@/components/cartera/filters-barcopy"
 
+export const metadata = {
+  title: 'Rotación de Cartera',
+  description: 'Análisis de rotación de cuentas por cobrar',
+}
+
 export default function RotacionPage() {
   return (
     <AppShell>

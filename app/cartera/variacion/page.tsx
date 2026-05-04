@@ -2,6 +2,11 @@ import { AppShell } from "@/components/layout/app-shell"
 import { VariationTable } from "@/components/cartera/variation-table"
 import { KPICards } from "@/components/cartera/kpi-variation-cards"
 
+export const metadata = {
+  title: 'Variación de Cartera',
+  description: 'Comparativo de cartera mes actual vs mes anterior',
+}
+
 export default function VariacionPage() {
   return (
     <AppShell>
