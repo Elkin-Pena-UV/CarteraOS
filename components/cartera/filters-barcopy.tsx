@@ -16,8 +16,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { CalendarIcon, Filter, X, Mail } from "lucide-react"
+import { CalendarIcon, ChevronDown, ChevronUp, Filter, Mail, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 const monthOptions = [
   { value: "enero", label: "Enero" },
@@ -61,6 +62,7 @@ function formatMonthLabel(month: string) {
 
 export function FiltersBarCopy() {
   const { toast } = useToast()
+  const [isExpanded, setIsExpanded] = useState(true)
   const [channel, setChannel] = useState<string>("")
   const [clientType, setClientType] = useState<string>("")
   const [clientName, setClientName] = useState<string>("")
@@ -111,184 +113,215 @@ export function FiltersBarCopy() {
   }
 
   return (
-    <div className="rounded-lg border bg-card p-4">
-      <div className="flex flex-wrap items-end gap-3">
-        {/* Periodo */}
-        <div className="min-w-[220px] space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Periodo</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="h-9 w-full justify-start text-left font-normal">
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {periodLabel}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[580px] p-4" align="start">
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium">Seleccionar periodo</p>
-                  <p className="text-xs text-muted-foreground">
-                    Usa un preset rápido o define un rango personalizado por mes y año.
-                  </p>
-                </div>
+    <div className="sticky top-17 z-20 rounded-lg border bg-card/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/80">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+        <div>
+          <p className="text-sm font-semibold">Filtros de rotación</p>
+          {isExpanded ? (
+            <p className="text-xs text-muted-foreground">Periodo actual: {periodLabel}</p>
+          ) : null}
+        </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Periodo rápido</Label>
-                  <Select value={periodPreset} onValueChange={setPeriodPreset}>
-                    <SelectTrigger className="h-9 w-full">
-                      <SelectValue placeholder="Seleccionar periodo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {periodPresets.map((preset) => (
-                        <SelectItem key={preset.value} value={preset.value}>
-                          {preset.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+        <Button
+          variant="ghost"
+          onClick={() => setIsExpanded((value) => !value)}
+          className={cn("gap-2", isExpanded ? "h-9 px-3" : "h-8 px-2 text-xs")}
+        >
+          {isExpanded ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
+          {isExpanded ? "Minimizar" : "Desplegar"}
+        </Button>
+      </div>
 
-                {isCustomPeriod ? (
-                  <div className="space-y-3 rounded-md border p-3">
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Desde</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Select value={startMonth} onValueChange={setStartMonth}>
-                            <SelectTrigger className="h-9 w-full">
-                              <SelectValue placeholder="Mes" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {monthValues.map((month) => (
-                                <SelectItem key={month} value={month}>
-                                  {formatMonthLabel(month)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select value={startYear} onValueChange={setStartYear}>
-                            <SelectTrigger className="h-9 w-220px">
-                              <SelectValue placeholder="Año" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {yearOptions.map((year) => (
-                                <SelectItem key={year} value={year}>
-                                  {year}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Hasta</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Select value={endMonth} onValueChange={setEndMonth}>
-                            <SelectTrigger className="h-9 w-full">
-                              <SelectValue placeholder="Mes" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {monthValues.map((month) => (
-                                <SelectItem key={month} value={month}>
-                                  {formatMonthLabel(month)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select value={endYear} onValueChange={setEndYear}>
-                            <SelectTrigger className="h-9 w-220px">
-                              <SelectValue placeholder="Año" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {yearOptions.map((year) => (
-                                <SelectItem key={year} value={year}>
-                                  {year}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
+      <div
+        className={cn(
+          "overflow-hidden transition-all duration-300 ease-in-out",
+          isExpanded ? "max-h-[900px] opacity-100" : "max-h-0 opacity-0"
+        )}
+      >
+        <div className="p-4">
+          <div className="flex flex-wrap items-end gap-3">
+            {/* Periodo */}
+            <div className="min-w-[220px] space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Periodo</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="h-9 w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {periodLabel}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[580px] p-4" align="start">
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium">Seleccionar periodo</p>
+                      <p className="text-xs text-muted-foreground">
+                        Usa un preset rápido o define un rango personalizado por mes y año.
+                      </p>
                     </div>
 
-                    <p className="text-xs text-muted-foreground">
-                      Ejemplo: octubre 2025 a julio 2026.
-                    </p>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Periodo rápido</Label>
+                      <Select value={periodPreset} onValueChange={setPeriodPreset}>
+                        <SelectTrigger className="h-9 w-full">
+                          <SelectValue placeholder="Seleccionar periodo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {periodPresets.map((preset) => (
+                            <SelectItem key={preset.value} value={preset.value}>
+                              {preset.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {isCustomPeriod ? (
+                      <div className="space-y-3 rounded-md border p-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">Desde</Label>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Select value={startMonth} onValueChange={setStartMonth}>
+                                <SelectTrigger className="h-9 w-full">
+                                  <SelectValue placeholder="Mes" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {monthValues.map((month) => (
+                                    <SelectItem key={month} value={month}>
+                                      {formatMonthLabel(month)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select value={startYear} onValueChange={setStartYear}>
+                                <SelectTrigger className="h-9 w-[220px]">
+                                  <SelectValue placeholder="Año" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {yearOptions.map((year) => (
+                                    <SelectItem key={year} value={year}>
+                                      {year}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">Hasta</Label>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Select value={endMonth} onValueChange={setEndMonth}>
+                                <SelectTrigger className="h-9 w-full">
+                                  <SelectValue placeholder="Mes" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {monthValues.map((month) => (
+                                    <SelectItem key={month} value={month}>
+                                      {formatMonthLabel(month)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select value={endYear} onValueChange={setEndYear}>
+                                <SelectTrigger className="h-9 w-[220px]">
+                                  <SelectValue placeholder="Año" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {yearOptions.map((year) => (
+                                    <SelectItem key={year} value={year}>
+                                      {year}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground">
+                          Ejemplo: octubre 2025 a julio 2026.
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
+                </PopoverContent>
+              </Popover>
+            </div>
 
-        {/* Canal */}
-        <div className="min-w-[160px] space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Canal</Label>
-          <Select value={channel} onValueChange={setChannel}>
-            <SelectTrigger className="h-9">
-              <SelectValue placeholder="Todos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="industrial">Industrial</SelectItem>
-              <SelectItem value="comercializador">Comercializador</SelectItem>
-              <SelectItem value="vtd">VTD</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            {/* Canal */}
+            <div className="min-w-[160px] space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Canal</Label>
+              <Select value={channel} onValueChange={setChannel}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="industrial">Industrial</SelectItem>
+                  <SelectItem value="comercializador">Comercializador</SelectItem>
+                  <SelectItem value="vtd">VTD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-        {/* Tipo de cliente */}
-        <div className="min-w-[160px] space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Tipo de cliente</Label>
-          <Select value={clientType} onValueChange={setClientType}>
-            <SelectTrigger className="h-9">
-              <SelectValue placeholder="Todos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="credito">Crédito</SelectItem>
-              <SelectItem value="anticipado">Anticipado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            {/* Tipo de cliente */}
+            <div className="min-w-[160px] space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Tipo de cliente</Label>
+              <Select value={clientType} onValueChange={setClientType}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="credito">Crédito</SelectItem>
+                  <SelectItem value="anticipado">Anticipado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-        {/* Cliente */}
-        <div className="min-w-[180px] space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Cliente</Label>
-          <Input
-            placeholder="Buscar cliente..."
-            value={clientName}
-            onChange={(e) => setClientName(e.target.value)}
-            className="h-9"
-          />
-        </div>
+            {/* Cliente */}
+            <div className="min-w-[180px] space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Cliente</Label>
+              <Input
+                placeholder="Buscar cliente..."
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                className="h-9"
+              />
+            </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2 ml-auto">
-          <Button
-            onClick={handleApplyFilters}
-            className="h-9 bg-[#ff6600] text-white hover:bg-[#e65c00]"
-          >
-            <Filter className="mr-2 h-4 w-4" />
-            Aplicar filtros
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={handleClearFilters}
-            className="h-9"
-          >
-            <X className="mr-2 h-4 w-4" />
-            Limpiar
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleExportExcel}
-            className="h-9"
-          >
-            <Mail className="mr-2 h-4 w-4" />
-            Enviar reporte
-          </Button>
+            {/* Action Buttons */}
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                onClick={handleApplyFilters}
+                className="h-9 bg-[#ff6600] text-white hover:bg-[#e65c00]"
+              >
+                <Filter className="mr-2 h-4 w-4" />
+                Aplicar filtros
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={handleClearFilters}
+                className="h-9"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Limpiar
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleExportExcel}
+                className="h-9"
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                Enviar reporte
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
