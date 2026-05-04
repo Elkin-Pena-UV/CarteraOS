@@ -14,10 +14,8 @@ export default function AntiguedadPage() {
           </p>
         </div>
         <AgingCharts />
-        <FiltersBar />
         <div>
           <h2 className="mb-4 text-lg font-semibold">Detalle por Cliente</h2>
-          <ClientsTable onViewClient={(client) => console.log("Ver cliente:", client)} />
         </div>
       </div>
     </AppShell>
