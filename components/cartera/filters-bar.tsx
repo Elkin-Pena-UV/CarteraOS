@@ -17,39 +17,51 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { CalendarIcon, Filter, X, Mail } from "lucide-react"
+import { CalendarIcon, X, Mail } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { DateRange } from "react-day-picker"
 
-export function FiltersBar() {
+export type ClientFilters = {
+  channel: string
+  advisor: string
+  status: string
+  clientName: string
+  minValue: string
+  maxValue: string
+  dateRange: DateRange | undefined
+}
+
+export const initialClientFilters: ClientFilters = {
+  channel: "",
+  advisor: "",
+  status: "",
+  clientName: "",
+  minValue: "",
+  maxValue: "",
+  dateRange: undefined,
+}
+
+interface FiltersBarProps {
+  value: ClientFilters
+  onChange: (nextFilters: ClientFilters) => void
+}
+
+export function FiltersBar({ value, onChange }: FiltersBarProps) {
   const { toast } = useToast()
   const [isExpanded, setIsExpanded] = useState(true)
-  const [channel, setChannel] = useState<string>("")
-  const [advisor, setAdvisor] = useState<string>("")
-  const [status, setStatus] = useState<string>("")
-  const [clientName, setClientName] = useState<string>("")
-  const [minValue, setMinValue] = useState<string>("")
-  const [maxValue, setMaxValue] = useState<string>("")
-  const [dateRange, setDateRange] = useState<DateRange | undefined>()
 
-  const handleApplyFilters = () => {
-    toast({
-      title: "Filtros aplicados",
-      description: "La tabla ha sido actualizada con los filtros seleccionados.",
+  const updateFilter = <K extends keyof ClientFilters>(key: K, nextValue: ClientFilters[K]) => {
+    onChange({
+      ...value,
+      [key]: nextValue,
     })
   }
 
   const handleClearFilters = () => {
-    setChannel("")
-    setAdvisor("")
-    setStatus("")
-    setClientName("")
-    setMinValue("")
-    setMaxValue("")
-    setDateRange(undefined)
+    onChange(initialClientFilters)
     toast({
       title: "Filtros limpiados",
       description: "Se han removido todos los filtros.",
@@ -85,7 +97,7 @@ export function FiltersBar() {
             {/* Canal */}
             <div className="min-w-[140px] space-y-1.5">
               <Label className="text-xs text-muted-foreground">Canal</Label>
-              <Select value={channel} onValueChange={setChannel}>
+              <Select value={value.channel} onValueChange={(next) => updateFilter("channel", next)}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
@@ -101,7 +113,7 @@ export function FiltersBar() {
             {/* Asesor */}
             <div className="min-w-[140px] space-y-1.5">
               <Label className="text-xs text-muted-foreground">Asesor</Label>
-              <Select value={advisor} onValueChange={setAdvisor}>
+              <Select value={value.advisor} onValueChange={(next) => updateFilter("advisor", next)}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
@@ -118,7 +130,7 @@ export function FiltersBar() {
             {/* Estado */}
             <div className="min-w-[140px] space-y-1.5">
               <Label className="text-xs text-muted-foreground">Estado</Label>
-              <Select value={status} onValueChange={setStatus}>
+              <Select value={value.status} onValueChange={(next) => updateFilter("status", next)}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
@@ -140,18 +152,18 @@ export function FiltersBar() {
                     variant="outline"
                     className={cn(
                       "h-9 w-full justify-start text-left font-normal",
-                      !dateRange && "text-muted-foreground"
+                      !value.dateRange && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange?.from ? (
-                      dateRange.to ? (
+                    {value.dateRange?.from ? (
+                      value.dateRange.to ? (
                         <>
-                          {format(dateRange.from, "dd/MM/yy", { locale: es })} -{" "}
-                          {format(dateRange.to, "dd/MM/yy", { locale: es })}
+                          {format(value.dateRange.from, "dd/MM/yy", { locale: es })} -{" "}
+                          {format(value.dateRange.to, "dd/MM/yy", { locale: es })}
                         </>
                       ) : (
-                        format(dateRange.from, "dd/MM/yyyy", { locale: es })
+                        format(value.dateRange.from, "dd/MM/yyyy", { locale: es })
                       )
                     ) : (
                       "Seleccionar rango"
@@ -162,9 +174,9 @@ export function FiltersBar() {
                   <Calendar
                     autoFocus
                     mode="range"
-                    defaultMonth={dateRange?.from}
-                    selected={dateRange}
-                    onSelect={setDateRange}
+                    defaultMonth={value.dateRange?.from}
+                    selected={value.dateRange}
+                    onSelect={(next) => updateFilter("dateRange", next)}
                     numberOfMonths={2}
                   />
                 </PopoverContent>
@@ -176,8 +188,8 @@ export function FiltersBar() {
               <Label className="text-xs text-muted-foreground">Nombre Cliente</Label>
               <Input
                 placeholder="Buscar nombre..."
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
+                value={value.clientName}
+                onChange={(e) => updateFilter("clientName", e.target.value)}
                 className="h-9"
               />
             </div>
@@ -188,16 +200,16 @@ export function FiltersBar() {
               <div className="flex items-center gap-1">
                 <Input
                   placeholder="Min"
-                  value={minValue}
-                  onChange={(e) => setMinValue(e.target.value)}
+                  value={value.minValue}
+                  onChange={(e) => updateFilter("minValue", e.target.value)}
                   className="h-9 w-20"
                   type="number"
                 />
                 <span className="text-muted-foreground">-</span>
                 <Input
                   placeholder="Max"
-                  value={maxValue}
-                  onChange={(e) => setMaxValue(e.target.value)}
+                  value={value.maxValue}
+                  onChange={(e) => updateFilter("maxValue", e.target.value)}
                   className="h-9 w-20"
                   type="number"
                 />
@@ -206,13 +218,6 @@ export function FiltersBar() {
 
             {/* Action Buttons */}
             <div className="ml-auto flex items-center gap-2">
-              <Button
-                onClick={handleApplyFilters}
-                className="h-9 bg-[#ff6600] text-white hover:bg-[#e65c00]"
-              >
-                <Filter className="mr-2 h-4 w-4" />
-                Aplicar filtros
-              </Button>
               <Button
                 variant="ghost"
                 onClick={handleClearFilters}

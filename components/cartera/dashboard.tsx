@@ -3,13 +3,14 @@
 import { useState } from "react"
 import { KPICards } from "./kpi-cards"
 import { AgingCharts } from "./aging-charts"
-import { FiltersBar } from "./filters-bar"
+import { FiltersBar, initialClientFilters, type ClientFilters } from "./filters-bar"
 import { ClientsTable, type Client } from "./clients-table"
 import { ClientDrawer } from "./client-drawer"
 
 export function CarteraDashboard() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [draftFilters, setDraftFilters] = useState<ClientFilters>(initialClientFilters)
 
   const handleViewClient = (client: Client) => {
     setSelectedClient(client)
@@ -31,7 +32,10 @@ export function CarteraDashboard() {
       </div>
 
       {/* Filters */}
-      <FiltersBar />
+      <FiltersBar
+        value={draftFilters}
+        onChange={setDraftFilters}
+      />
 
       {/* KPI Cards */}
       <KPICards />
@@ -42,7 +46,7 @@ export function CarteraDashboard() {
       {/* Clients Table */}
       <div>
         <h2 className="mb-4 text-lg font-semibold">Tabla de Clientes</h2>
-        <ClientsTable onViewClient={handleViewClient} />
+        <ClientsTable onViewClient={handleViewClient} filters={draftFilters} />
       </div>
 
       {/* Client Detail Drawer */}

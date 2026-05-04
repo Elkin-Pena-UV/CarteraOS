@@ -22,15 +22,19 @@ import {
 } from "@/components/ui/table"
 import { ChevronLeft, ChevronRight, Eye, Phone, ArrowUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { ClientFilters } from "./filters-bar"
 
 export type Client = {
   nit: string
   name: string
   advisor: string
   channel: string
+  quota: number
   current: number
   overdue: number
+  overcapacity: number
   maxDaysOverdue: number
+  dueDate: string
   status: "corriente" | "vencida" | "gestion"
   isNew?: boolean
 }
@@ -64,9 +68,10 @@ const formatCurrency = (value: number) => {
 
 interface ClientsTableProps {
   onViewClient: (client: Client) => void
+  filters: ClientFilters
 }
 
-export function ClientsTable({ onViewClient }: ClientsTableProps) {
+export function ClientsTable({ onViewClient, filters }: ClientsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
 
   const data: Client[] = useMemo(
@@ -81,6 +86,7 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
       overdue: 89000000,
       overcapacity: 34000000,
       maxDaysOverdue: 95,
+      dueDate: "2026-02-11",
       status: "vencida",
     },
     {
@@ -93,6 +99,7 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
       overdue: 0,
       overcapacity: 0,
       maxDaysOverdue: 0,
+      dueDate: "2026-05-20",
       status: "corriente",
     },
     {
@@ -105,6 +112,7 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
       overdue: 45000000,
       overcapacity: 25000000,
       maxDaysOverdue: 67,
+      dueDate: "2026-03-14",
       status: "gestion",
     },
     {
@@ -117,6 +125,7 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
       overdue: 125000000,
       overcapacity: 55000000,
       maxDaysOverdue: 120,
+      dueDate: "2026-01-25",
       status: "vencida",
     },
     {
@@ -129,6 +138,7 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
       overdue: 35000000,
       overcapacity: 0,
       maxDaysOverdue: 28,
+      dueDate: "2026-04-01",
       status: "gestion",
       isNew: true,
     },
@@ -142,6 +152,7 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
       overdue: 0,
       overcapacity: 0,
       maxDaysOverdue: 0,
+      dueDate: "2026-05-30",
       status: "corriente",
     },
     {
@@ -154,6 +165,7 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
       overdue: 18000000,
       overcapacity: 10000000,
       maxDaysOverdue: 45,
+      dueDate: "2026-03-08",
       status: "vencida",
       isNew: true,
     },
@@ -167,6 +179,7 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
       overdue: 78000000,
       overcapacity: 0,
       maxDaysOverdue: 55,
+      dueDate: "2026-02-28",
       status: "gestion",
     },
     {
@@ -179,6 +192,7 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
       overdue: 0,
       overcapacity: 0,
       maxDaysOverdue: 0,
+      dueDate: "2026-06-12",
       status: "corriente",
     },
     {
@@ -191,11 +205,73 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
       overdue: 92000000,
       overcapacity: 47000000,
       maxDaysOverdue: 105,
+      dueDate: "2026-01-12",
       status: "vencida",
     },
   ],
   []
 );
+
+  const filteredData = useMemo(() => {
+    const normalizedClientName = filters.clientName.trim().toLowerCase()
+    const normalizedAdvisor = filters.advisor.toLowerCase()
+    const normalizedStatus = filters.status.toLowerCase()
+    const normalizedChannel = filters.channel.toLowerCase()
+
+    const minValue = filters.minValue === "" ? null : Number(filters.minValue)
+    const maxValue = filters.maxValue === "" ? null : Number(filters.maxValue)
+
+    const fromDate = filters.dateRange?.from
+      ? new Date(filters.dateRange.from.setHours(0, 0, 0, 0))
+      : null
+    const toDate = filters.dateRange?.to
+      ? new Date(filters.dateRange.to.setHours(23, 59, 59, 999))
+      : null
+
+    return data.filter((client) => {
+      if (normalizedChannel && normalizedChannel !== "all") {
+        if (!client.channel.toLowerCase().includes(normalizedChannel)) {
+          return false
+        }
+      }
+
+      if (normalizedAdvisor && normalizedAdvisor !== "all") {
+        if (!client.advisor.toLowerCase().includes(normalizedAdvisor)) {
+          return false
+        }
+      }
+
+      if (normalizedStatus && normalizedStatus !== "all") {
+        if (client.status.toLowerCase() !== normalizedStatus) {
+          return false
+        }
+      }
+
+      if (normalizedClientName && !client.name.toLowerCase().includes(normalizedClientName)) {
+        return false
+      }
+
+      const portfolioValue = client.current + client.overdue
+      if (minValue !== null && !Number.isNaN(minValue) && portfolioValue < minValue) {
+        return false
+      }
+      if (maxValue !== null && !Number.isNaN(maxValue) && portfolioValue > maxValue) {
+        return false
+      }
+
+      if (fromDate || toDate) {
+        const clientDueDate = new Date(client.dueDate)
+        if (fromDate && clientDueDate < fromDate) {
+          return false
+        }
+        if (toDate && clientDueDate > toDate) {
+          return false
+        }
+      }
+
+      return true
+    })
+  }, [data, filters])
   const columns: ColumnDef<Client>[] = useMemo(
     () => [
       {
@@ -375,7 +451,7 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
   )
 
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -452,17 +528,17 @@ export function ClientsTable({ onViewClient }: ClientsTableProps) {
       {/* Pagination */}
       <div className="flex items-center justify-between border-t px-4 py-3">
         <p className="text-sm text-muted-foreground">
-          Mostrando{" "}
-          {table.getState().pagination.pageIndex *
-            table.getState().pagination.pageSize +
-            1}
-          -
-          {Math.min(
-            (table.getState().pagination.pageIndex + 1) *
-              table.getState().pagination.pageSize,
-            table.getFilteredRowModel().rows.length
-          )}{" "}
-          de {table.getFilteredRowModel().rows.length} clientes
+          {table.getFilteredRowModel().rows.length > 0
+            ? `Mostrando ${
+                table.getState().pagination.pageIndex *
+                  table.getState().pagination.pageSize +
+                1
+              }-${Math.min(
+                (table.getState().pagination.pageIndex + 1) *
+                  table.getState().pagination.pageSize,
+                table.getFilteredRowModel().rows.length
+              )} de ${table.getFilteredRowModel().rows.length} clientes`
+            : "Mostrando 0 de 0 clientes"}
         </p>
         <div className="flex items-center gap-2">
           <Button
