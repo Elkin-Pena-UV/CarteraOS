@@ -67,14 +67,15 @@ const formatCurrency = (value: number) => {
 }
 
 interface ClientsTableProps {
+  data: Client[]
   onViewClient: (client: Client) => void
   filters: ClientFilters
 }
 
-export function ClientsTable({ onViewClient, filters }: ClientsTableProps) {
+export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
 
-  const data: Client[] = useMemo(
+  const datas: Client[] = useMemo(
   () => [
     {
       nit: "890.123.456-7",

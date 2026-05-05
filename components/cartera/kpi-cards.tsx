@@ -19,6 +19,15 @@ interface KPICardProps {
     threshold: number
   }
 }
+interface KPICardsProps {
+  kpis: {
+    totalCorriente: string
+    totalVencida: string
+    clientesEnMora: number
+    totalClientes: number
+    porcentajeVencida: string
+  }
+}
 
 function KPICard({
   title,
@@ -111,41 +120,39 @@ function KPICard({
   )
 }
 
-export function KPICards() {
-  const kpis: KPICardProps[] = [
+export function KPICards({ kpis }: KPICardsProps) {
+  const kpiCards: KPICardProps[] = [
     {
       title: "Total Cartera Corriente",
-      value: "$4.28B",
-      subtitle: "1,234 facturas al día",
-      trend: { value: "+12.5%", positive: true },
+      value: kpis.totalCorriente,         // 👈 dato real
+      subtitle: "facturas al día",
+      // trend: { value: "+12.5%", positive: true },
       accentColor: "#ff6600",
     },
     {
       title: "Total Cartera Vencida",
-      value: "$1.24B",
-      subtitle: "342 facturas vencidas",
-      trend: { value: "+8.3%", positive: false },
+      value: kpis.totalVencida,           // 👈 dato real
+      subtitle: "facturas vencidas",
+      // trend: { value: "+8.3%", positive: false },
       accentColor: "#EF4444",
     },
     {
       title: "Clientes en Mora",
-      value: "87",
-      subtitle: "de 456 clientes activos",
-      badge: "+5 nuevos",
+      value: String(kpis.clientesEnMora), // 👈 dato real
+      subtitle: `de ${kpis.totalClientes} clientes activos`,
       accentColor: "#00359a",
     },
     {
       title: "% Vencida sobre Total",
-      value: "22.5%",
+      value: `${kpis.porcentajeVencida}%`, // 👈 dato real
       subtitle: "Meta: < 25%",
       accentColor: "#22C55E",
-      progressArc: { percentage: 22.5, threshold: 25 },
+      progressArc: { percentage: Number(kpis.porcentajeVencida), threshold: 25 },
     },
   ]
-
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {kpis.map((kpi, index) => (
+      {kpiCards.map((kpi, index) => (
         <KPICard key={index} {...kpi} />
       ))}
     </div>
