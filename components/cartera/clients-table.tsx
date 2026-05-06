@@ -215,6 +215,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
 
   const filteredData = useMemo(() => {
     const normalizedClientName = filters.clientName.trim().toLowerCase()
+    const normalizedClientQueryNoPunct = normalizedClientName.replace(/[^a-z0-9]/gi, "")
     const normalizedAdvisor = filters.advisor.toLowerCase()
     const normalizedStatus = filters.status.toLowerCase()
     const normalizedChannel = filters.channel.toLowerCase()
@@ -248,8 +249,13 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         }
       }
 
-      if (normalizedClientName && !client.name.toLowerCase().includes(normalizedClientName)) {
-        return false
+      if (normalizedClientName) {
+        const nameMatches = client.name.toLowerCase().includes(normalizedClientName)
+        const nitNormalized = client.nit ? client.nit.toLowerCase().replace(/[^a-z0-9]/gi, "") : ""
+        const nitMatches = nitNormalized.includes(normalizedClientQueryNoPunct)
+        if (!nameMatches && !nitMatches) {
+          return false
+        }
       }
 
       const portfolioValue = client.current + client.overdue

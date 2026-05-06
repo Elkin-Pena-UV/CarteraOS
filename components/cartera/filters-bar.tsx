@@ -188,11 +188,11 @@ export function FiltersBar({ value, onChange }: FiltersBarProps) {
               </Popover>
             </div>
 
-            {/* Nombre cliente */}
+            {/* Nombre / NIT */}
             <div className="min-w-[140px] space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Nombre Cliente</Label>
+              <Label className="text-xs text-muted-foreground">Nombre o NIT</Label>
               <Input
-                placeholder="Buscar nombre..."
+                placeholder="Buscar nombre o NIT..."
                 value={value.clientName}
                 onChange={(e) => updateFilter("clientName", e.target.value)}
                 className="h-9"
