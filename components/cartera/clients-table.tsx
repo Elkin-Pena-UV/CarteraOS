@@ -28,13 +28,23 @@ export type Client = {
   nit: string
   name: string
   advisor: string
+  paymentCondition: string
   channel: string
   quota: number
   current: number
+  overdue1: number
+  overdue2: number
+  overdue3: number
+  overdue4: number
   overdue: number
+  totalBalance: number
+  totalCop: number
   overcapacity: number
   maxDaysOverdue: number
   dueDate: string
+  remittanceValue: number
+  remittanceWeight: number
+  remittanceDocuments: number
   status: "corriente" | "vencida" | "gestion"
   isNew?: boolean
 }
@@ -66,6 +76,12 @@ const formatCurrency = (value: number) => {
   }).format(value)
 }
 
+const formatNumber = (value: number) => {
+  return new Intl.NumberFormat("es-CO", {
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
 interface ClientsTableProps {
   data: Client[]
   onViewClient: (client: Client) => void
@@ -75,143 +91,154 @@ interface ClientsTableProps {
 export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
 
-  const datas: Client[] = useMemo(
-  () => [
-    {
-      nit: "890.123.456-7",
-      name: "DROGAS LA REBAJA",
-      advisor: "Carlos Méndez",
-      channel: "VTD - Venta Directa",
-      quota: 300000000,
-      current: 245000000,
-      overdue: 89000000,
-      overcapacity: 34000000,
-      maxDaysOverdue: 95,
-      dueDate: "2026-02-11",
-      status: "vencida",
-    },
-    {
-      nit: "800.456.789-1",
-      name: "ÉXITO S.A.",
-      advisor: "María González",
-      channel: "Industrial",
-      quota: 600000000,
-      current: 520000000,
-      overdue: 0,
-      overcapacity: 0,
-      maxDaysOverdue: 0,
-      dueDate: "2026-05-20",
-      status: "corriente",
-    },
-    {
-      nit: "900.789.012-3",
-      name: "DISTRIBUIDORA ABC",
-      advisor: "Pedro Ramírez",
-      channel: "Comercializador",
-      quota: 200000000,
-      current: 180000000,
-      overdue: 45000000,
-      overcapacity: 25000000,
-      maxDaysOverdue: 67,
-      dueDate: "2026-03-14",
-      status: "gestion",
-    },
-    {
-      nit: "860.234.567-8",
-      name: "CARULLA VIVERO",
-      advisor: "María González",
-      channel: "VTD - Venta Directa",
-      quota: 350000000,
-      current: 380000000,
-      overdue: 125000000,
-      overcapacity: 55000000,
-      maxDaysOverdue: 120,
-      dueDate: "2026-01-25",
-      status: "vencida",
-    },
-    {
-      nit: "830.567.890-2",
-      name: "OLÍMPICA S.A.",
-      advisor: "Carlos Méndez",
-      channel: "VTD - Venta Directa",
-      quota: 400000000,
-      current: 290000000,
-      overdue: 35000000,
-      overcapacity: 0,
-      maxDaysOverdue: 28,
-      dueDate: "2026-04-01",
-      status: "gestion",
-      isNew: true,
-    },
-    {
-      nit: "891.234.567-0",
-      name: "LOCATEL COLOMBIA",
-      advisor: "Laura Torres",
-      channel: "Industrial",
-      quota: 180000000,
-      current: 156000000,
-      overdue: 0,
-      overcapacity: 0,
-      maxDaysOverdue: 0,
-      dueDate: "2026-05-30",
-      status: "corriente",
-    },
-    {
-      nit: "800.890.123-4",
-      name: "RESTAURANT LA FRAGATA",
-      advisor: "Pedro Ramírez",
-      channel: "Industrial",
-      quota: 50000000,
-      current: 42000000,
-      overdue: 18000000,
-      overcapacity: 10000000,
-      maxDaysOverdue: 45,
-      dueDate: "2026-03-08",
-      status: "vencida",
-      isNew: true,
-    },
-    {
-      nit: "900.345.678-9",
-      name: "SUPERMERCADOS ARA",
-      advisor: "María González",
-      channel: "Industrial",
-      quota: 500000000,
-      current: 410000000,
-      overdue: 78000000,
-      overcapacity: 0,
-      maxDaysOverdue: 55,
-      dueDate: "2026-02-28",
-      status: "gestion",
-    },
-    {
-      nit: "860.678.901-5",
-      name: "D1 COLOMBIA",
-      advisor: "Carlos Méndez",
-      channel: "Industrial",
-      quota: 450000000,
-      current: 380000000,
-      overdue: 0,
-      overcapacity: 0,
-      maxDaysOverdue: 0,
-      dueDate: "2026-06-12",
-      status: "corriente",
-    },
-    {
-      nit: "830.012.345-6",
-      name: "JUMBO COLOMBIA",
-      advisor: "Laura Torres",
-      channel: "Comercializador",
-      quota: 280000000,
-      current: 295000000,
-      overdue: 92000000,
-      overcapacity: 47000000,
-      maxDaysOverdue: 105,
-      dueDate: "2026-01-12",
-      status: "vencida",
-    },
-  ],
-  []
-);
+//   const datas: Client[] = useMemo(
+//   () => [
+//     {
+//       nit: "890.123.456-7",
+//       name: "DROGAS LA REBAJA",
+//       advisor: "Carlos Méndez",
+//       paymentCondition: "30 días",
+//       channel: "VTD - Venta Directa",
+//       quota: 300000000,
+//       current: 245000000,
+//       overdue: 89000000,
+//       totalBalance: 334000000,
+//       totalCop: 334000000,
+//       overcapacity: 34000000,
+//       maxDaysOverdue: 95,
+//       dueDate: "2026-02-11",
+//       status: "vencida",
+//       remittanceValue: 0,
+//       remittanceWeight: 0,
+//       remittanceDocuments: 0,
+//     },
+//     {
+//       nit: "800.456.789-1",
+//       name: "ÉXITO S.A.",
+//       advisor: "María González",
+//       paymentCondition: "30 días",
+//       channel: "Industrial",
+//       quota: 600000000,
+//       current: 520000000,
+//       overdue: 0,
+//       overcapacity: 0,
+//       maxDaysOverdue: 0,
+//       dueDate: "2026-05-20",
+//       status: "corriente",
+//       remittanceValue: 0,
+//       remittanceWeight: 0,
+//       remittanceDocuments: 0,
+//     },
+//     {
+//       nit: "900.789.012-3",
+//       name: "DISTRIBUIDORA ABC",
+//       advisor: "Pedro Ramírez",
+//       paymentCondition: "30 días",
+//       channel: "Comercializador",
+//       quota: 200000000,
+//       current: 180000000,
+//       overdue: 45000000,
+//       overcapacity: 25000000,
+//       maxDaysOverdue: 67,
+//       dueDate: "2026-03-14",
+//       status: "gestion",
+//     },
+//     {
+//       nit: "860.234.567-8",
+//       name: "CARULLA VIVERO",
+//       advisor: "María González",
+//       channel: "VTD - Venta Directa",
+//       quota: 350000000,
+//       current: 380000000,
+//       overdue: 125000000,
+//       overcapacity: 55000000,
+//       maxDaysOverdue: 120,
+//       dueDate: "2026-01-25",
+//       status: "vencida",
+//     },
+//     {
+//       nit: "830.567.890-2",
+//       name: "OLÍMPICA S.A.",
+//       advisor: "Carlos Méndez",
+//       channel: "VTD - Venta Directa",
+//       quota: 400000000,
+//       current: 290000000,
+//       overdue: 35000000,
+//       overcapacity: 0,
+//       maxDaysOverdue: 28,
+//       dueDate: "2026-04-01",
+//       status: "gestion",
+//       isNew: true,
+//     },
+//     {
+//       nit: "891.234.567-0",
+//       name: "LOCATEL COLOMBIA",
+//       advisor: "Laura Torres",
+//       channel: "Industrial",
+//       quota: 180000000,
+//       current: 156000000,
+//       overdue: 0,
+//       overcapacity: 0,
+//       maxDaysOverdue: 0,
+//       dueDate: "2026-05-30",
+//       status: "corriente",
+//     },
+//     {
+//       nit: "800.890.123-4",
+//       name: "RESTAURANT LA FRAGATA",
+//       advisor: "Pedro Ramírez",
+//       channel: "Industrial",
+//       quota: 50000000,
+//       current: 42000000,
+//       overdue: 18000000,
+//       overcapacity: 10000000,
+//       maxDaysOverdue: 45,
+//       dueDate: "2026-03-08",
+//       status: "vencida",
+//       isNew: true,
+//     },
+//     {
+//       nit: "900.345.678-9",
+//       name: "SUPERMERCADOS ARA",
+//       advisor: "María González",
+//       channel: "Industrial",
+//       quota: 500000000,
+//       current: 410000000,
+//       overdue: 78000000,
+//       overcapacity: 0,
+//       maxDaysOverdue: 55,
+//       dueDate: "2026-02-28",
+//       status: "gestion",
+//     },
+//     {
+//       nit: "860.678.901-5",
+//       name: "D1 COLOMBIA",
+//       advisor: "Carlos Méndez",
+//       channel: "Industrial",
+//       quota: 450000000,
+//       current: 380000000,
+//       overdue: 0,
+//       overcapacity: 0,
+//       maxDaysOverdue: 0,
+//       dueDate: "2026-06-12",
+//       status: "corriente",
+//     },
+//     {
+//       nit: "830.012.345-6",
+//       name: "JUMBO COLOMBIA",
+//       advisor: "Laura Torres",
+//       channel: "Comercializador",
+//       quota: 280000000,
+//       current: 295000000,
+//       overdue: 92000000,
+//       overcapacity: 47000000,
+//       maxDaysOverdue: 105,
+//       dueDate: "2026-01-12",
+//       status: "vencida",
+//     },
+//   ],
+//   []
+// );
 
   const filteredData = useMemo(() => {
     const normalizedClientName = filters.clientName.trim().toLowerCase()
@@ -306,10 +333,37 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       },
       {
         accessorKey: "channel",
-        header: "Canal",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="-ml-4"
+          >
+            Canal
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
         cell: ({ row }) => (
           <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
             {row.getValue("channel")}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "paymentCondition",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="-ml-4"
+          >
+            Cond. pago
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
+            {row.getValue("paymentCondition")}
           </span>
         ),
       },
@@ -373,6 +427,90 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
+        accessorKey: "overdue1",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="-ml-4"
+          >
+            Venc. 1-30
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => {
+          const value = row.getValue("overdue1") as number
+          return (
+            <span className={cn("font-medium", value > 0 && "text-amber-600")}>
+              {formatCurrency(value)}
+            </span>
+          )
+        },
+      },
+      {
+        accessorKey: "overdue2",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="-ml-4"
+          >
+            Venc. 31-60
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => {
+          const value = row.getValue("overdue2") as number
+          return (
+            <span className={cn("font-medium", value > 0 && "text-orange-600")}>
+              {formatCurrency(value)}
+            </span>
+          )
+        },
+      },
+      {
+        accessorKey: "overdue3",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="-ml-4"
+          >
+            Venc. 61-90
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => {
+          const value = row.getValue("overdue3") as number
+          return (
+            <span className={cn("font-medium", value > 0 && "text-red-500")}>
+              {formatCurrency(value)}
+            </span>
+          )
+        },
+      },
+      {
+        accessorKey: "overdue4",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="-ml-4"
+          >
+            +90 días
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => {
+          const value = row.getValue("overdue4") as number
+          return (
+            <span className={cn("font-medium", value > 0 && "text-destructive")}>
+              {formatCurrency(value)}
+            </span>
+          )
+        },
+      },
+      {
         accessorKey: "overcapacity",
         header: ({ column }) => (
           <Button
@@ -421,8 +559,102 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
+        accessorKey: "totalBalance",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="-ml-4"
+          >
+            Saldo total
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => {
+          const value = row.getValue("totalBalance") as number
+          return <span className="font-medium">{formatCurrency(value)}</span>
+        },
+      },
+      {
+        accessorKey: "totalCop",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="-ml-4"
+          >
+            Total COP
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => {
+          const value = row.getValue("totalCop") as number
+          return <span className="font-medium">{formatCurrency(value)}</span>
+        },
+      },
+      {
+        accessorKey: "remittanceValue",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="-ml-4"
+          >
+            Valor remisión COP
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => {
+          const value = row.getValue("remittanceValue") as number
+          return <span className="font-medium">{formatCurrency(value)}</span>
+        },
+      },
+      {
+        accessorKey: "remittanceWeight",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="-ml-4"
+          >
+            Peso remisión
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => {
+          const value = row.getValue("remittanceWeight") as number
+          return <span className="font-medium">{formatNumber(value)}</span>
+        },
+      },
+      {
+        accessorKey: "remittanceDocuments",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="-ml-4"
+          >
+            Total docs remisión
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => {
+          const value = row.getValue("remittanceDocuments") as number
+          return <span className="font-medium">{formatNumber(value)}</span>
+        },
+      },
+      {
         accessorKey: "status",
-        header: "Estado",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="-ml-4"
+          >
+            Estado
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
         cell: ({ row }) => {
           const status = row.getValue("status") as keyof typeof statusConfig
           const config = statusConfig[status]

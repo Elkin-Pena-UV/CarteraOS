@@ -16,8 +16,13 @@ export type CarteraItem = {
   f1_saldo_vencido3: number
   f1_saldo_vencido4: number
   f1_saldo_vencido_total: number
+  f1_saldo_total: number
+  f1_total_cop: number
   f1_fecha_vcto_min: string
   f1_fecha_vcto_max: string
+  f_rem_valor_neto_total: number
+  f_rem_peso_total: number
+  f_rem_cantidad_documentos: number
 }
 
 export function useCartera() {
