@@ -1,6 +1,6 @@
 "use client"
 
-import { X, Phone, Mail, Building2, User, Calendar } from "lucide-react"
+import { X, Phone, Mail, Building2, User, Calendar, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -13,70 +13,7 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import type { Client } from "./clients-table"
-
-interface Invoice {
-  number: string
-  issueDate: string
-  dueDate: string
-  value: number
-  payments: number
-  balance: number
-  status: "pagada" | "pendiente" | "vencida"
-}
-
-const invoices: Invoice[] = [
-  {
-    number: "FV-2024-001456",
-    issueDate: "01/02/2024",
-    dueDate: "03/03/2024",
-    value: 78000000,
-    payments: 30000000,
-    balance: 48000000,
-    status: "vencida",
-  },
-  {
-    number: "FV-2024-001678",
-    issueDate: "15/02/2024",
-    dueDate: "17/03/2024",
-    value: 52000000,
-    payments: 11000000,
-    balance: 41000000,
-    status: "vencida",
-  },
-  {
-    number: "FV-2024-001890",
-    issueDate: "01/03/2024",
-    dueDate: "31/03/2024",
-    value: 89000000,
-    payments: 0,
-    balance: 89000000,
-    status: "pendiente",
-  },
-  {
-    number: "FV-2024-002012",
-    issueDate: "15/03/2024",
-    dueDate: "14/04/2024",
-    value: 67000000,
-    payments: 0,
-    balance: 67000000,
-    status: "pendiente",
-  },
-]
-
-const statusConfig = {
-  pagada: {
-    label: "Pagada",
-    className: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  },
-  pendiente: {
-    label: "Pendiente",
-    className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-  },
-  vencida: {
-    label: "Vencida",
-    className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  },
-}
+import { useFacturas } from "@/hooks/use-facturas"
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("es-CO", {
@@ -87,6 +24,11 @@ const formatCurrency = (value: number) => {
   }).format(value)
 }
 
+const formatDate = (dateString: string) => {
+  if (!dateString) return "-"
+  return new Date(dateString).toLocaleDateString("es-CO")
+}
+
 interface ClientDrawerProps {
   client: Client | null
   open: boolean
@@ -94,10 +36,12 @@ interface ClientDrawerProps {
 }
 
 export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
+  const { data: facturas, loading, error } = useFacturas(open ? client?.nit ?? null : null)
+
   if (!client) return null
 
-  const totalValue = invoices.reduce((sum, inv) => sum + inv.value, 0)
-  const totalBalance = invoices.reduce((sum, inv) => sum + inv.balance, 0)
+  const totalVencido = facturas.reduce((sum, f) => sum + f.f1_saldo_vencido_total, 0)
+  const totalSaldo = facturas.reduce((sum, f) => sum + f.f1_saldo_total, 0)
 
   return (
     <>
@@ -113,7 +57,7 @@ export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
       {/* Drawer */}
       <div
         className={cn(
-          "fixed right-0 top-0 z-50 h-full w-[720px] max-w-[90vw] bg-card shadow-xl transition-transform duration-300",
+          "fixed right-0 top-0 z-50 h-full w-[980px] max-w-[90vw] bg-card shadow-xl transition-transform duration-300",
           open ? "translate-x-0" : "translate-x-full"
         )}
       >
@@ -199,71 +143,103 @@ export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
 
           {/* Invoices Table */}
           <div className="mt-6">
-            <h3 className="mb-3 text-sm font-semibold">Detalle de Facturas</h3>
-            <div className="rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs">Nro Factura</TableHead>
-                    <TableHead className="text-xs">F. Emisión</TableHead>
-                    <TableHead className="text-xs">F. Venc.</TableHead>
-                    <TableHead className="text-right text-xs">Valor</TableHead>
-                    <TableHead className="text-right text-xs">Abonos</TableHead>
-                    <TableHead className="text-right text-xs">Saldo</TableHead>
-                    <TableHead className="text-xs">Estado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invoices.map((invoice) => (
-                    <TableRow key={invoice.number}>
-                      <TableCell className="font-mono text-xs">
-                        {invoice.number}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {invoice.issueDate}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {invoice.dueDate}
-                      </TableCell>
-                      <TableCell className="text-right text-xs">
-                        {formatCurrency(invoice.value)}
-                      </TableCell>
-                      <TableCell className="text-right text-xs">
-                        {formatCurrency(invoice.payments)}
-                      </TableCell>
-                      <TableCell className="text-right text-xs font-medium">
-                        {formatCurrency(invoice.balance)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className={cn(
-                            "text-[10px]",
-                            statusConfig[invoice.status].className
-                          )}
-                        >
-                          {statusConfig[invoice.status].label}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <h3 className="mb-3 text-sm font-semibold">
+              Detalle de Facturas Vencidas
+              {!loading && (
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  ({facturas.length} facturas)
+                </span>
+              )}
+            </h3>
 
-            {/* Totals */}
-            <div className="mt-4 flex justify-between rounded-lg bg-muted p-3">
-              <div>
-                <p className="text-xs text-muted-foreground">Total Facturado</p>
-                <p className="font-semibold">{formatCurrency(totalValue)}</p>
+            {loading && (
+              <div className="flex h-32 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Saldo Pendiente</p>
-                <p className="font-semibold text-[#ff6600]">
-                  {formatCurrency(totalBalance)}
-                </p>
+            )}
+
+            {error && (
+              <div className="flex h-32 items-center justify-center">
+                <p className="text-sm text-destructive">{error}</p>
               </div>
-            </div>
+            )}
+
+            {!loading && !error && (
+              <>
+                <div className="rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Nro Factura</TableHead>
+                        <TableHead className="text-right text-xs">Corriente</TableHead>
+                        <TableHead className="text-right text-xs">Vencido 1</TableHead>
+                        <TableHead className="text-right text-xs">Vencido 2</TableHead>
+                        <TableHead className="text-right text-xs">Vencido 3</TableHead>
+                        <TableHead className="text-right text-xs">Vencido 4</TableHead>
+                        <TableHead className="text-right text-xs">Saldo Vencido</TableHead>
+                        <TableHead className="text-right text-xs">Saldo Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {facturas.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="h-24 text-center text-sm text-muted-foreground">
+                            No hay facturas vencidas
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        facturas.map((factura) => (
+                          <TableRow key={factura.f1_docto_causacion}>
+                            <TableCell className="font-mono text-xs">
+                              {factura.f1_docto_causacion.trim()}
+                            </TableCell>
+                            <TableCell className="text-right text-xs">
+                              {formatCurrency(factura.f1_saldo_corriente_total)}
+                            </TableCell>
+                            <TableCell className="text-right text-xs">
+                              {formatCurrency(factura.f1_saldo_vencido1)}
+                            </TableCell>
+                            <TableCell className="text-right text-xs">
+                              {formatCurrency(factura.f1_saldo_vencido2)}
+                            </TableCell>
+                            <TableCell className="text-right text-xs">
+                              {formatCurrency(factura.f1_saldo_vencido3)}
+                            </TableCell>
+                            <TableCell className="text-right text-xs">
+                              {formatCurrency(factura.f1_saldo_vencido4)}
+                            </TableCell>
+                            <TableCell className="text-right text-xs font-medium text-destructive">
+                              {formatCurrency(factura.f1_saldo_vencido_total)}
+                            </TableCell>
+                            <TableCell className="text-right text-xs font-medium">
+                              {formatCurrency(factura.f1_saldo_total)}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Totals */}
+                {facturas.length > 0 && (
+                  <div className="mt-4 flex justify-between rounded-lg bg-muted p-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Total Vencido</p>
+                      <p className="font-semibold text-destructive">
+                        {formatCurrency(totalVencido)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">Saldo Total</p>
+                      <p className="font-semibold text-[#ff6600]">
+                        {formatCurrency(totalSaldo)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>
