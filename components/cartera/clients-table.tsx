@@ -2,6 +2,25 @@
 
 import { useState, useMemo } from "react"
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  type DragStartEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  horizontalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
@@ -20,7 +39,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ChevronLeft, ChevronRight, Eye, Phone, ArrowUpDown } from "lucide-react"
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  ArrowUpDown,
+  GripVertical,
+  RotateCcw,
+} from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { useToast } from '@/hooks/use-toast'
 import { cn } from "@/lib/utils"
 import type { ClientFilters } from "./filters-bar"
 
@@ -67,6 +100,10 @@ const statusConfig = {
   },
 }
 
+const STORAGE_KEY = 'cartera_general_column_order'
+const PINNED_START = ['nit']
+const PINNED_END = ['acciones']
+
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -88,157 +125,77 @@ interface ClientsTableProps {
   filters: ClientFilters
 }
 
+// Draggable Header Component
+interface DraggableHeaderProps {
+  id: string
+  isPinned?: boolean
+  children: React.ReactNode
+}
+
+function DraggableHeader({ id, isPinned = false, children }: DraggableHeaderProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id,
+    disabled: isPinned,
+  })
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <TableHead
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'group whitespace-nowrap',
+        isDragging && 'bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,hsl(var(--border))_5px,hsl(var(--border))_6px)] opacity-50'
+      )}
+    >
+      <div className="flex items-center">
+        {!isPinned && (
+          <button
+            {...attributes}
+            {...listeners}
+            className={cn(
+              'mr-1 flex h-6 w-4 shrink-0 cursor-grab items-center justify-center rounded opacity-0 transition-opacity duration-150',
+              'group-hover:opacity-40 hover:!opacity-100 hover:text-[#ff6600]',
+              'active:cursor-grabbing focus:outline-none'
+            )}
+            tabIndex={-1}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
+        {children}
+      </div>
+    </TableHead>
+  )
+}
+
+function DragOverlayContent({ columnId, columns }: { columnId: string; columns: ColumnDef<Client>[] }) {
+  const column = columns.find(col => col.id === columnId || (col as { accessorKey?: string }).accessorKey === columnId)
+  const label = column?.id || columnId
+
+  return (
+    <div className="flex items-center gap-2 rounded-md border border-[#ff6600] bg-[#ff6600]/20 px-3 py-2 font-semibold text-[#ff6600] shadow-md">
+      <GripVertical className="h-4 w-4" />
+      {label}
+    </div>
+  )
+}
+
 export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
-
-//   const datas: Client[] = useMemo(
-//   () => [
-//     {
-//       nit: "890.123.456-7",
-//       name: "DROGAS LA REBAJA",
-//       advisor: "Carlos Méndez",
-//       paymentCondition: "30 días",
-//       channel: "VTD - Venta Directa",
-//       quota: 300000000,
-//       current: 245000000,
-//       overdue: 89000000,
-//       totalBalance: 334000000,
-//       totalCop: 334000000,
-//       overcapacity: 34000000,
-//       maxDaysOverdue: 95,
-//       dueDate: "2026-02-11",
-//       status: "vencida",
-//       remittanceValue: 0,
-//       remittanceWeight: 0,
-//       remittanceDocuments: 0,
-//     },
-//     {
-//       nit: "800.456.789-1",
-//       name: "ÉXITO S.A.",
-//       advisor: "María González",
-//       paymentCondition: "30 días",
-//       channel: "Industrial",
-//       quota: 600000000,
-//       current: 520000000,
-//       overdue: 0,
-//       overcapacity: 0,
-//       maxDaysOverdue: 0,
-//       dueDate: "2026-05-20",
-//       status: "corriente",
-//       remittanceValue: 0,
-//       remittanceWeight: 0,
-//       remittanceDocuments: 0,
-//     },
-//     {
-//       nit: "900.789.012-3",
-//       name: "DISTRIBUIDORA ABC",
-//       advisor: "Pedro Ramírez",
-//       paymentCondition: "30 días",
-//       channel: "Comercializador",
-//       quota: 200000000,
-//       current: 180000000,
-//       overdue: 45000000,
-//       overcapacity: 25000000,
-//       maxDaysOverdue: 67,
-//       dueDate: "2026-03-14",
-//       status: "gestion",
-//     },
-//     {
-//       nit: "860.234.567-8",
-//       name: "CARULLA VIVERO",
-//       advisor: "María González",
-//       channel: "VTD - Venta Directa",
-//       quota: 350000000,
-//       current: 380000000,
-//       overdue: 125000000,
-//       overcapacity: 55000000,
-//       maxDaysOverdue: 120,
-//       dueDate: "2026-01-25",
-//       status: "vencida",
-//     },
-//     {
-//       nit: "830.567.890-2",
-//       name: "OLÍMPICA S.A.",
-//       advisor: "Carlos Méndez",
-//       channel: "VTD - Venta Directa",
-//       quota: 400000000,
-//       current: 290000000,
-//       overdue: 35000000,
-//       overcapacity: 0,
-//       maxDaysOverdue: 28,
-//       dueDate: "2026-04-01",
-//       status: "gestion",
-//       isNew: true,
-//     },
-//     {
-//       nit: "891.234.567-0",
-//       name: "LOCATEL COLOMBIA",
-//       advisor: "Laura Torres",
-//       channel: "Industrial",
-//       quota: 180000000,
-//       current: 156000000,
-//       overdue: 0,
-//       overcapacity: 0,
-//       maxDaysOverdue: 0,
-//       dueDate: "2026-05-30",
-//       status: "corriente",
-//     },
-//     {
-//       nit: "800.890.123-4",
-//       name: "RESTAURANT LA FRAGATA",
-//       advisor: "Pedro Ramírez",
-//       channel: "Industrial",
-//       quota: 50000000,
-//       current: 42000000,
-//       overdue: 18000000,
-//       overcapacity: 10000000,
-//       maxDaysOverdue: 45,
-//       dueDate: "2026-03-08",
-//       status: "vencida",
-//       isNew: true,
-//     },
-//     {
-//       nit: "900.345.678-9",
-//       name: "SUPERMERCADOS ARA",
-//       advisor: "María González",
-//       channel: "Industrial",
-//       quota: 500000000,
-//       current: 410000000,
-//       overdue: 78000000,
-//       overcapacity: 0,
-//       maxDaysOverdue: 55,
-//       dueDate: "2026-02-28",
-//       status: "gestion",
-//     },
-//     {
-//       nit: "860.678.901-5",
-//       name: "D1 COLOMBIA",
-//       advisor: "Carlos Méndez",
-//       channel: "Industrial",
-//       quota: 450000000,
-//       current: 380000000,
-//       overdue: 0,
-//       overcapacity: 0,
-//       maxDaysOverdue: 0,
-//       dueDate: "2026-06-12",
-//       status: "corriente",
-//     },
-//     {
-//       nit: "830.012.345-6",
-//       name: "JUMBO COLOMBIA",
-//       advisor: "Laura Torres",
-//       channel: "Comercializador",
-//       quota: 280000000,
-//       current: 295000000,
-//       overdue: 92000000,
-//       overcapacity: 47000000,
-//       maxDaysOverdue: 105,
-//       dueDate: "2026-01-12",
-//       status: "vencida",
-//     },
-//   ],
-//   []
-// );
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const filteredData = useMemo(() => {
     const normalizedClientName = filters.clientName.trim().toLowerCase()
@@ -309,6 +266,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
   const columns: ColumnDef<Client>[] = useMemo(
     () => [
       {
+        id: "nit",
         accessorKey: "nit",
         header: "NIT",
         cell: ({ row }) => (
@@ -316,6 +274,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         ),
       },
       {
+        id: "name",
         accessorKey: "name",
         header: ({ column }) => (
           <Button
@@ -332,6 +291,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         ),
       },
       {
+        id: "channel",
         accessorKey: "channel",
         header: ({ column }) => (
           <Button
@@ -350,6 +310,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         ),
       },
       {
+        id: "paymentCondition",
         accessorKey: "paymentCondition",
         header: ({ column }) => (
           <Button
@@ -368,6 +329,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         ),
       },
       {
+        id: "quota",
         accessorKey: "quota",
         header: ({ column }) => (
           <Button
@@ -386,6 +348,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         ),
       },
       {
+        id: "current",
         accessorKey: "current",
         header: ({ column }) => (
           <Button
@@ -404,6 +367,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         ),
       },
       {
+        id: "overdue",
         accessorKey: "overdue",
         header: ({ column }) => (
           <Button
@@ -427,6 +391,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
+        id: "overdue1",
         accessorKey: "overdue1",
         header: ({ column }) => (
           <Button
@@ -448,6 +413,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
+        id: "overdue2",
         accessorKey: "overdue2",
         header: ({ column }) => (
           <Button
@@ -469,6 +435,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
+        id: "overdue3",
         accessorKey: "overdue3",
         header: ({ column }) => (
           <Button
@@ -490,6 +457,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
+        id: "overdue4",
         accessorKey: "overdue4",
         header: ({ column }) => (
           <Button
@@ -511,6 +479,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
+        id: "overcapacity",
         accessorKey: "overcapacity",
         header: ({ column }) => (
           <Button
@@ -532,6 +501,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
+        id: "maxDaysOverdue",
         accessorKey: "maxDaysOverdue",
         header: ({ column }) => (
           <Button
@@ -559,6 +529,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
+        id: "totalBalance",
         accessorKey: "totalBalance",
         header: ({ column }) => (
           <Button
@@ -576,6 +547,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
+        id: "totalCop",
         accessorKey: "totalCop",
         header: ({ column }) => (
           <Button
@@ -593,6 +565,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
+        id: "remittanceValue",
         accessorKey: "remittanceValue",
         header: ({ column }) => (
           <Button
@@ -610,6 +583,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
+        id: "remittanceWeight",
         accessorKey: "remittanceWeight",
         header: ({ column }) => (
           <Button
@@ -627,6 +601,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
+        id: "remittanceDocuments",
         accessorKey: "remittanceDocuments",
         header: ({ column }) => (
           <Button
@@ -644,6 +619,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
+        id: "status",
         accessorKey: "status",
         header: ({ column }) => (
           <Button
@@ -689,6 +665,25 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
     [onViewClient]
   )
 
+  const defaultColumnOrder = columns.map(col => col.id as string)
+
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          const valid = defaultColumnOrder.every(col => parsed.includes(col)) &&
+            parsed.every((col: string) => defaultColumnOrder.includes(col))
+          if (valid) return parsed
+        } catch {
+          // Invalid JSON, use default
+        }
+      }
+    }
+    return defaultColumnOrder
+  })
+
   const table = useReactTable({
     data: filteredData,
     columns,
@@ -697,8 +692,10 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
+    onColumnOrderChange: setColumnOrder,
     state: {
       sorting,
+      columnOrder,
     },
     initialState: {
       pagination: {
@@ -707,76 +704,162 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
     },
   })
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  // Get draggable columns (excluding pinned)
+  const draggableOrder = columnOrder.filter(
+    (id) => !PINNED_START.includes(id) && !PINNED_END.includes(id)
+  )
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string)
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    setActiveId(null)
+
+    if (over && active.id !== over.id) {
+      const oldIndex = draggableOrder.indexOf(active.id as string)
+      const newIndex = draggableOrder.indexOf(over.id as string)
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newDraggableOrder = arrayMove(draggableOrder, oldIndex, newIndex)
+        const newFullOrder = [...PINNED_START, ...newDraggableOrder, ...PINNED_END]
+
+        setColumnOrder(newFullOrder)
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(newFullOrder))
+        }
+
+        toast({
+          description: 'Columna reordenada',
+          duration: 2000,
+        })
+      }
+    }
+  }
+
+  const resetColumnOrder = () => {
+    setColumnOrder(defaultColumnOrder)
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY)
+    }
+    toast({
+      description: 'Orden de columnas restablecido',
+      duration: 2000,
+    })
+  }
+
   return (
     <div className="rounded-lg border bg-card">
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} className="bg-muted/50">
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => {
-              const client = row.original
-              const isOverdue90 = client.maxDaysOverdue > 90
-              const isNewlyOverdue = client.isNew
+      <div className="flex items-center justify-end border-b px-4 py-2">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm" onClick={resetColumnOrder}>
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Restablecer orden de columnas</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                <SortableContext
+                  items={draggableOrder}
+                  strategy={horizontalListSortingStrategy}
+                >
+                  {headerGroup.headers.map((header) => {
 
-              return (
-                <TableRow
-                  key={row.id}
-                  className={cn(
-                    isOverdue90 && "bg-red-50/50 dark:bg-red-950/20",
-                    isNewlyOverdue &&
+                    const isPinned = PINNED_START.includes(header.id) || PINNED_END.includes(header.id)
+                    return (
+                      <DraggableHeader key={header.id} id={header.id} isPinned={isPinned}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </DraggableHeader>
+                    )
+                  })}
+                </SortableContext>
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => {
+                const client = row.original
+                const isOverdue90 = client.maxDaysOverdue > 90
+                const isNewlyOverdue = client.isNew
+
+                return (
+                  <TableRow
+                    key={row.id}
+                    className={cn(
+                      isOverdue90 && "bg-red-50/50 dark:bg-red-950/20",
+                      isNewlyOverdue &&
                       !isOverdue90 &&
                       "bg-amber-50/50 dark:bg-amber-950/20"
-                  )}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              )
-            })
-          ) : (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
-                No se encontraron resultados.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-
+                    )}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                )
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  No se encontraron resultados.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        <DragOverlay>
+          {activeId ? <DragOverlayContent columnId={activeId} columns={columns} /> : null}
+        </DragOverlay>
+      </DndContext>
       {/* Pagination */}
       <div className="flex items-center justify-between border-t px-4 py-3">
         <p className="text-sm text-muted-foreground">
           {table.getFilteredRowModel().rows.length > 0
-            ? `Mostrando ${
-                table.getState().pagination.pageIndex *
-                  table.getState().pagination.pageSize +
-                1
-              }-${Math.min(
-                (table.getState().pagination.pageIndex + 1) *
-                  table.getState().pagination.pageSize,
-                table.getFilteredRowModel().rows.length
-              )} de ${table.getFilteredRowModel().rows.length} clientes`
+            ? `Mostrando ${table.getState().pagination.pageIndex *
+            table.getState().pagination.pageSize +
+            1
+            }-${Math.min(
+              (table.getState().pagination.pageIndex + 1) *
+              table.getState().pagination.pageSize,
+              table.getFilteredRowModel().rows.length
+            )} de ${table.getFilteredRowModel().rows.length} clientes`
             : "Mostrando 0 de 0 clientes"}
         </p>
         <div className="flex items-center gap-2">
