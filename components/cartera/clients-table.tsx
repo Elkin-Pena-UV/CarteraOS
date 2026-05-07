@@ -399,7 +399,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="-ml-4"
           >
-            Venc. 1-30
+            Venc. 1
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
@@ -421,7 +421,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="-ml-4"
           >
-            Venc. 31-60
+            Venc. 2
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
@@ -443,7 +443,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="-ml-4"
           >
-            Venc. 61-90
+            Venc. 3
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
@@ -465,7 +465,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="-ml-4"
           >
-            +90 días
+            Venc. 4
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
@@ -583,42 +583,6 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
-        id: "remittanceWeight",
-        accessorKey: "remittanceWeight",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Peso remisión
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => {
-          const value = row.getValue("remittanceWeight") as number
-          return <span className="font-medium">{formatNumber(value)}</span>
-        },
-      },
-      {
-        id: "remittanceDocuments",
-        accessorKey: "remittanceDocuments",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Total docs remisión
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        cell: ({ row }) => {
-          const value = row.getValue("remittanceDocuments") as number
-          return <span className="font-medium">{formatNumber(value)}</span>
-        },
-      },
-      {
         id: "status",
         accessorKey: "status",
         header: ({ column }) => (
@@ -699,7 +663,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
     },
     initialState: {
       pagination: {
-        pageSize: 10,
+        pageSize: 40,
       },
     },
   })
