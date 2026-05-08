@@ -6,6 +6,7 @@ import facturasRoutes from './routes/facturasRoutes.js';
 import errorHandler from './middleware/errorHandler.js';
 import logger from './config/logger.js'; 
 import schedulerService from './services/schedulerService.js';
+import adminRoutes from './routes/adminRoutes.js';
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/cartera', carteraRoutes);
 app.use('/api/facturas', facturasRoutes);
+app.use('/api/admin', adminRoutes);
 
 
 // Middleware para manejo de rutas no encontradas
