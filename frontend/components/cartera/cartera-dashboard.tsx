@@ -17,8 +17,8 @@ export default function CarteraDashboard() {
 
     const { data, loading, error } = useCartera()
 
-    const clients = useMemo(() => adaptCarteraToClients(data), [data])
-    const kpis = useMemo(() => adaptCarteraToKPIs(data), [data])
+    const clients = useMemo(() => adaptCarteraToClients(data ?? []), [data])
+    const kpis = useMemo(() => adaptCarteraToKPIs(data ?? []), [data])
 
     const handleViewClient = (client: Client) => {
         setSelectedClient(client)

@@ -35,7 +35,7 @@ export function useCartera() {
       try {
         setLoading(true)
         const response = await getCartera()
-        setData(response.data)
+        setData(response.data.data ?? [])
       } catch (err) {
         setError("Error al cargar la cartera")
         console.error(err)
