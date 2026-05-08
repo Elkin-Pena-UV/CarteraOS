@@ -8,9 +8,8 @@ const getFacturasCliente = async (nit) => {
 
   const query = `
     SELECT *
-    FROM dbo.fn_ti_cons_cxc(CAST(GETDATE() AS DATE))
+    FROM dbo.fn_ti_detalle_cartera(CAST(GETDATE() AS DATE))
     WHERE f1_tercero = @nit
-      AND f1_saldo_vencido_total > 0
   `;
 
   const result = await request.query(query);
