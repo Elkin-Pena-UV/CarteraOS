@@ -23,9 +23,7 @@ import { CSS } from '@dnd-kit/utilities'
 import {
   useReactTable,
   getCoreRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
-  getFilteredRowModel,
   flexRender,
   type ColumnDef,
   type SortingState,
@@ -40,8 +38,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
-  ChevronLeft,
-  ChevronRight,
   Eye,
   ArrowUpDown,
   GripVertical,
@@ -195,6 +191,63 @@ function DragOverlayContent({ columnId, columns }: { columnId: string; columns: 
 export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          const defaultColumns = [
+            'nit',
+            'name',
+            'channel',
+            'paymentCondition',
+            'quota',
+            'current',
+            'overdue',
+            'overdue1',
+            'overdue2',
+            'overdue3',
+            'overdue4',
+            'overcapacity',
+            'maxDaysOverdue',
+            'totalBalance',
+            'totalCop',
+            'remittanceValue',
+            'status',
+            'actions',
+          ]
+          const valid =
+            defaultColumns.every((col) => parsed.includes(col)) &&
+            parsed.every((col: string) => defaultColumns.includes(col))
+          if (valid) return parsed
+        } catch {
+          // Invalid JSON, use default
+        }
+      }
+    }
+
+    return [
+      'nit',
+      'name',
+      'channel',
+      'paymentCondition',
+      'quota',
+      'current',
+      'overdue',
+      'overdue1',
+      'overdue2',
+      'overdue3',
+      'overdue4',
+      'overcapacity',
+      'maxDaysOverdue',
+      'totalBalance',
+      'totalCop',
+      'remittanceValue',
+      'status',
+      'actions',
+    ]
+  })
   const { toast } = useToast()
 
   const filteredData = useMemo(() => {
@@ -208,11 +261,19 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
     const maxValue = filters.maxValue === "" ? null : Number(filters.maxValue)
 
     const fromDate = filters.dateRange?.from
-      ? new Date(filters.dateRange.from.setHours(0, 0, 0, 0))
+      ? new Date(filters.dateRange.from)
       : null
     const toDate = filters.dateRange?.to
-      ? new Date(filters.dateRange.to.setHours(23, 59, 59, 999))
+      ? new Date(filters.dateRange.to)
       : null
+
+    if (fromDate) {
+      fromDate.setHours(0, 0, 0, 0)
+    }
+
+    if (toDate) {
+      toDate.setHours(23, 59, 59, 999)
+    }
 
     return data.filter((client) => {
       if (normalizedChannel && normalizedChannel !== "all") {
@@ -631,40 +692,16 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
 
   const defaultColumnOrder = columns.map(col => col.id as string)
 
-  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          const valid = defaultColumnOrder.every(col => parsed.includes(col)) &&
-            parsed.every((col: string) => defaultColumnOrder.includes(col))
-          if (valid) return parsed
-        } catch {
-          // Invalid JSON, use default
-        }
-      }
-    }
-    return defaultColumnOrder
-  })
-
   const table = useReactTable({
     data: filteredData,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
     onColumnOrderChange: setColumnOrder,
     state: {
       sorting,
       columnOrder,
-    },
-    initialState: {
-      pagination: {
-        pageSize: 40,
-      },
     },
   })
 
@@ -812,41 +849,6 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
           {activeId ? <DragOverlayContent columnId={activeId} columns={columns} /> : null}
         </DragOverlay>
       </DndContext>
-      {/* Pagination */}
-      <div className="flex items-center justify-between border-t px-4 py-3">
-        <p className="text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length > 0
-            ? `Mostrando ${table.getState().pagination.pageIndex *
-            table.getState().pagination.pageSize +
-            1
-            }-${Math.min(
-              (table.getState().pagination.pageIndex + 1) *
-              table.getState().pagination.pageSize,
-              table.getFilteredRowModel().rows.length
-            )} de ${table.getFilteredRowModel().rows.length} clientes`
-            : "Mostrando 0 de 0 clientes"}
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Anterior
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Siguiente
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
     </div>
   )
 }
