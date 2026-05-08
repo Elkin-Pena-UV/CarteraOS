@@ -1,0 +1,51 @@
+{
+  "name": "radicapp-backend",
+  "version": "1.0.0",
+  "description": "RadicApp - Backend API",
+  "type": "module",
+  "main": "./src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "cache/**",
+      "*.log",
+      "node_modules/**"
+    ],
+    "watch": [
+      "src/**"
+    ],
+    "ext": "js,json"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-validator": "^7.3.0",
+    "fs-extra": "^11.3.2",
+    "jsonwebtoken": "^9.0.2",
+    "luxon": "^3.6.1",
+    "mssql": "^11.0.1",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.5",
+    "sequelize": "^6.37.7",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  },
+  "keywords": [
+    "express",
+    "api",
+    "mysql",
+    "orden",
+    "firma",
+    "etapas"
+  ],
+  "author": "Esteban Charria Muñoz",
+  "license": "ISC"
+}

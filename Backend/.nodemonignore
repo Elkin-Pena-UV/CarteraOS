@@ -1,0 +1,13 @@
+# Ignorar archivos de caché
+cache/
+*.log
+
+# Ignorar node_modules (por defecto, pero por claridad)
+node_modules/
+
+# Ignorar archivos temporales
+*.tmp
+*.temp
+
+# Ignorar archivos de upload si existen
+uploads/

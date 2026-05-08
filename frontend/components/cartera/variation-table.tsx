@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import {
   useReactTable,
   getCoreRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   type SortingState,
   type ColumnDef,
@@ -22,8 +21,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
-  ChevronLeft,
-  ChevronRight,
   Download,
   TrendingUp,
   TrendingDown,
@@ -386,16 +383,10 @@ export function VariationTable() {
     data: mockVariationData,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: setSorting,
     state: {
       sorting,
-    },
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
     },
   })
 
@@ -476,40 +467,6 @@ export function VariationTable() {
             </Table>
           </div>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between py-4">
-            <div className="text-sm text-muted-foreground">
-              Mostrando{" "}
-              {table.getState().pagination.pageIndex *
-                table.getState().pagination.pageSize +
-                1}
-              –
-              {Math.min(
-                (table.getState().pagination.pageIndex + 1) *
-                  table.getState().pagination.pageSize,
-                mockVariationData.length
-              )}{" "}
-              de {mockVariationData.length} clientes
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
