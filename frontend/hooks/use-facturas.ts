@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { getFacturasCliente } from "@/lib/services/facturasService"
 
 export type FacturaItem = {
@@ -18,30 +18,24 @@ export type FacturaItem = {
   f1_saldo_total: number
 }
 
+export const facturasKeys = {
+  all: ["facturas"] as const,
+  porCliente: (nit: string) => [...facturasKeys.all, "cliente", nit] as const,
+}
+
 export function useFacturas(nit: string | null) {
-  const [data, setData] = useState<FacturaItem[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const query = useQuery({
+    queryKey: facturasKeys.porCliente(nit ?? ""),
+    queryFn: async () => {
+      const response = await getFacturasCliente(nit!)
+      return response.data as FacturaItem[]
+    },
+    enabled: !!nit,  // 🚫 No ejecuta si nit es null/vacío
+  })
 
-  useEffect(() => {
-    if (!nit) return
-
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const response = await getFacturasCliente(nit)
-        setData(response.data)
-      } catch (err) {
-        setError("Error al cargar las facturas")
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [nit])
-
-  return { data, loading, error }
+  return {
+    data: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error ? "Error al cargar las facturas" : null,
+  }
 }

@@ -1,7 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { getCartera } from "@/lib/services/carteraService"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { 
+  getCartera, 
+  getCarteraHoy, 
+  getCarteraPorTercero 
+} from "@/lib/services/carteraService"
 
 export type CarteraItem = {
   f1_tercero: string
@@ -25,27 +29,73 @@ export type CarteraItem = {
   f_rem_cantidad_documentos: number
 }
 
+// 🔑 Keys del cache centralizadas
+export const carteraKeys = {
+  all: ["cartera"] as const,
+  corte: () => [...carteraKeys.all, "corte"] as const,
+  hoy: () => [...carteraKeys.all, "hoy"] as const,
+  tercero: (nit: string) => [...carteraKeys.all, "tercero", nit] as const,
+}
+
+// 📥 Hook principal — mantiene la MISMA API que antes
 export function useCartera() {
-  const [data, setData] = useState<CarteraItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const query = useQuery({
+    queryKey: carteraKeys.corte(),
+    queryFn: async () => {
+      const response = await getCartera()
+      return response.data.data as CarteraItem[]
+    },
+  })
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        const response = await getCartera()
-        setData(response.data.data ?? [])
-      } catch (err) {
-        setError("Error al cargar la cartera")
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
-    }
+  return {
+    data: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error ? "Error al cargar la cartera" : null,
+    isFetching: query.isFetching,  // 🆕 indica refetch en background
+    refetch: query.refetch,        // 🆕 forzar refetch manual
+  }
+}
 
-    fetchData()
-  }, [])
+// 📥 Hook para cartera del día
+export function useCarteraHoy() {
+  const query = useQuery({
+    queryKey: carteraKeys.hoy(),
+    queryFn: async () => {
+      const response = await getCarteraHoy()
+      return response.data.data as CarteraItem[]
+    },
+  })
 
-  return { data, loading, error }
+  return {
+    data: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error ? "Error al cargar la cartera" : null,
+    isFetching: query.isFetching,
+  }
+}
+
+// 📥 Hook por tercero
+export function useCarteraPorTercero(tercero: string | null) {
+  const query = useQuery({
+    queryKey: carteraKeys.tercero(tercero ?? ""),
+    queryFn: async () => {
+      const response = await getCarteraPorTercero(tercero!)
+      return response.data.data as CarteraItem[]
+    },
+    enabled: !!tercero,
+  })
+
+  return {
+    data: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error ? "Error al cargar la cartera" : null,
+  }
+}
+
+// 🔄 Hook para invalidar el cache de cartera
+export function useRefrescarCartera() {
+  const queryClient = useQueryClient()
+  return () => {
+    queryClient.invalidateQueries({ queryKey: carteraKeys.all })
+  }
 }
