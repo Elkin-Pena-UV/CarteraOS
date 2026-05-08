@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from "cors";
+import compression from 'compression';
 import carteraRoutes from './routes/carteraRoutes.js';
 import facturasRoutes from './routes/facturasRoutes.js';
 import errorHandler from './middleware/errorHandler.js';
@@ -14,6 +15,18 @@ const PORT = process.env.PORT || 8028;
 const app = express();
 
 app.set('trust proxy', true);
+app.use(compression({
+    level: 6,           // Nivel 1-9 (6 es el balance ideal velocidad/tamaño)
+    threshold: 1024,    // Solo comprimir respuestas > 1KB
+    filter: (req, res) => {
+        // No comprimir si el cliente lo pide explícitamente
+        if (req.headers['x-no-compression']) {
+            return false;
+        }
+        // Comprimir todo lo demás que sea texto/JSON
+        return compression.filter(req, res);
+    }
+}));
 
 app.use(cors({ 
     origin: "*",
