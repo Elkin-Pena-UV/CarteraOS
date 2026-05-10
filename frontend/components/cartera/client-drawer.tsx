@@ -14,6 +14,8 @@ import {
 import { cn } from "@/lib/utils"
 import type { Client } from "./clients-table"
 import { useFacturas } from "@/hooks/use-facturas"
+import { PaginationControls } from "@/components/ui/pagination-controls"
+import { useEffect, useState } from "react"
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("es-CO", {
@@ -36,7 +38,23 @@ interface ClientDrawerProps {
 }
 
 export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
-  const { data: facturas, loading, error } = useFacturas(open ? client?.nit ?? null : null)
+  // 🆕 Estado para paginación
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(50)
+
+  // 🆕 Reiniciar página cuando cambia el cliente o se abre el drawer
+  useEffect(() => {
+    if (open && client) {
+      setPage(1)
+    }
+  }, [open, client?.nit])
+
+  // 🔄 MODIFICADO: ahora pasa page y limit al hook
+  const { data: facturas, pagination, loading, isFetching, error } = useFacturas(
+    open ? client?.nit ?? null : null,
+    page,
+    limit
+  )
 
   if (!client) return null
 
@@ -143,15 +161,21 @@ export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
 
           {/* Invoices Table */}
           <div className="mt-6">
-            <h3 className="mb-3 text-sm font-semibold">
-              Detalle de Facturas Vencidas
-              {!loading && (
-                <span className="ml-2 text-xs font-normal text-muted-foreground">
-                  ({facturas.length} facturas)
-                </span>
-              )}
-            </h3>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold">
+                Detalle de Facturas
+                {!loading && pagination && (
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    ({pagination.total.toLocaleString()} facturas en total)
+                  </span>
+                )}
+              </h3>
 
+              {/* 🆕 Indicador sutil de refetch al cambiar de página */}
+              {isFetching && !loading && (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
             {loading && (
               <div className="flex h-32 items-center justify-center">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -220,6 +244,23 @@ export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
                     </TableBody>
                   </Table>
                 </div>
+                {pagination && pagination.total > 0 && (
+                  <PaginationControls
+                    page={pagination.page}
+                    pages={pagination.pages}
+                    total={pagination.total}
+                    limit={pagination.limit}
+                    hasNext={pagination.hasNext}
+                    hasPrev={pagination.hasPrev}
+                    isLoading={isFetching}
+                    onPageChange={setPage}
+                    onLimitChange={(newLimit) => {
+                      setLimit(newLimit)
+                      setPage(1)  // Al cambiar el tamaño, volver a página 1
+                    }}
+                  />
+                )}
+                
 
                 {/* Totals */}
                 {facturas.length > 0 && (

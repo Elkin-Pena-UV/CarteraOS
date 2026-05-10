@@ -1,6 +1,6 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import { getFacturasCliente } from "@/lib/services/facturasService"
 
 export type FacturaItem = {
@@ -18,24 +18,46 @@ export type FacturaItem = {
   f1_saldo_total: number
 }
 
-export const facturasKeys = {
-  all: ["facturas"] as const,
-  porCliente: (nit: string) => [...facturasKeys.all, "cliente", nit] as const,
+export type PaginationMeta = {
+  total: number
+  page: number
+  limit: number
+  pages: number
+  hasNext: boolean
+  hasPrev: boolean
 }
 
-export function useFacturas(nit: string | null) {
+export const facturasKeys = {
+  all: ["facturas"] as const,
+  porCliente: (nit: string, page: number, limit: number) =>
+    [...facturasKeys.all, "cliente", nit, page, limit] as const,
+}
+
+export function useFacturas(nit: string | null, page: number = 1, limit: number = 50) {
   const query = useQuery({
-    queryKey: facturasKeys.porCliente(nit ?? ""),
+    queryKey: facturasKeys.porCliente(nit ?? "", page, limit),
     queryFn: async () => {
-      const response = await getFacturasCliente(nit!)
-      return response.data as FacturaItem[]
+      // El interceptor de axios ya devuelve response.data,
+      // pero TS infiere AxiosResponse. Casteamos vía unknown.
+      const response = (await getFacturasCliente(nit!, page, limit)) as unknown as {
+        ok: boolean
+        data: FacturaItem[]
+        pagination: PaginationMeta
+      }
+      return response
     },
-    enabled: !!nit,  // 🚫 No ejecuta si nit es null/vacío
+    enabled: !!nit,
+    // 🎯 Clave para paginación fluida:
+    // Mientras carga la página nueva, sigue mostrando la anterior
+    // (sin parpadeo / sin mostrar "Cargando...")
+    placeholderData: keepPreviousData,
   })
 
   return {
-    data: query.data ?? [],
+    data: query.data?.data ?? [],
+    pagination: query.data?.pagination,
     loading: query.isLoading,
+    isFetching: query.isFetching,
     error: query.error ? "Error al cargar las facturas" : null,
   }
 }
