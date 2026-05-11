@@ -14,22 +14,83 @@ import { ClientsTable, type Client } from "@/components/cartera/clients-table"
 import { ClientDrawer } from "@/components/cartera/client-drawer"
 import { AppShell } from "@/components/layout/app-shell"
 import { useCartera } from "@/hooks/use-cartera"
-import { adaptCarteraToClients, adaptCarteraToKPIs } from "@/lib/adapters/carteraAdapter"
+import {
+  adaptCarteraToClients,
+  adaptCarteraToKPIs,
+  adaptClientsToAging,
+} from "@/lib/adapters/carteraAdapter"
+
+// ---------------------------------------------------------------------------
+// Filtrado compartido (tabla + gráficos de aging)
+// Misma lógica que ClientsTable.filteredData para garantizar consistencia.
+// ---------------------------------------------------------------------------
+
+function applyFilters(clients: Client[], filters: ClientFilters): Client[] {
+  const normalizedClientName  = filters.clientName.trim().toLowerCase()
+  const normalizedNoPunct     = normalizedClientName.replace(/[^a-z0-9]/gi, "")
+  const normalizedAdvisor     = filters.advisor.toLowerCase()
+  const normalizedStatus      = filters.status.toLowerCase()
+  const normalizedChannel     = filters.channel.toLowerCase()
+  const minValue = filters.minValue === "" ? null : Number(filters.minValue)
+  const maxValue = filters.maxValue === "" ? null : Number(filters.maxValue)
+
+  return clients.filter((client) => {
+    if (normalizedChannel && normalizedChannel !== "all") {
+      if (!client.channel.toLowerCase().includes(normalizedChannel)) return false
+    }
+
+    if (normalizedAdvisor && normalizedAdvisor !== "all") {
+      if (!client.advisor.toLowerCase().includes(normalizedAdvisor)) return false
+    }
+
+    if (normalizedStatus && normalizedStatus !== "all") {
+      if (client.status.toLowerCase() !== normalizedStatus) return false
+    }
+
+    if (normalizedClientName) {
+      const nameMatches = client.name.toLowerCase().includes(normalizedClientName)
+      const nitNormalized = client.nit
+        ? client.nit.toLowerCase().replace(/[^a-z0-9]/gi, "")
+        : ""
+      const nitMatches = nitNormalized.includes(normalizedNoPunct)
+      if (!nameMatches && !nitMatches) return false
+    }
+
+    const portfolioValue = client.current + client.overdue
+    if (minValue !== null && !Number.isNaN(minValue) && portfolioValue < minValue) return false
+    if (maxValue !== null && !Number.isNaN(maxValue) && portfolioValue > maxValue) return false
+
+    return true
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard
+// ---------------------------------------------------------------------------
 
 export default function CarteraDashboard() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [draftFilters, setDraftFilters] = useState<ClientFilters>(initialClientFilters)
-  const [fechaCorte, setFechaCorte] = useState<FechaCorteState>(initialFechaCorte)
+  const [drawerOpen, setDrawerOpen]         = useState(false)
+  const [draftFilters, setDraftFilters]     = useState<ClientFilters>(initialClientFilters)
+  const [fechaCorte, setFechaCorte]         = useState<FechaCorteState>(initialFechaCorte)
 
   // El hook recibe modo y fecha — react-query cachea cada combinación por separado
-  const { data, loading, error } = useCartera(
-    fechaCorte.modo,
-    fechaCorte.fecha
+  const { data, loading, error } = useCartera(fechaCorte.modo, fechaCorte.fecha)
+
+  // Adaptar datos crudos del backend → Client[]
+  const clients = useMemo(() => adaptCarteraToClients(data ?? []), [data])
+
+  // KPIs sobre todos los clientes (sin filtros, igual que antes)
+  const kpis = useMemo(() => adaptCarteraToKPIs(data ?? []), [data])
+
+  // Clientes filtrados — usados por la tabla Y los gráficos de aging
+  const filteredClients = useMemo(
+    () => applyFilters(clients, draftFilters),
+    [clients, draftFilters]
   )
 
-  const clients = useMemo(() => adaptCarteraToClients(data ?? []), [data])
-  const kpis    = useMemo(() => adaptCarteraToKPIs(data ?? []), [data])
+  // Datos de aging derivados de los clientes filtrados
+  const agingData = useMemo(() => adaptClientsToAging(filteredClients), [filteredClients])
 
   const handleViewClient = (client: Client) => {
     setSelectedClient(client)
@@ -71,10 +132,16 @@ export default function CarteraDashboard() {
 
         <KPICards kpis={kpis} />
 
-        <AgingCharts />
+        {/* Gráficos de aging — reaccionan a los mismos filtros que la tabla */}
+        <AgingCharts data={agingData} />
 
         <div>
           <h2 className="mb-4 text-lg font-semibold">Tabla de Clientes</h2>
+          {/*
+            ClientsTable recibe `clients` (sin filtrar) y aplica filtros internamente.
+            Los gráficos de aging replican la misma lógica con `applyFilters` arriba,
+            garantizando consistencia entre ambas vistas.
+          */}
           <ClientsTable
             data={clients}
             onViewClient={handleViewClient}

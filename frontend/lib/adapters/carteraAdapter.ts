@@ -67,3 +67,73 @@ export const adaptCarteraToKPIs = (items: CarteraItem[]) => {
     porcentajeVencida: porcentajeVencida.toFixed(1),
   }
 }
+
+// ---------------------------------------------------------------------------
+// Tipos exportados para AgingCharts
+// ---------------------------------------------------------------------------
+
+export type AgingByChannelRow = {
+  channel: string
+  "1-30d": number
+  "31-60d": number
+  "61-90d": number
+  ">90d": number
+}
+
+export type AgingDistributionRow = {
+  name: string
+  value: number
+  color: string
+}
+
+export type AgingData = {
+  byChannel: AgingByChannelRow[]
+  distribution: AgingDistributionRow[]
+  totalVencida: number
+}
+
+// ---------------------------------------------------------------------------
+// Derivar datos de aging desde Client[] (ya filtrados)
+// Los valores están en la misma unidad que el backend (COP).
+// ---------------------------------------------------------------------------
+
+export const adaptClientsToAging = (clients: Client[]): AgingData => {
+  // Acumular por canal
+  const channelMap = new Map<string, AgingByChannelRow>()
+
+  for (const c of clients) {
+    const key = c.channel || "Sin canal"
+    if (!channelMap.has(key)) {
+      channelMap.set(key, { channel: key, "1-30d": 0, "31-60d": 0, "61-90d": 0, ">90d": 0 })
+    }
+    const row = channelMap.get(key)!
+    row["1-30d"]  += c.overdue1
+    row["31-60d"] += c.overdue2
+    row["61-90d"] += c.overdue3
+    row[">90d"]   += c.overdue4
+  }
+
+  const byChannel = Array.from(channelMap.values())
+    // Ordenar de mayor a menor cartera vencida total para que el gráfico sea más legible
+    .sort((a, b) => {
+      const sumA = a["1-30d"] + a["31-60d"] + a["61-90d"] + a[">90d"]
+      const sumB = b["1-30d"] + b["31-60d"] + b["61-90d"] + b[">90d"]
+      return sumB - sumA
+    })
+
+  // Distribución total (suma de todos los clientes filtrados)
+  const total130  = clients.reduce((s, c) => s + c.overdue1, 0)
+  const total3160 = clients.reduce((s, c) => s + c.overdue2, 0)
+  const total6190 = clients.reduce((s, c) => s + c.overdue3, 0)
+  const totalMas90 = clients.reduce((s, c) => s + c.overdue4, 0)
+  const totalVencida = total130 + total3160 + total6190 + totalMas90
+
+  const distribution: AgingDistributionRow[] = [
+    { name: "1-30 días",  value: total130,   color: "#ff6600" },
+    { name: "31-60 días", value: total3160,  color: "#00359a" },
+    { name: "61-90 días", value: total6190,  color: "#F59E0B" },
+    { name: ">90 días",   value: totalMas90, color: "#EF4444" },
+  ]
+
+  return { byChannel, distribution, totalVencida }
+}
