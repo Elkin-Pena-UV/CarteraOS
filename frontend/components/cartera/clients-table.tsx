@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import {
   DndContext,
   closestCenter,
@@ -28,6 +28,7 @@ import {
   type ColumnDef,
   type SortingState,
   type ColumnSizingState,
+  type VisibilityState
 } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import {
@@ -45,7 +46,18 @@ import {
   RotateCcw,
   ArrowDown,
   ArrowUp,
+  Columns,        // ← NUEVO
+  Check,          // ← NUEVO
 } from 'lucide-react'
+// Agrega estas importaciones de componentes UI:
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Tooltip,
   TooltipContent,
@@ -99,6 +111,9 @@ const statusConfig = {
   },
 }
 
+
+const NON_HIDEABLE = ['nit', 'actions']
+const VISIBILITY_STORAGE_KEY = 'cartera_general_column_visibility'
 const STORAGE_KEY = 'cartera_general_column_order'
 const PINNED_START = ['nit']
 const PINNED_END = ['actions']
@@ -179,7 +194,7 @@ function DraggableHeader({
       className={cn(
         'group whitespace-nowrap overflow-hidden',
         isDragging &&
-          'bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,hsl(var(--border))_5px,hsl(var(--border))_6px)] opacity-50'
+        'bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,hsl(var(--border))_5px,hsl(var(--border))_6px)] opacity-50'
       )}
     >
       {/* Contenedor principal: texto izquierda, acciones derecha */}
@@ -287,6 +302,15 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
   const [sorting, setSorting] = useState<SortingState>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(VISIBILITY_STORAGE_KEY)
+      if (saved) {
+        try { return JSON.parse(saved) } catch { /* usa default */ }
+      }
+    }
+    return {}
+  })
   const [columnOrder, setColumnOrder] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(STORAGE_KEY)
@@ -345,6 +369,12 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
     ]
   })
   const { toast } = useToast()
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(VISIBILITY_STORAGE_KEY, JSON.stringify(columnVisibility))
+    }
+  }, [columnVisibility])
 
   const filteredData = useMemo(() => {
     const normalizedClientName = filters.clientName.trim().toLowerCase()
@@ -675,12 +705,14 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
     onSortingChange: setSorting,
     onColumnOrderChange: setColumnOrder,
     onColumnSizingChange: setColumnSizing,
+    onColumnVisibilityChange: setColumnVisibility,
     enableSortingRemoval: true,
     sortDescFirst: true,
     state: {
       sorting,
       columnOrder,
       columnSizing,
+      columnVisibility,
     },
   })
 
@@ -733,11 +765,13 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
   const resetColumnOrder = () => {
     setColumnOrder(defaultColumnOrder)
     setColumnSizing({})
+    setColumnVisibility({})
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem(VISIBILITY_STORAGE_KEY)
     }
     toast({
-      description: 'Orden y tamaño de columnas restablecido',
+      description: 'Orden, tamaño y visibilidad de columnas restablecidos',
       duration: 2000,
     })
   }
@@ -746,6 +780,46 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
     <div className="rounded-lg border bg-card">
       <div className="flex items-center justify-end border-b px-4 py-2">
         <TooltipProvider>
+          <DropdownMenu>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <Columns className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Mostrar / ocultar columnas</p>
+          </TooltipContent>
+        </Tooltip>
+        <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuLabel className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Columnas visibles
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {table
+            .getAllColumns()
+            .filter(col => !NON_HIDEABLE.includes(col.id) && col.getCanHide())
+            .map(col => {
+              const label =
+                typeof col.columnDef.header === 'string'
+                  ? col.columnDef.header
+                  : col.id
+              return (
+                <DropdownMenuCheckboxItem
+                  key={col.id}
+                  checked={col.getIsVisible()}
+                  onCheckedChange={value => col.toggleVisibility(!!value)}
+                  onSelect={e => e.preventDefault()}
+                  className="capitalize"
+                >
+                  {label}
+                </DropdownMenuCheckboxItem>
+              )
+            })}
+        </DropdownMenuContent>
+      </DropdownMenu>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="sm" onClick={resetColumnOrder}>
@@ -753,7 +827,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Restablecer orden y tamaño de columnas</p>
+              <p>Restablecer orden, tamaño y visibilidad de columnas</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -794,12 +868,12 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
                         column={
                           header.column.getCanSort()
                             ? {
-                                toggleSorting: (desc) =>
-                                  header.column.toggleSorting(desc),
-                                getIsSorted: () => header.column.getIsSorted(),
-                                getCanSort: () => header.column.getCanSort(),
-                                clearSorting: () => header.column.clearSorting(),
-                              }
+                              toggleSorting: (desc) =>
+                                header.column.toggleSorting(desc),
+                              getIsSorted: () => header.column.getIsSorted(),
+                              getCanSort: () => header.column.getCanSort(),
+                              clearSorting: () => header.column.clearSorting(),
+                            }
                             : undefined
                         }
                       />
@@ -822,8 +896,8 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
                     className={cn(
                       isOverdue90 && "bg-red-50/50 dark:bg-red-950/20",
                       isNewlyOverdue &&
-                        !isOverdue90 &&
-                        "bg-amber-50/50 dark:bg-amber-950/20"
+                      !isOverdue90 &&
+                      "bg-amber-50/50 dark:bg-amber-950/20"
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
