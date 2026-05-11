@@ -1,6 +1,6 @@
 "use client"
 
-import { X, Phone, Mail, Building2, User, Calendar, Loader2 } from "lucide-react"
+import { X, Phone, Mail, Building2, User, Calendar, Loader2, ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -15,7 +15,27 @@ import { cn } from "@/lib/utils"
 import type { Client } from "./clients-table"
 import { useFacturas } from "@/hooks/use-facturas"
 import { PaginationControls } from "@/components/ui/pagination-controls"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+
+// ── Tipos ──────────────────────────────────────────────────────────────────
+type SortField =
+  | "f1_docto_causacion"
+  | "f1_saldo_corriente_total"
+  | "f1_saldo_vencido1"
+  | "f1_saldo_vencido2"
+  | "f1_saldo_vencido3"
+  | "f1_saldo_vencido4"
+  | "f1_saldo_vencido_total"
+  | "f1_saldo_total"
+
+type SortDirection = "asc" | "desc" | null
+
+interface SortState {
+  field: SortField | null
+  direction: SortDirection
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("es-CO", {
@@ -31,6 +51,15 @@ const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString("es-CO")
 }
 
+// ── Icono de sort ──────────────────────────────────────────────────────────
+function SortIcon({ field, sorting }: { field: SortField; sorting: SortState }) {
+  if (sorting.field !== field) return <ArrowUpDown className="h-3 w-3 opacity-40" />
+  if (sorting.direction === "asc") return <ArrowUp className="h-3 w-3 text-[#ff6600]" />
+  return <ArrowDown className="h-3 w-3 text-[#ff6600]" />
+}
+
+// ── Props ──────────────────────────────────────────────────────────────────
+
 interface ClientDrawerProps {
   client: Client | null
   open: boolean
@@ -42,10 +71,14 @@ export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(50)
 
+  // 🆕 Estado de ordenamiento
+  const [sorting, setSorting] = useState<SortState>({ field: null, direction: null })
+
   // 🆕 Reiniciar página cuando cambia el cliente o se abre el drawer
   useEffect(() => {
     if (open && client) {
       setPage(1)
+      setSorting({ field: null, direction: null })
     }
   }, [open, client?.nit])
 
@@ -54,6 +87,57 @@ export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
     open ? client?.nit ?? null : null,
     page,
     limit
+  )
+
+  // 🆕 Facturas ordenadas
+  const sortedFacturas = useMemo(() => {
+    if (!sorting.field || !sorting.direction) return facturas
+
+    return [...facturas].sort((a, b) => {
+      const aVal = a[sorting.field!]
+      const bVal = b[sorting.field!]
+
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return sorting.direction === "asc"
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal)
+      }
+
+      return sorting.direction === "asc"
+        ? (aVal as number) - (bVal as number)
+        : (bVal as number) - (aVal as number)
+    })
+  }, [facturas, sorting])
+
+  // 🆕 Toggle de columna
+  const toggleSort = (field: SortField) => {
+    setSorting((prev) => {
+      if (prev.field !== field) return { field, direction: "asc" }
+      if (prev.direction === "asc") return { field, direction: "desc" }
+      return { field: null, direction: null } // tercer click = sin orden
+    })
+  }
+
+  // Helper para renderizar un <TableHead> ordenable
+  const SortableHead = ({
+    field,
+    children,
+    className,
+  }: {
+    field: SortField
+    children: React.ReactNode
+    className?: string
+  }) => (
+    <TableHead className={cn("text-xs", className)}>
+      <button
+        type="button"
+        onClick={() => toggleSort(field)}
+        className="flex items-center gap-1 hover:text-foreground transition-colors"
+      >
+        {children}
+        <SortIcon field={field} sorting={sorting} />
+      </button>
+    </TableHead>
   )
 
   if (!client) return null
@@ -194,25 +278,25 @@ export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-xs">Nro Factura</TableHead>
-                        <TableHead className="text-right text-xs">Corriente</TableHead>
-                        <TableHead className="text-right text-xs">Vencido 1</TableHead>
-                        <TableHead className="text-right text-xs">Vencido 2</TableHead>
-                        <TableHead className="text-right text-xs">Vencido 3</TableHead>
-                        <TableHead className="text-right text-xs">Vencido 4</TableHead>
-                        <TableHead className="text-right text-xs">Saldo Vencido</TableHead>
-                        <TableHead className="text-right text-xs">Saldo Total</TableHead>
+                        <SortableHead field="f1_docto_causacion">Nro Factura</SortableHead>
+                        <SortableHead field="f1_saldo_corriente_total" className="text-right">Corriente</SortableHead>
+                        <SortableHead field="f1_saldo_vencido1" className="text-right">Vencido 1</SortableHead>
+                        <SortableHead field="f1_saldo_vencido2" className="text-right">Vencido 2</SortableHead>
+                        <SortableHead field="f1_saldo_vencido3" className="text-right">Vencido 3</SortableHead>
+                        <SortableHead field="f1_saldo_vencido4" className="text-right">Vencido 4</SortableHead>
+                        <SortableHead field="f1_saldo_vencido_total" className="text-right">Saldo Vencido</SortableHead>
+                        <SortableHead field="f1_saldo_total" className="text-right">Saldo Total</SortableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {facturas.length === 0 ? (
+                      {sortedFacturas.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={8} className="h-24 text-center text-sm text-muted-foreground">
                             No hay facturas vencidas
                           </TableCell>
                         </TableRow>
                       ) : (
-                        facturas.map((factura) => (
+                        sortedFacturas.map((factura) => (
                           <TableRow key={factura.f1_docto_causacion}>
                             <TableCell className="font-mono text-xs">
                               {factura.f1_docto_causacion.trim()}
@@ -260,10 +344,10 @@ export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
                     }}
                   />
                 )}
-                
+
 
                 {/* Totals */}
-                {facturas.length > 0 && (
+                {sortedFacturas.length > 0 && (
                   <div className="mt-4 flex justify-between rounded-lg bg-muted p-3">
                     <div>
                       <p className="text-xs text-muted-foreground">Total Vencido</p>
