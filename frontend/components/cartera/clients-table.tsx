@@ -523,7 +523,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "overdue",
         accessorKey: "overdue",
         header: "Vencida (COP)",
-        size: 140,
+        size: 160,
         cell: ({ row }) => {
           const value = row.getValue("overdue") as number
           return (
@@ -536,8 +536,8 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "overdue1",
         accessorKey: "overdue1",
-        header: "Venc. 1",
-        size: 120,
+        header: "Venc. 1-30",
+        size: 150,
         cell: ({ row }) => {
           const value = row.getValue("overdue1") as number
           return (
@@ -550,8 +550,8 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "overdue2",
         accessorKey: "overdue2",
-        header: "Venc. 2",
-        size: 120,
+        header: "Venc. 31-60",
+        size: 150,
         cell: ({ row }) => {
           const value = row.getValue("overdue2") as number
           return (
@@ -564,8 +564,8 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "overdue3",
         accessorKey: "overdue3",
-        header: "Venc. 3",
-        size: 120,
+        header: "Venc. 61-90",
+        size: 150,
         cell: ({ row }) => {
           const value = row.getValue("overdue3") as number
           return (
@@ -578,8 +578,8 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "overdue4",
         accessorKey: "overdue4",
-        header: "Venc. 4",
-        size: 120,
+        header: "+90 días",
+        size: 150,
         cell: ({ row }) => {
           const value = row.getValue("overdue4") as number
           return (
