@@ -1,7 +1,7 @@
 {
-  "name": "radicapp-backend",
+  "name": "carteraos-backend",
   "version": "1.0.0",
-  "description": "RadicApp - Backend API",
+  "description": "CarteraOS - Backend API",
   "type": "module",
   "main": "./src/index.js",
   "scripts": {
