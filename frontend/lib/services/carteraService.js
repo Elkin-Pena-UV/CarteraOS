@@ -1,13 +1,22 @@
 import api from '@/lib/axios';
 
-export const getCartera = async () => {
-  return await api.get('/cartera');
+/**
+ * Consulta la cartera según el modo de fecha de corte.
+ *
+ * @param {'hoy' | 'corte' | 'fecha'} modo   - Default: 'hoy'
+ * @param {string | null}              fechaCorte - Requerido si modo='fecha', formato YYYYMMDD
+ * @param {string | null}              tercero    - NIT del tercero (opcional)
+ */
+export const getCartera = async (modo = 'hoy', fechaCorte = null, tercero = null) => {
+  const params = { modo };
+  if (modo === 'fecha' && fechaCorte) params.fechaCorte = fechaCorte;
+  if (tercero) params.tercero = tercero;
+  return await api.get('/cartera', { params });
 };
 
-export const getCarteraHoy = async () => {
-  return await api.get('/cartera', { params: { modo: 'hoy' } });
-};
+// Aliases de conveniencia
+export const getCarteraHoy   = ()       => getCartera('hoy');
+export const getCarteraCorte = ()       => getCartera('corte');
+export const getCarteraFecha = (fecha)  => getCartera('fecha', fecha);
 
-export const getCarteraPorTercero = async (tercero) => {
-  return await api.get('/cartera', { params: { tercero } });
-};
+export const getCarteraPorTercero = (tercero) => getCartera('hoy', null, tercero);

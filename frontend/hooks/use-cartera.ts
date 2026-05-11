@@ -1,11 +1,7 @@
 "use client"
 
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { 
-  getCartera, 
-  getCarteraHoy, 
-  getCarteraPorTercero 
-} from "@/lib/services/carteraService"
+import { getCartera, getCarteraPorTercero } from "@/lib/services/carteraService"
 
 export type CarteraItem = {
   f1_tercero: string
@@ -29,41 +25,31 @@ export type CarteraItem = {
   f_rem_cantidad_documentos: number
 }
 
-// 🔑 Keys del cache centralizadas
+export type ModoFechaCorte = 'hoy' | 'corte' | 'fecha'
+
+// 🔑 Cache keys — incluyen modo y fechaCorte para que cada combinación tenga su propia entrada
 export const carteraKeys = {
   all: ["cartera"] as const,
-  corte: () => [...carteraKeys.all, "corte"] as const,
-  hoy: () => [...carteraKeys.all, "hoy"] as const,
+  byModo: (modo: ModoFechaCorte, fecha?: string) =>
+    [...carteraKeys.all, modo, fecha ?? ""] as const,
   tercero: (nit: string) => [...carteraKeys.all, "tercero", nit] as const,
 }
 
-// 📥 Hook principal — mantiene la MISMA API que antes
-export function useCartera() {
+// 📥 Hook principal — recibe modo y fecha de corte seleccionados por el usuario
+export function useCartera(modo: ModoFechaCorte = 'hoy', fechaCorte?: string) {
   const query = useQuery({
-    queryKey: carteraKeys.corte(),
+    queryKey: carteraKeys.byModo(modo, fechaCorte),
     queryFn: async () => {
-      const response = await getCartera()
-      return response.data.data as CarteraItem[]
+      // El interceptor de axios ya extrae response.data,
+      // así que 'response' ES el body: { ok, total, data, meta }
+      const response = await getCartera(
+        modo,
+        modo === 'fecha' ? (fechaCorte ?? null) : null
+      ) as unknown as { ok: boolean; data: CarteraItem[] }
+      return response.data ?? []
     },
-  })
-
-  return {
-    data: query.data ?? [],
-    loading: query.isLoading,
-    error: query.error ? "Error al cargar la cartera" : null,
-    isFetching: query.isFetching,  // 🆕 indica refetch en background
-    refetch: query.refetch,        // 🆕 forzar refetch manual
-  }
-}
-
-// 📥 Hook para cartera del día
-export function useCarteraHoy() {
-  const query = useQuery({
-    queryKey: carteraKeys.hoy(),
-    queryFn: async () => {
-      const response = await getCarteraHoy()
-      return response.data.data as CarteraItem[]
-    },
+    // Solo habilitar modo='fecha' si hay fecha seleccionada
+    enabled: modo !== 'fecha' || !!fechaCorte,
   })
 
   return {
@@ -71,6 +57,7 @@ export function useCarteraHoy() {
     loading: query.isLoading,
     error: query.error ? "Error al cargar la cartera" : null,
     isFetching: query.isFetching,
+    refetch: query.refetch,
   }
 }
 
@@ -79,8 +66,8 @@ export function useCarteraPorTercero(tercero: string | null) {
   const query = useQuery({
     queryKey: carteraKeys.tercero(tercero ?? ""),
     queryFn: async () => {
-      const response = await getCarteraPorTercero(tercero!)
-      return response.data.data as CarteraItem[]
+      const response = await getCarteraPorTercero(tercero!) as unknown as { ok: boolean; data: CarteraItem[] }
+      return response.data ?? []
     },
     enabled: !!tercero,
   })
@@ -92,7 +79,7 @@ export function useCarteraPorTercero(tercero: string | null) {
   }
 }
 
-// 🔄 Hook para invalidar el cache de cartera
+// 🔄 Hook para invalidar todo el cache de cartera
 export function useRefrescarCartera() {
   const queryClient = useQueryClient()
   return () => {
