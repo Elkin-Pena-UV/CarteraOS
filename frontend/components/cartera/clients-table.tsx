@@ -98,7 +98,7 @@ const statusConfig = {
 
 const STORAGE_KEY = 'cartera_general_column_order'
 const PINNED_START = ['nit']
-const PINNED_END = ['acciones']
+const PINNED_END = ['actions']
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("es-CO", {
@@ -121,14 +121,23 @@ interface ClientsTableProps {
   filters: ClientFilters
 }
 
-// Draggable Header Component
+// ---------------------------------------------------------------------------
+// DraggableHeader — texto a la izquierda, botones (sort + grip) a la derecha
+// ---------------------------------------------------------------------------
 interface DraggableHeaderProps {
   id: string
   isPinned?: boolean
-  children: React.ReactNode
+  // El children ahora es SOLO el texto del label (string), no el <Button>.
+  // Los headers con sort pasan su column para que el botón se renderice aquí.
+  label: string
+  column?: {
+    toggleSorting: (desc: boolean) => void
+    getIsSorted: () => false | "asc" | "desc"
+    getCanSort: () => boolean
+  }
 }
 
-function DraggableHeader({ id, isPinned = false, children }: DraggableHeaderProps) {
+function DraggableHeader({ id, isPinned = false, label, column }: DraggableHeaderProps) {
   const {
     attributes,
     listeners,
@@ -146,31 +155,68 @@ function DraggableHeader({ id, isPinned = false, children }: DraggableHeaderProp
     transition,
   }
 
+  const canSort = column?.getCanSort() ?? false
+
   return (
     <TableHead
       ref={setNodeRef}
       style={style}
       className={cn(
         'group whitespace-nowrap',
-        isDragging && 'bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,hsl(var(--border))_5px,hsl(var(--border))_6px)] opacity-50'
+        isDragging &&
+          'bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,hsl(var(--border))_5px,hsl(var(--border))_6px)] opacity-50'
       )}
     >
-      <div className="flex items-center">
-        {!isPinned && (
-          <button
-            {...attributes}
-            {...listeners}
-            className={cn(
-              'mr-1 flex h-6 w-4 shrink-0 cursor-grab items-center justify-center rounded opacity-0 transition-opacity duration-150',
-              'group-hover:opacity-40 hover:!opacity-100 hover:text-[#ff6600]',
-              'active:cursor-grabbing focus:outline-none'
-            )}
-            tabIndex={-1}
-          >
-            <GripVertical className="h-4 w-4" />
-          </button>
-        )}
-        {children}
+      {/* Contenedor principal: texto izquierda, acciones derecha */}
+      <div className="flex items-center justify-between gap-1">
+
+        {/* Texto del header */}
+        <span className="text-sm font-medium text-foreground">
+          {label}
+        </span>
+
+        {/* Acciones a la derecha: botón sort + grip drag */}
+        <div className="flex shrink-0 items-center gap-0.5">
+
+          {/* Botón de ordenar — solo si la columna puede ordenarse */}
+          {canSort && column && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                column.toggleSorting(column.getIsSorted() === "asc")
+              }}
+              className={cn(
+                'flex h-6 w-6 items-center justify-center rounded transition-all duration-150',
+                'opacity-0 group-hover:opacity-60 hover:!opacity-100',
+                'hover:bg-muted focus:outline-none',
+                column.getIsSorted() && '!opacity-100 text-[#ff6600]'
+              )}
+              title="Ordenar"
+            >
+              <ArrowUpDown className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {/* Grip de drag — solo en columnas no fijadas */}
+          {!isPinned && (
+            <button
+              type="button"
+              {...attributes}
+              {...listeners}
+              aria-label="Arrastrar columna"
+              className={cn(
+                'flex h-6 w-5 items-center justify-center rounded transition-all duration-150',
+                'opacity-0 group-hover:opacity-40 hover:!opacity-100 hover:text-[#ff6600]',
+                'cursor-grab active:cursor-grabbing focus:outline-none'
+              )}
+              tabIndex={-1}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
     </TableHead>
   )
@@ -296,7 +342,8 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
 
       if (normalizedClientName) {
         const nameMatches = client.name.toLowerCase().includes(normalizedClientName)
-        const nitNormalized = client.nit ? client.nit.toLowerCase().replace(/[^a-z0-9]/gi, "") : ""
+        const nitNormalized = client.nit ?
+          client.nit.toLowerCase().replace(/[^a-z0-9]/gi, "") : ""
         const nitMatches = nitNormalized.includes(normalizedClientQueryNoPunct)
         if (!nameMatches && !nitMatches) {
           return false
@@ -324,6 +371,11 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       return true
     })
   }, [data, filters])
+
+  // ---------------------------------------------------------------------------
+  // Definición de columnas — headers ahora solo usan `label` (string)
+  // El botón de sort y el grip los gestiona DraggableHeader directamente.
+  // ---------------------------------------------------------------------------
   const columns: ColumnDef<Client>[] = useMemo(
     () => [
       {
@@ -337,16 +389,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "name",
         accessorKey: "name",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Nombre Cliente
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        header: "Nombre Cliente",
         cell: ({ row }) => (
           <span className="font-medium">{row.getValue("name")}</span>
         ),
@@ -354,16 +397,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "channel",
         accessorKey: "channel",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Canal
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        header: "Canal",
         cell: ({ row }) => (
           <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
             {row.getValue("channel")}
@@ -373,16 +407,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "paymentCondition",
         accessorKey: "paymentCondition",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Cond. pago
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        header: "Cond. pago",
         cell: ({ row }) => (
           <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
             {row.getValue("paymentCondition")}
@@ -392,16 +417,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "quota",
         accessorKey: "quota",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Cupo (COP)
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        header: "Cupo (COP)",
         cell: ({ row }) => (
           <span className="font-medium text-[#22b859]">
             {formatCurrency(row.getValue("quota"))}
@@ -411,16 +427,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "current",
         accessorKey: "current",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Corriente (COP)
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        header: "Corriente (COP)",
         cell: ({ row }) => (
           <span className="font-medium text-[#ff6600]">
             {formatCurrency(row.getValue("current"))}
@@ -430,22 +437,11 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "overdue",
         accessorKey: "overdue",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Vencida (COP)
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        header: "Vencida (COP)",
         cell: ({ row }) => {
           const value = row.getValue("overdue") as number
           return (
-            <span
-              className={cn("font-medium", value > 0 && "text-destructive")}
-            >
+            <span className={cn("font-medium", value > 0 && "text-destructive")}>
               {formatCurrency(value)}
             </span>
           )
@@ -454,16 +450,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "overdue1",
         accessorKey: "overdue1",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Venc. 1
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        header: "Venc. 1",
         cell: ({ row }) => {
           const value = row.getValue("overdue1") as number
           return (
@@ -476,16 +463,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "overdue2",
         accessorKey: "overdue2",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Venc. 2
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        header: "Venc. 2",
         cell: ({ row }) => {
           const value = row.getValue("overdue2") as number
           return (
@@ -498,16 +476,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "overdue3",
         accessorKey: "overdue3",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Venc. 3
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        header: "Venc. 3",
         cell: ({ row }) => {
           const value = row.getValue("overdue3") as number
           return (
@@ -520,16 +489,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "overdue4",
         accessorKey: "overdue4",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Venc. 4
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        header: "Venc. 4",
         cell: ({ row }) => {
           const value = row.getValue("overdue4") as number
           return (
@@ -542,16 +502,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "overcapacity",
         accessorKey: "overcapacity",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Sobrecupo (COP)
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        header: "Sobrecupo (COP)",
         cell: ({ row }) => {
           const value = row.getValue("overcapacity") as number
           return (
@@ -564,16 +515,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "maxDaysOverdue",
         accessorKey: "maxDaysOverdue",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Días Máx Vencido
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        header: "Días Máx Vencido",
         cell: ({ row }) => {
           const days = row.getValue("maxDaysOverdue") as number
           return (
@@ -592,16 +534,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "totalBalance",
         accessorKey: "totalBalance",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Saldo total
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        header: "Saldo total",
         cell: ({ row }) => {
           const value = row.getValue("totalBalance") as number
           return <span className="font-medium">{formatCurrency(value)}</span>
@@ -610,16 +543,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "totalCop",
         accessorKey: "totalCop",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Total COP
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        header: "Total COP",
         cell: ({ row }) => {
           const value = row.getValue("totalCop") as number
           return <span className="font-medium">{formatCurrency(value)}</span>
@@ -628,16 +552,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "remittanceValue",
         accessorKey: "remittanceValue",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Valor remisión COP
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        header: "Valor remisión COP",
         cell: ({ row }) => {
           const value = row.getValue("remittanceValue") as number
           return <span className="font-medium">{formatCurrency(value)}</span>
@@ -646,16 +561,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "status",
         accessorKey: "status",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Estado
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
+        header: "Estado",
         cell: ({ row }) => {
           const status = row.getValue("status") as keyof typeof statusConfig
           const config = statusConfig[status]
@@ -716,7 +622,6 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
     })
   )
 
-  // Get draggable columns (excluding pinned)
   const draggableOrder = columnOrder.filter(
     (id) => !PINNED_START.includes(id) && !PINNED_END.includes(id)
   )
@@ -794,14 +699,33 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
                   strategy={horizontalListSortingStrategy}
                 >
                   {headerGroup.headers.map((header) => {
+                    const isPinned =
+                      PINNED_START.includes(header.id) ||
+                      PINNED_END.includes(header.id)
 
-                    const isPinned = PINNED_START.includes(header.id) || PINNED_END.includes(header.id)
+                    // Extraemos el label del columnDef.header (es string en todos los casos ahora)
+                    const label =
+                      typeof header.column.columnDef.header === "string"
+                        ? header.column.columnDef.header
+                        : header.id
+
                     return (
-                      <DraggableHeader key={header.id} id={header.id} isPinned={isPinned}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                      </DraggableHeader>
+                      <DraggableHeader
+                        key={header.id}
+                        id={header.id}
+                        isPinned={isPinned}
+                        label={label}
+                        column={
+                          header.column.getCanSort()
+                            ? {
+                                toggleSorting: (desc) =>
+                                  header.column.toggleSorting(desc),
+                                getIsSorted: () => header.column.getIsSorted(),
+                                getCanSort: () => header.column.getCanSort(),
+                              }
+                            : undefined
+                        }
+                      />
                     )
                   })}
                 </SortableContext>
@@ -821,8 +745,8 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
                     className={cn(
                       isOverdue90 && "bg-red-50/50 dark:bg-red-950/20",
                       isNewlyOverdue &&
-                      !isOverdue90 &&
-                      "bg-amber-50/50 dark:bg-amber-950/20"
+                        !isOverdue90 &&
+                        "bg-amber-50/50 dark:bg-amber-950/20"
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
@@ -838,7 +762,10 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
                   No se encontraron resultados.
                 </TableCell>
               </TableRow>
@@ -846,7 +773,9 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
           </TableBody>
         </Table>
         <DragOverlay>
-          {activeId ? <DragOverlayContent columnId={activeId} columns={columns} /> : null}
+          {activeId ? (
+            <DragOverlayContent columnId={activeId} columns={columns} />
+          ) : null}
         </DragOverlay>
       </DndContext>
     </div>
