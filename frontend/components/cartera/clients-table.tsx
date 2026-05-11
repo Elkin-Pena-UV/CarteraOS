@@ -27,6 +27,7 @@ import {
   flexRender,
   type ColumnDef,
   type SortingState,
+  type ColumnSizingState,
 } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import {
@@ -129,9 +130,10 @@ interface ClientsTableProps {
 interface DraggableHeaderProps {
   id: string
   isPinned?: boolean
-  // El children ahora es SOLO el texto del label (string), no el <Button>.
-  // Los headers con sort pasan su column para que el botón se renderice aquí.
   label: string
+  size: number
+  isResizing: boolean
+  onResizeStart: (e: React.MouseEvent | React.TouchEvent) => void
   column?: {
     toggleSorting: (desc: boolean) => void
     getIsSorted: () => false | "desc" | "asc"
@@ -140,7 +142,15 @@ interface DraggableHeaderProps {
   }
 }
 
-function DraggableHeader({ id, isPinned = false, label, column }: DraggableHeaderProps) {
+function DraggableHeader({
+  id,
+  isPinned = false,
+  label,
+  size,
+  isResizing,
+  onResizeStart,
+  column,
+}: DraggableHeaderProps) {
   const {
     attributes,
     listeners,
@@ -156,6 +166,8 @@ function DraggableHeader({ id, isPinned = false, label, column }: DraggableHeade
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
+    width: size,
+    position: "relative",
   }
 
   const canSort = column?.getCanSort() ?? false
@@ -165,7 +177,7 @@ function DraggableHeader({ id, isPinned = false, label, column }: DraggableHeade
       ref={setNodeRef}
       style={style}
       className={cn(
-        'group whitespace-nowrap',
+        'group whitespace-nowrap overflow-hidden',
         isDragging &&
           'bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,hsl(var(--border))_5px,hsl(var(--border))_6px)] opacity-50'
       )}
@@ -174,7 +186,7 @@ function DraggableHeader({ id, isPinned = false, label, column }: DraggableHeade
       <div className="flex items-center justify-between gap-1">
 
         {/* Texto del header */}
-        <span className="text-sm font-medium text-foreground">
+        <span className="text-sm font-medium text-foreground truncate">
           {label}
         </span>
 
@@ -189,11 +201,11 @@ function DraggableHeader({ id, isPinned = false, label, column }: DraggableHeade
                 e.stopPropagation()
                 const sorted = column.getIsSorted()
                 if (sorted === false) {
-                  column.toggleSorting(true)    // sin orden → desc
+                  column.toggleSorting(true)
                 } else if (sorted === "desc") {
-                  column.toggleSorting(false)   // desc → asc
+                  column.toggleSorting(false)
                 } else {
-                  column.clearSorting()         // asc → quitar
+                  column.clearSorting()
                 }
               }}
               className={cn(
@@ -234,6 +246,27 @@ function DraggableHeader({ id, isPinned = false, label, column }: DraggableHeade
           )}
         </div>
       </div>
+
+      {/* ── Handle de resize ── */}
+      {!isPinned && (
+        <div
+          onMouseDown={(e) => {
+            e.stopPropagation()
+            onResizeStart(e)
+          }}
+          onTouchStart={(e) => {
+            e.stopPropagation()
+            onResizeStart(e)
+          }}
+          className={cn(
+            "absolute right-0 top-0 h-full w-1.5 cursor-col-resize select-none touch-none z-10",
+            "opacity-0 group-hover:opacity-100 transition-opacity",
+            "hover:bg-[#ff6600]/60 rounded-sm",
+            isResizing && "bg-[#ff6600] opacity-100"
+          )}
+          title="Arrastrar para redimensionar"
+        />
+      )}
     </TableHead>
   )
 }
@@ -253,6 +286,7 @@ function DragOverlayContent({ columnId, columns }: { columnId: string; columns: 
 export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
   const [columnOrder, setColumnOrder] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(STORAGE_KEY)
@@ -389,8 +423,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
   }, [data, filters])
 
   // ---------------------------------------------------------------------------
-  // Definición de columnas — headers ahora solo usan `label` (string)
-  // El botón de sort y el grip los gestiona DraggableHeader directamente.
+  // Definición de columnas
   // ---------------------------------------------------------------------------
   const columns: ColumnDef<Client>[] = useMemo(
     () => [
@@ -398,6 +431,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "nit",
         accessorKey: "nit",
         header: "NIT",
+        size: 120,
         cell: ({ row }) => (
           <span className="font-mono text-sm">{row.getValue("nit")}</span>
         ),
@@ -406,6 +440,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "name",
         accessorKey: "name",
         header: "Nombre Cliente",
+        size: 200,
         cell: ({ row }) => (
           <span className="font-medium">{row.getValue("name")}</span>
         ),
@@ -414,6 +449,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "channel",
         accessorKey: "channel",
         header: "Canal",
+        size: 160,
         cell: ({ row }) => (
           <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
             {row.getValue("channel")}
@@ -424,6 +460,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "paymentCondition",
         accessorKey: "paymentCondition",
         header: "Cond. pago",
+        size: 120,
         cell: ({ row }) => (
           <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
             {row.getValue("paymentCondition")}
@@ -434,6 +471,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "quota",
         accessorKey: "quota",
         header: "Cupo (COP)",
+        size: 140,
         cell: ({ row }) => (
           <span className="font-medium text-[#22b859]">
             {formatCurrency(row.getValue("quota"))}
@@ -444,6 +482,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "current",
         accessorKey: "current",
         header: "Corriente (COP)",
+        size: 150,
         cell: ({ row }) => (
           <span className="font-medium text-[#ff6600]">
             {formatCurrency(row.getValue("current"))}
@@ -454,6 +493,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "overdue",
         accessorKey: "overdue",
         header: "Vencida (COP)",
+        size: 140,
         cell: ({ row }) => {
           const value = row.getValue("overdue") as number
           return (
@@ -467,6 +507,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "overdue1",
         accessorKey: "overdue1",
         header: "Venc. 1",
+        size: 120,
         cell: ({ row }) => {
           const value = row.getValue("overdue1") as number
           return (
@@ -480,6 +521,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "overdue2",
         accessorKey: "overdue2",
         header: "Venc. 2",
+        size: 120,
         cell: ({ row }) => {
           const value = row.getValue("overdue2") as number
           return (
@@ -493,6 +535,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "overdue3",
         accessorKey: "overdue3",
         header: "Venc. 3",
+        size: 120,
         cell: ({ row }) => {
           const value = row.getValue("overdue3") as number
           return (
@@ -506,6 +549,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "overdue4",
         accessorKey: "overdue4",
         header: "Venc. 4",
+        size: 120,
         cell: ({ row }) => {
           const value = row.getValue("overdue4") as number
           return (
@@ -519,6 +563,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "overcapacity",
         accessorKey: "overcapacity",
         header: "Sobrecupo (COP)",
+        size: 150,
         cell: ({ row }) => {
           const value = row.getValue("overcapacity") as number
           return (
@@ -532,6 +577,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "maxDaysOverdue",
         accessorKey: "maxDaysOverdue",
         header: "Días Máx Vencido",
+        size: 150,
         cell: ({ row }) => {
           const days = row.getValue("maxDaysOverdue") as number
           return (
@@ -551,6 +597,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "totalBalance",
         accessorKey: "totalBalance",
         header: "Saldo total",
+        size: 140,
         cell: ({ row }) => {
           const value = row.getValue("totalBalance") as number
           return <span className="font-medium">{formatCurrency(value)}</span>
@@ -560,6 +607,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "totalCop",
         accessorKey: "totalCop",
         header: "Total COP",
+        size: 140,
         cell: ({ row }) => {
           const value = row.getValue("totalCop") as number
           return <span className="font-medium">{formatCurrency(value)}</span>
@@ -569,6 +617,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "remittanceValue",
         accessorKey: "remittanceValue",
         header: "Valor remisión COP",
+        size: 160,
         cell: ({ row }) => {
           const value = row.getValue("remittanceValue") as number
           return <span className="font-medium">{formatCurrency(value)}</span>
@@ -578,6 +627,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "status",
         accessorKey: "status",
         header: "Estado",
+        size: 120,
         cell: ({ row }) => {
           const status = row.getValue("status") as keyof typeof statusConfig
           const config = statusConfig[status]
@@ -594,6 +644,8 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "actions",
         header: "Acciones",
+        size: 100,
+        enableResizing: false,
         cell: ({ row }) => (
           <div className="flex items-center gap-1">
             <Button
@@ -617,15 +669,18 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
   const table = useReactTable({
     data: filteredData,
     columns,
+    columnResizeMode: "onChange",
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: setSorting,
     onColumnOrderChange: setColumnOrder,
+    onColumnSizingChange: setColumnSizing,
     enableSortingRemoval: true,
     sortDescFirst: true,
     state: {
       sorting,
       columnOrder,
+      columnSizing,
     },
   })
 
@@ -677,11 +732,12 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
 
   const resetColumnOrder = () => {
     setColumnOrder(defaultColumnOrder)
+    setColumnSizing({})
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY)
     }
     toast({
-      description: 'Orden de columnas restablecido',
+      description: 'Orden y tamaño de columnas restablecido',
       duration: 2000,
     })
   }
@@ -697,7 +753,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Restablecer orden de columnas</p>
+              <p>Restablecer orden y tamaño de columnas</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -708,7 +764,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <Table>
+        <Table style={{ tableLayout: "fixed", width: table.getTotalSize() }}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -721,7 +777,6 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
                       PINNED_START.includes(header.id) ||
                       PINNED_END.includes(header.id)
 
-                    // Extraemos el label del columnDef.header (es string en todos los casos ahora)
                     const label =
                       typeof header.column.columnDef.header === "string"
                         ? header.column.columnDef.header
@@ -733,6 +788,9 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
                         id={header.id}
                         isPinned={isPinned}
                         label={label}
+                        size={header.getSize()}
+                        isResizing={header.column.getIsResizing()}
+                        onResizeStart={header.getResizeHandler()}
                         column={
                           header.column.getCanSort()
                             ? {
@@ -769,7 +827,10 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
+                      <TableCell
+                        key={cell.id}
+                        style={{ width: cell.column.getSize(), overflow: "hidden" }}
+                      >
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()
