@@ -46,10 +46,9 @@ import {
   RotateCcw,
   ArrowDown,
   ArrowUp,
-  Columns,        // ← NUEVO
-  Check,          // ← NUEVO
+  Columns,
+  Check,
 } from 'lucide-react'
-// Agrega estas importaciones de componentes UI:
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -111,7 +110,6 @@ const statusConfig = {
   },
 }
 
-
 const NON_HIDEABLE = ['nit', 'actions']
 const VISIBILITY_STORAGE_KEY = 'cartera_general_column_visibility'
 const STORAGE_KEY = 'cartera_general_column_order'
@@ -140,7 +138,7 @@ interface ClientsTableProps {
 }
 
 // ---------------------------------------------------------------------------
-// DraggableHeader — texto a la izquierda, botones (sort + grip) a la derecha
+// DraggableHeader
 // ---------------------------------------------------------------------------
 interface DraggableHeaderProps {
   id: string
@@ -173,10 +171,7 @@ function DraggableHeader({
     transform,
     transition,
     isDragging,
-  } = useSortable({
-    id,
-    disabled: isPinned,
-  })
+  } = useSortable({ id, disabled: isPinned })
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -197,31 +192,19 @@ function DraggableHeader({
         'bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,hsl(var(--border))_5px,hsl(var(--border))_6px)] opacity-50'
       )}
     >
-      {/* Contenedor principal: texto izquierda, acciones derecha */}
       <div className="flex items-center justify-between gap-1">
+        <span className="text-sm font-medium text-foreground truncate">{label}</span>
 
-        {/* Texto del header */}
-        <span className="text-sm font-medium text-foreground truncate">
-          {label}
-        </span>
-
-        {/* Acciones a la derecha: botón sort + grip drag */}
         <div className="flex shrink-0 items-center gap-0.5">
-
-          {/* Botón de ordenar — solo si la columna puede ordenarse */}
           {canSort && column && (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation()
                 const sorted = column.getIsSorted()
-                if (sorted === false) {
-                  column.toggleSorting(true)
-                } else if (sorted === "desc") {
-                  column.toggleSorting(false)
-                } else {
-                  column.clearSorting()
-                }
+                if (sorted === false) column.toggleSorting(true)
+                else if (sorted === "desc") column.toggleSorting(false)
+                else column.clearSorting()
               }}
               className={cn(
                 'flex h-6 w-6 items-center justify-center rounded transition-all duration-150',
@@ -241,7 +224,6 @@ function DraggableHeader({
             </button>
           )}
 
-          {/* Grip de drag — solo en columnas no fijadas */}
           {!isPinned && (
             <button
               type="button"
@@ -262,17 +244,10 @@ function DraggableHeader({
         </div>
       </div>
 
-      {/* ── Handle de resize ── */}
       {!isPinned && (
         <div
-          onMouseDown={(e) => {
-            e.stopPropagation()
-            onResizeStart(e)
-          }}
-          onTouchStart={(e) => {
-            e.stopPropagation()
-            onResizeStart(e)
-          }}
+          onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e) }}
+          onTouchStart={(e) => { e.stopPropagation(); onResizeStart(e) }}
           className={cn(
             "absolute right-0 top-0 h-full w-1.5 cursor-col-resize select-none touch-none z-10",
             "opacity-0 group-hover:opacity-100 transition-opacity",
@@ -318,54 +293,23 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         try {
           const parsed = JSON.parse(saved)
           const defaultColumns = [
-            'nit',
-            'name',
-            'channel',
-            'paymentCondition',
-            'quota',
-            'current',
-            'overdue',
-            'overdue1',
-            'overdue2',
-            'overdue3',
-            'overdue4',
-            'overcapacity',
-            'maxDaysOverdue',
-            'totalBalance',
-            'totalCop',
-            'remittanceValue',
-            'status',
-            'actions',
+            'nit', 'name', 'channel', 'paymentCondition', 'quota',
+            'current', 'overdue', 'overdue1', 'overdue2', 'overdue3', 'overdue4',
+            'overcapacity', 'maxDaysOverdue', 'totalBalance', 'totalCop',
+            'remittanceValue', 'status', 'actions',
           ]
           const valid =
             defaultColumns.every((col) => parsed.includes(col)) &&
             parsed.every((col: string) => defaultColumns.includes(col))
           if (valid) return parsed
-        } catch {
-          // Invalid JSON, use default
-        }
+        } catch { /* Invalid JSON, use default */ }
       }
     }
-
     return [
-      'nit',
-      'name',
-      'channel',
-      'paymentCondition',
-      'quota',
-      'current',
-      'overdue',
-      'overdue1',
-      'overdue2',
-      'overdue3',
-      'overdue4',
-      'overcapacity',
-      'maxDaysOverdue',
-      'totalBalance',
-      'totalCop',
-      'remittanceValue',
-      'status',
-      'actions',
+      'nit', 'name', 'channel', 'paymentCondition', 'quota',
+      'current', 'overdue', 'overdue1', 'overdue2', 'overdue3', 'overdue4',
+      'overcapacity', 'maxDaysOverdue', 'totalBalance', 'totalCop',
+      'remittanceValue', 'status', 'actions',
     ]
   })
   const { toast } = useToast()
@@ -376,85 +320,49 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
     }
   }, [columnVisibility])
 
+  // ── Filtrado ──────────────────────────────────────────────────────────────
+  // La fecha de corte ya NO se filtra aquí — es parámetro de la query al
+  // backend (modo/fechaCorte). Solo se filtran atributos de los registros.
   const filteredData = useMemo(() => {
     const normalizedClientName = filters.clientName.trim().toLowerCase()
     const normalizedClientQueryNoPunct = normalizedClientName.replace(/[^a-z0-9]/gi, "")
     const normalizedAdvisor = filters.advisor.toLowerCase()
     const normalizedStatus = filters.status.toLowerCase()
     const normalizedChannel = filters.channel.toLowerCase()
-
     const minValue = filters.minValue === "" ? null : Number(filters.minValue)
     const maxValue = filters.maxValue === "" ? null : Number(filters.maxValue)
 
-    const fromDate = filters.dateRange?.from
-      ? new Date(filters.dateRange.from)
-      : null
-    const toDate = filters.dateRange?.to
-      ? new Date(filters.dateRange.to)
-      : null
-
-    if (fromDate) {
-      fromDate.setHours(0, 0, 0, 0)
-    }
-
-    if (toDate) {
-      toDate.setHours(23, 59, 59, 999)
-    }
-
     return data.filter((client) => {
       if (normalizedChannel && normalizedChannel !== "all") {
-        if (!client.channel.toLowerCase().includes(normalizedChannel)) {
-          return false
-        }
+        if (!client.channel.toLowerCase().includes(normalizedChannel)) return false
       }
 
       if (normalizedAdvisor && normalizedAdvisor !== "all") {
-        if (!client.advisor.toLowerCase().includes(normalizedAdvisor)) {
-          return false
-        }
+        if (!client.advisor.toLowerCase().includes(normalizedAdvisor)) return false
       }
 
       if (normalizedStatus && normalizedStatus !== "all") {
-        if (client.status.toLowerCase() !== normalizedStatus) {
-          return false
-        }
+        if (client.status.toLowerCase() !== normalizedStatus) return false
       }
 
       if (normalizedClientName) {
         const nameMatches = client.name.toLowerCase().includes(normalizedClientName)
-        const nitNormalized = client.nit ?
-          client.nit.toLowerCase().replace(/[^a-z0-9]/gi, "") : ""
+        const nitNormalized = client.nit
+          ? client.nit.toLowerCase().replace(/[^a-z0-9]/gi, "")
+          : ""
         const nitMatches = nitNormalized.includes(normalizedClientQueryNoPunct)
-        if (!nameMatches && !nitMatches) {
-          return false
-        }
+        if (!nameMatches && !nitMatches) return false
       }
 
       const portfolioValue = client.current + client.overdue
-      if (minValue !== null && !Number.isNaN(minValue) && portfolioValue < minValue) {
-        return false
-      }
-      if (maxValue !== null && !Number.isNaN(maxValue) && portfolioValue > maxValue) {
-        return false
-      }
-
-      if (fromDate || toDate) {
-        const clientDueDate = new Date(client.dueDate)
-        if (fromDate && clientDueDate < fromDate) {
-          return false
-        }
-        if (toDate && clientDueDate > toDate) {
-          return false
-        }
-      }
+      if (minValue !== null && !Number.isNaN(minValue) && portfolioValue < minValue) return false
+      if (maxValue !== null && !Number.isNaN(maxValue) && portfolioValue > maxValue) return false
 
       return true
     })
   }, [data, filters])
 
-  // ---------------------------------------------------------------------------
-  // Definición de columnas
-  // ---------------------------------------------------------------------------
+  // ── Columnas ──────────────────────────────────────────────────────────────
   const columns: ColumnDef<Client>[] = useMemo(
     () => [
       {
@@ -604,26 +512,6 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
-        id: "maxDaysOverdue",
-        accessorKey: "maxDaysOverdue",
-        header: "Días Máx Vencido",
-        size: 150,
-        cell: ({ row }) => {
-          const days = row.getValue("maxDaysOverdue") as number
-          return (
-            <span
-              className={cn(
-                "font-medium",
-                days > 70 && "text-destructive font-bold",
-                days > 50 && days <= 70 && "text-amber-600 dark:text-amber-400"
-              )}
-            >
-              {days > 0 ? `${days} días` : "-"}
-            </span>
-          )
-        },
-      },
-      {
         id: "totalBalance",
         accessorKey: "totalBalance",
         header: "Saldo total",
@@ -664,9 +552,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
           return (
             <div className="flex items-center gap-2">
               <div className={cn("h-2 w-2 rounded-full", config.color)} />
-              <span className={cn("text-sm", config.textColor)}>
-                {config.label}
-              </span>
+              <span className={cn("text-sm", config.textColor)}>{config.label}</span>
             </div>
           )
         },
@@ -708,23 +594,12 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
     onColumnVisibilityChange: setColumnVisibility,
     enableSortingRemoval: true,
     sortDescFirst: true,
-    state: {
-      sorting,
-      columnOrder,
-      columnSizing,
-      columnVisibility,
-    },
+    state: { sorting, columnOrder, columnSizing, columnVisibility },
   })
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
   const draggableOrder = columnOrder.filter(
@@ -737,7 +612,6 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
-
     setActiveId(null)
 
     if (over && active.id !== over.id) {
@@ -747,17 +621,11 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       if (oldIndex !== -1 && newIndex !== -1) {
         const newDraggableOrder = arrayMove(draggableOrder, oldIndex, newIndex)
         const newFullOrder = [...PINNED_START, ...newDraggableOrder, ...PINNED_END]
-
         setColumnOrder(newFullOrder)
-
         if (typeof window !== 'undefined') {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(newFullOrder))
         }
-
-        toast({
-          description: 'Columna reordenada',
-          duration: 2000,
-        })
+        toast({ description: 'Columna reordenada', duration: 2000 })
       }
     }
   }
@@ -781,45 +649,45 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       <div className="flex items-center justify-end border-b px-4 py-2">
         <TooltipProvider>
           <DropdownMenu>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <Columns className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Mostrar / ocultar columnas</p>
-          </TooltipContent>
-        </Tooltip>
-        <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuLabel className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Columnas visibles
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {table
-            .getAllColumns()
-            .filter(col => !NON_HIDEABLE.includes(col.id) && col.getCanHide())
-            .map(col => {
-              const label =
-                typeof col.columnDef.header === 'string'
-                  ? col.columnDef.header
-                  : col.id
-              return (
-                <DropdownMenuCheckboxItem
-                  key={col.id}
-                  checked={col.getIsVisible()}
-                  onCheckedChange={value => col.toggleVisibility(!!value)}
-                  onSelect={e => e.preventDefault()}
-                  className="capitalize"
-                >
-                  {label}
-                </DropdownMenuCheckboxItem>
-              )
-            })}
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <Columns className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Mostrar / ocultar columnas</p>
+              </TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuLabel className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Columnas visibles
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {table
+                .getAllColumns()
+                .filter(col => !NON_HIDEABLE.includes(col.id) && col.getCanHide())
+                .map(col => {
+                  const label =
+                    typeof col.columnDef.header === 'string'
+                      ? col.columnDef.header
+                      : col.id
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={col.id}
+                      checked={col.getIsVisible()}
+                      onCheckedChange={value => col.toggleVisibility(!!value)}
+                      onSelect={e => e.preventDefault()}
+                      className="capitalize"
+                    >
+                      {label}
+                    </DropdownMenuCheckboxItem>
+                  )
+                })}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="sm" onClick={resetColumnOrder}>
@@ -832,6 +700,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
           </Tooltip>
         </TooltipProvider>
       </div>
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -850,7 +719,6 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
                     const isPinned =
                       PINNED_START.includes(header.id) ||
                       PINNED_END.includes(header.id)
-
                     const label =
                       typeof header.column.columnDef.header === "string"
                         ? header.column.columnDef.header
@@ -868,12 +736,11 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
                         column={
                           header.column.getCanSort()
                             ? {
-                              toggleSorting: (desc) =>
-                                header.column.toggleSorting(desc),
-                              getIsSorted: () => header.column.getIsSorted(),
-                              getCanSort: () => header.column.getCanSort(),
-                              clearSorting: () => header.column.clearSorting(),
-                            }
+                                toggleSorting: (desc) => header.column.toggleSorting(desc),
+                                getIsSorted: () => header.column.getIsSorted(),
+                                getCanSort: () => header.column.getCanSort(),
+                                clearSorting: () => header.column.clearSorting(),
+                              }
                             : undefined
                         }
                       />
@@ -883,6 +750,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
               </TableRow>
             ))}
           </TableHeader>
+
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => {
@@ -895,9 +763,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
                     key={row.id}
                     className={cn(
                       isOverdue90 && "bg-red-50/50 dark:bg-red-950/20",
-                      isNewlyOverdue &&
-                      !isOverdue90 &&
-                      "bg-amber-50/50 dark:bg-amber-950/20"
+                      isNewlyOverdue && !isOverdue90 && "bg-amber-50/50 dark:bg-amber-950/20"
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
@@ -905,10 +771,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
                         key={cell.id}
                         style={{ width: cell.column.getSize(), overflow: "hidden" }}
                       >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -916,16 +779,14 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
               })
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
+                <TableCell colSpan={columns.length} className="h-24 text-center">
                   No se encontraron resultados.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
+
         <DragOverlay>
           {activeId ? (
             <DragOverlayContent columnId={activeId} columns={columns} />

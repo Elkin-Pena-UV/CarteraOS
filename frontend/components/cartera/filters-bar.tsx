@@ -18,11 +18,15 @@ import {
 } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { CalendarIcon, X, Mail, ChevronDown, ChevronUp } from "lucide-react"
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
-import { DateRange } from "react-day-picker"
+import type { ModoFechaCorte } from "@/hooks/use-cartera"
+
+// ---------------------------------------------------------------------------
+// Tipos
+// ---------------------------------------------------------------------------
 
 export type ClientFilters = {
   channel: string
@@ -31,7 +35,11 @@ export type ClientFilters = {
   clientName: string
   minValue: string
   maxValue: string
-  dateRange: DateRange | undefined
+}
+
+export type FechaCorteState = {
+  modo: ModoFechaCorte       // 'hoy' | 'corte' | 'fecha'
+  fecha: string | undefined  // 'YYYYMMDD' — solo relevante cuando modo='fecha'
 }
 
 export const initialClientFilters: ClientFilters = {
@@ -41,68 +49,171 @@ export const initialClientFilters: ClientFilters = {
   clientName: "",
   minValue: "",
   maxValue: "",
-  dateRange: undefined,
 }
+
+export const initialFechaCorte: FechaCorteState = {
+  modo: 'hoy',
+  fecha: undefined,
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Convierte Date → 'YYYYMMDD' */
+const toYYYYMMDD = (date: Date): string => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}${m}${d}`
+}
+
+/** Convierte 'YYYYMMDD' → Date (para el Calendar) */
+const fromYYYYMMDD = (s: string): Date =>
+  new Date(
+    Number(s.substring(0, 4)),
+    Number(s.substring(4, 6)) - 1,
+    Number(s.substring(6, 8))
+  )
+
+const labelFechaCorte = (estado: FechaCorteState): string => {
+  if (estado.modo === 'hoy')   return 'Hoy'
+  if (estado.modo === 'corte') return 'Último cierre de mes'
+  if (estado.fecha) {
+    const d = fromYYYYMMDD(estado.fecha)
+    return format(d, "dd/MM/yyyy", { locale: es })
+  }
+  return 'Seleccionar fecha'
+}
+
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
 
 interface FiltersBarProps {
   value: ClientFilters
   onChange: (nextFilters: ClientFilters) => void
+  fechaCorte: FechaCorteState
+  onFechaCorteChange: (next: FechaCorteState) => void
 }
 
-export function FiltersBar({ value, onChange }: FiltersBarProps) {
+// ---------------------------------------------------------------------------
+// Componente
+// ---------------------------------------------------------------------------
+
+export function FiltersBar({
+  value,
+  onChange,
+  fechaCorte,
+  onFechaCorteChange,
+}: FiltersBarProps) {
   const { toast } = useToast()
   const [isExpanded, setIsExpanded] = useState(true)
+  const [calendarOpen, setCalendarOpen] = useState(false)
 
   const updateFilter = <K extends keyof ClientFilters>(key: K, nextValue: ClientFilters[K]) => {
-    onChange({
-      ...value,
-      [key]: nextValue,
-    })
+    onChange({ ...value, [key]: nextValue })
   }
 
   const handleClearFilters = () => {
     onChange(initialClientFilters)
-    toast({
-      title: "Filtros limpiados",
-      description: "Se han removido todos los filtros.",
-    })
+    onFechaCorteChange(initialFechaCorte)
+    toast({ title: "Filtros limpiados", description: "Se han removido todos los filtros." })
   }
 
   const handleExportExcel = () => {
-    toast({
-      title: "Enviando reporte",
-      description: "El reporte se enviará en unos segundos...",
-    })
+    toast({ title: "Enviando reporte", description: "El reporte se enviará en unos segundos..." })
+  }
+
+  // Selección desde el calendario
+  const handleDaySelect = (day: Date | undefined) => {
+    if (!day) return
+    onFechaCorteChange({ modo: 'fecha', fecha: toYYYYMMDD(day) })
+    setCalendarOpen(false)
   }
 
   return (
     <div className="sticky top-16 z-20 rounded-lg border bg-card/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      <div className={cn("flex items-center justify-between gap-3", isExpanded ? "border-b px-4 py-3" : "px-3 py-2")}> 
+      {/* Header */}
+      <div className={cn("flex items-center justify-between gap-3", isExpanded ? "border-b px-4 py-3" : "px-3 py-2")}>
         <div>
           <p className="text-sm font-semibold">Filtros de cartera</p>
+          {!isExpanded && (
+            <p className="text-xs text-muted-foreground">
+              Corte: <span className="font-medium">{labelFechaCorte(fechaCorte)}</span>
+            </p>
+          )}
         </div>
-
         <Button
           variant="ghost"
-          onClick={() => setIsExpanded((value) => !value)}
+          onClick={() => setIsExpanded(v => !v)}
           className={cn("gap-2", isExpanded ? "h-9 px-3" : "h-8 px-2 text-xs")}
         >
-          {isExpanded ? (
-            <ChevronUp className="h-4 w-4" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
-          )}
+          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-3.5 w-3.5" />}
           {isExpanded ? "Minimizar" : "Desplegar"}
         </Button>
       </div>
 
-      {isExpanded ? (
+      {/* Body */}
+      {isExpanded && (
         <div className="p-4">
           <div className="flex flex-wrap items-end gap-3">
-            {/* Canal */}
+
+            {/* ── Fecha de corte ─────────────────────────────────────────── */}
+            <div className="min-w-[220px] space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Fecha de corte</Label>
+              <div className="flex gap-1.5">
+                {/* Botón Hoy */}
+                <Button
+                  variant={fechaCorte.modo === 'hoy' ? 'default' : 'outline'}
+                  className="h-9 px-3 text-xs"
+                  onClick={() => onFechaCorteChange({ modo: 'hoy', fecha: undefined })}
+                >
+                  Hoy
+                </Button>
+
+                {/* Botón Cierre */}
+                <Button
+                  variant={fechaCorte.modo === 'corte' ? 'default' : 'outline'}
+                  className="h-9 px-3 text-xs"
+                  onClick={() => onFechaCorteChange({ modo: 'corte', fecha: undefined })}
+                >
+                  Último cierre
+                </Button>
+
+                {/* DatePicker — fecha libre */}
+                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={fechaCorte.modo === 'fecha' ? 'default' : 'outline'}
+                      className={cn(
+                        "h-9 justify-start text-left font-normal",
+                        fechaCorte.modo !== 'fecha' && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {fechaCorte.modo === 'fecha' && fechaCorte.fecha
+                        ? format(fromYYYYMMDD(fechaCorte.fecha), "dd/MM/yyyy", { locale: es })
+                        : "Elegir día"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={fechaCorte.fecha ? fromYYYYMMDD(fechaCorte.fecha) : undefined}
+                      onSelect={handleDaySelect}
+                      disabled={(date) => date > new Date()}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            {/* ── Canal ──────────────────────────────────────────────────── */}
             <div className="min-w-[140px] space-y-1.5">
               <Label className="text-xs text-muted-foreground">Canal</Label>
-              <Select value={value.channel} onValueChange={(next) => updateFilter("channel", next)}>
+              <Select value={value.channel} onValueChange={(v) => updateFilter("channel", v)}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
@@ -115,10 +226,10 @@ export function FiltersBar({ value, onChange }: FiltersBarProps) {
               </Select>
             </div>
 
-            {/* Asesor */}
+            {/* ── Asesor ─────────────────────────────────────────────────── */}
             <div className="min-w-[140px] space-y-1.5">
               <Label className="text-xs text-muted-foreground">Asesor</Label>
-              <Select value={value.advisor} onValueChange={(next) => updateFilter("advisor", next)}>
+              <Select value={value.advisor} onValueChange={(v) => updateFilter("advisor", v)}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
@@ -132,10 +243,10 @@ export function FiltersBar({ value, onChange }: FiltersBarProps) {
               </Select>
             </div>
 
-            {/* Estado */}
+            {/* ── Estado ─────────────────────────────────────────────────── */}
             <div className="min-w-[140px] space-y-1.5">
               <Label className="text-xs text-muted-foreground">Estado</Label>
-              <Select value={value.status} onValueChange={(next) => updateFilter("status", next)}>
+              <Select value={value.status} onValueChange={(v) => updateFilter("status", v)}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
@@ -148,58 +259,18 @@ export function FiltersBar({ value, onChange }: FiltersBarProps) {
               </Select>
             </div>
 
-            {/* Date Range */}
-            <div className="min-w-[220px] space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Fecha Vencimiento</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "h-9 w-full justify-start text-left font-normal",
-                      !value.dateRange && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {value.dateRange?.from ? (
-                      value.dateRange.to ? (
-                        <>
-                          {format(value.dateRange.from, "dd/MM/yy", { locale: es })} -{" "}
-                          {format(value.dateRange.to, "dd/MM/yy", { locale: es })}
-                        </>
-                      ) : (
-                        format(value.dateRange.from, "dd/MM/yyyy", { locale: es })
-                      )
-                    ) : (
-                      "Seleccionar rango"
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    autoFocus
-                    mode="range"
-                    defaultMonth={value.dateRange?.from}
-                    selected={value.dateRange}
-                    onSelect={(next) => updateFilter("dateRange", next)}
-                    numberOfMonths={2}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Nombre / NIT */}
+            {/* ── Nombre / NIT ────────────────────────────────────────────── */}
             <div className="min-w-[140px] space-y-1.5">
               <Label className="text-xs text-muted-foreground">Nombre o NIT</Label>
               <Input
-                placeholder="Buscar nombre o NIT..."
+                placeholder="Buscar..."
                 value={value.clientName}
                 onChange={(e) => updateFilter("clientName", e.target.value)}
                 className="h-9"
               />
             </div>
 
-            {/* Rango de Valor */}
+            {/* ── Rango de valor ──────────────────────────────────────────── */}
             <div className="min-w-[180px] space-y-1.5">
               <Label className="text-xs text-muted-foreground">Rango Valor (COP)</Label>
               <div className="flex items-center gap-1">
@@ -221,28 +292,21 @@ export function FiltersBar({ value, onChange }: FiltersBarProps) {
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* ── Acciones ────────────────────────────────────────────────── */}
             <div className="ml-auto flex items-center gap-2">
-              <Button
-                variant="ghost"
-                onClick={handleClearFilters}
-                className="h-9"
-              >
+              <Button variant="ghost" onClick={handleClearFilters} className="h-9">
                 <X className="mr-2 h-4 w-4" />
                 Limpiar
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleExportExcel}
-                className="h-9"
-              >
+              <Button variant="outline" onClick={handleExportExcel} className="h-9">
                 <Mail className="mr-2 h-4 w-4" />
                 Enviar reporte
               </Button>
             </div>
+
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   )
 }
