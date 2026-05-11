@@ -2,9 +2,22 @@ import { sql, poolPromise } from '../config/db_sm_real.js';
 import { getFechaCorte, getFechaHoy, getFechaInicioMesDe } from '../utils/fechaUtils.js';
 import logger from '../config/logger.js';
 
-const getCartera = async (modo = 'corte', tercero = null) => {
-  const tiempos = {}; // 🆕 Para medir tiempos
-  
+/**
+ * Resuelve la fechaCorte según el modo recibido:
+ *   'hoy'   → fecha de hoy                  (default)
+ *   'corte' → último día del mes anterior
+ *   'fecha' → fecha libre validada en el controller (formato YYYYMMDD)
+ */
+const resolverFechaCorte = (modo, fechaParam) => {
+  if (modo === 'hoy')                       return getFechaHoy();
+  if (modo === 'fecha' && fechaParam)        return fechaParam;
+  if (modo === 'corte')                     return getFechaCorte();
+  return getFechaHoy(); // fallback seguro
+};
+
+const getCartera = async (modo = 'hoy', tercero = null, fechaParam = null) => {
+  const tiempos = {};
+
   try {
     const pool = await poolPromise;
 
@@ -13,8 +26,10 @@ const getCartera = async (modo = 'corte', tercero = null) => {
     const request = pool.request();
     tiempos.conexion = Date.now() - t0;
 
-    const fechaCorte = modo === 'hoy' ? getFechaHoy() : getFechaCorte();
+    const fechaCorte = resolverFechaCorte(modo, fechaParam);
     const fechaInicio = getFechaInicioMesDe(fechaCorte);
+
+    logger.debug(`📅 Modo: ${modo} | fechaCorte: ${fechaCorte} | fechaInicio: ${fechaInicio}`);
 
     request.input('fechaCorte', sql.VarChar(8), fechaCorte);
     request.input('fechaInicio', sql.VarChar(8), fechaInicio);
@@ -40,7 +55,7 @@ const getCartera = async (modo = 'corte', tercero = null) => {
       logger.debug(`✅ Query OK: ${JSON.stringify(tiempos)}`);
     }
 
-    return { data: result.recordset, tiempos };
+    return { data: result.recordset, tiempos, fechaCorte, fechaInicio };
 
   } catch (error) {
     logger.error('Error en getCartera:', error);
