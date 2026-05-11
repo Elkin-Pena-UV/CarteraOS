@@ -42,6 +42,8 @@ import {
   ArrowUpDown,
   GripVertical,
   RotateCcw,
+  ArrowDown,
+  ArrowUp,
 } from 'lucide-react'
 import {
   Tooltip,
@@ -132,8 +134,9 @@ interface DraggableHeaderProps {
   label: string
   column?: {
     toggleSorting: (desc: boolean) => void
-    getIsSorted: () => false | "asc" | "desc"
+    getIsSorted: () => false | "desc" | "asc"
     getCanSort: () => boolean
+    clearSorting: () => void
   }
 }
 
@@ -184,7 +187,14 @@ function DraggableHeader({ id, isPinned = false, label, column }: DraggableHeade
               type="button"
               onClick={(e) => {
                 e.stopPropagation()
-                column.toggleSorting(column.getIsSorted() === "asc")
+                const sorted = column.getIsSorted()
+                if (sorted === false) {
+                  column.toggleSorting(true)    // sin orden → desc
+                } else if (sorted === "desc") {
+                  column.toggleSorting(false)   // desc → asc
+                } else {
+                  column.clearSorting()         // asc → quitar
+                }
               }}
               className={cn(
                 'flex h-6 w-6 items-center justify-center rounded transition-all duration-150',
@@ -194,7 +204,13 @@ function DraggableHeader({ id, isPinned = false, label, column }: DraggableHeade
               )}
               title="Ordenar"
             >
-              <ArrowUpDown className="h-3.5 w-3.5" />
+              {column.getIsSorted() === "desc" ? (
+                <ArrowDown className="h-3.5 w-3.5" />
+              ) : column.getIsSorted() === "asc" ? (
+                <ArrowUp className="h-3.5 w-3.5" />
+              ) : (
+                <ArrowUpDown className="h-3.5 w-3.5" />
+              )}
             </button>
           )}
 
@@ -605,6 +621,8 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: setSorting,
     onColumnOrderChange: setColumnOrder,
+    enableSortingRemoval: true,
+    sortDescFirst: true,
     state: {
       sorting,
       columnOrder,
@@ -722,6 +740,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
                                   header.column.toggleSorting(desc),
                                 getIsSorted: () => header.column.getIsSorted(),
                                 getCanSort: () => header.column.getCanSort(),
+                                clearSorting: () => header.column.clearSorting(),
                               }
                             : undefined
                         }
