@@ -240,7 +240,7 @@ function DraggableHeader({ id, isPinned = false, label, column }: DraggableHeade
 
 function DragOverlayContent({ columnId, columns }: { columnId: string; columns: ColumnDef<Client>[] }) {
   const column = columns.find(col => col.id === columnId || (col as { accessorKey?: string }).accessorKey === columnId)
-  const label = column?.id || columnId
+  const label = (typeof column?.header === 'string' ? column.header : null) ?? columnId
 
   return (
     <div className="flex items-center gap-2 rounded-md border border-[#ff6600] bg-[#ff6600]/20 px-3 py-2 font-semibold text-[#ff6600] shadow-md">
