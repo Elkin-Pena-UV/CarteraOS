@@ -1,13 +1,34 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  type DragStartEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  horizontalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
-  type SortingState,
-  type ColumnDef,
   flexRender,
+  type ColumnDef,
+  type SortingState,
+  type ColumnSizingState,
+  type VisibilityState,
 } from "@tanstack/react-table"
 import {
   Table,
@@ -21,11 +42,30 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
-  Download,
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { useToast } from '@/hooks/use-toast'
+import {
   TrendingUp,
   TrendingDown,
   AlertTriangle,
   ArrowUpDown,
+  ArrowDown,
+  ArrowUp,
+  GripVertical,
+  RotateCcw,
+  Columns,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -42,7 +82,6 @@ export interface VariationClient {
   sobrecupoPct: number
 }
 
-// Mock data for the variation table
 const mockVariationData: VariationClient[] = [
   {
     id: "1",
@@ -166,244 +205,437 @@ const mockVariationData: VariationClient[] = [
   },
 ]
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("es-CO", {
+const NON_HIDEABLE = ['nit']
+const VISIBILITY_STORAGE_KEY = 'cartera_variation_column_visibility'
+const STORAGE_KEY = 'cartera_variation_column_order'
+const PINNED_START = ['nit']
+const PINNED_END: string[] = []
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("es-CO", {
     style: "currency",
     currency: "COP",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value)
+
+const formatPercent = (value: number) =>
+  `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`
+
+// ---------------------------------------------------------------------------
+// DraggableHeader
+// ---------------------------------------------------------------------------
+interface DraggableHeaderProps {
+  id: string
+  isPinned?: boolean
+  label: string
+  size: number
+  isResizing: boolean
+  onResizeStart: (e: React.MouseEvent | React.TouchEvent) => void
+  column?: {
+    toggleSorting: (desc: boolean) => void
+    getIsSorted: () => false | "desc" | "asc"
+    getCanSort: () => boolean
+    clearSorting: () => void
+  }
 }
 
-const formatPercent = (value: number) => {
-  return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`
+function DraggableHeader({
+  id,
+  isPinned = false,
+  label,
+  size,
+  isResizing,
+  onResizeStart,
+  column,
+}: DraggableHeaderProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id, disabled: isPinned })
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    width: size,
+    position: "relative",
+  }
+
+  const canSort = column?.getCanSort() ?? false
+
+  return (
+    <TableHead
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'group whitespace-nowrap overflow-hidden',
+        isDragging &&
+        'bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,hsl(var(--border))_5px,hsl(var(--border))_6px)] opacity-50'
+      )}
+    >
+      <div className="flex items-center justify-between gap-1">
+        <span className="text-sm font-medium text-foreground truncate">{label}</span>
+
+        <div className="flex shrink-0 items-center gap-0.5">
+          {canSort && column && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                const sorted = column.getIsSorted()
+                if (sorted === false) column.toggleSorting(true)
+                else if (sorted === "desc") column.toggleSorting(false)
+                else column.clearSorting()
+              }}
+              className={cn(
+                'flex h-6 w-6 items-center justify-center rounded transition-all duration-150',
+                'opacity-0 group-hover:opacity-60 hover:!opacity-100',
+                'hover:bg-muted focus:outline-none',
+                column.getIsSorted() && '!opacity-100 text-[#ff6600]'
+              )}
+              title="Ordenar"
+            >
+              {column.getIsSorted() === "desc" ? (
+                <ArrowDown className="h-3.5 w-3.5" />
+              ) : column.getIsSorted() === "asc" ? (
+                <ArrowUp className="h-3.5 w-3.5" />
+              ) : (
+                <ArrowUpDown className="h-3.5 w-3.5" />
+              )}
+            </button>
+          )}
+
+          {!isPinned && (
+            <button
+              type="button"
+              {...attributes}
+              {...listeners}
+              aria-label="Arrastrar columna"
+              className={cn(
+                'flex h-6 w-5 items-center justify-center rounded transition-all duration-150',
+                'opacity-0 group-hover:opacity-40 hover:!opacity-100 hover:text-[#ff6600]',
+                'cursor-grab active:cursor-grabbing focus:outline-none'
+              )}
+              tabIndex={-1}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {!isPinned && (
+        <div
+          onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e) }}
+          onTouchStart={(e) => { e.stopPropagation(); onResizeStart(e) }}
+          className={cn(
+            "absolute right-0 top-0 h-full w-1.5 cursor-col-resize select-none touch-none z-10",
+            "opacity-0 group-hover:opacity-100 transition-opacity",
+            "hover:bg-[#ff6600]/60 rounded-sm",
+            isResizing && "bg-[#ff6600] opacity-100"
+          )}
+          title="Arrastrar para redimensionar"
+        />
+      )}
+    </TableHead>
+  )
 }
 
-const columns: ColumnDef<VariationClient>[] = [
-  {
-    accessorKey: "nit",
-    header: "NIT",
-    cell: ({ row }) => (
-      <span className="font-mono text-sm">{row.getValue("nit")}</span>
-    ),
-  },
-  {
-    accessorKey: "razonSocial",
-    header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Razón Social
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-    cell: ({ row }) => (
-      <span className="font-medium">{row.getValue("razonSocial")}</span>
-    ),
-  },
-  {
-    accessorKey: "cupo",
-    header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Cupo (COP)
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-    cell: ({ row }) => (
-      <span className="text-right font-mono">
-        {formatCurrency(row.getValue("cupo"))}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "carteraMesActual",
-    header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Cartera Mes Actual (COP)
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-    cell: ({ row }) => (
-      <span className="text-right font-mono">
-        {formatCurrency(row.getValue("carteraMesActual"))}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "carteraUltimoMes",
-    header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Cartera Último Mes (COP)
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-    cell: ({ row }) => (
-      <span className="text-right font-mono text-muted-foreground">
-        {formatCurrency(row.getValue("carteraUltimoMes"))}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "variacionCop",
-    header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Variación COP
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-    cell: ({ row }) => {
-      const value = row.getValue("variacionCop") as number
-      const isPositive = value >= 0
-      return (
-        <span
-          className={cn(
-            "flex items-center gap-1 font-mono",
-            isPositive ? "text-green-600" : "text-red-600"
-          )}
-        >
-          {isPositive ? (
-            <TrendingUp className="h-4 w-4" />
-          ) : (
-            <TrendingDown className="h-4 w-4" />
-          )}
-          {formatCurrency(Math.abs(value))}
-        </span>
-      )
-    },
-  },
-  {
-    accessorKey: "variacionPct",
-    header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Variación %
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-    cell: ({ row }) => {
-      const value = row.getValue("variacionPct") as number
-      const isPositive = value >= 0
-      return (
-        <span
-          className={cn(
-            "flex items-center gap-1 font-semibold",
-            isPositive ? "text-green-600" : "text-red-600"
-          )}
-        >
-          {isPositive ? (
-            <TrendingUp className="h-4 w-4" />
-          ) : (
-            <TrendingDown className="h-4 w-4" />
-          )}
-          {formatPercent(value)}
-        </span>
-      )
-    },
-  },
-  {
-    accessorKey: "sobrecupoCop",
-    header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Sobrecupo (COP)
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-    cell: ({ row }) => {
-      const value = row.getValue("sobrecupoCop") as number
-      return (
-        <span
-          className={cn(
-            "font-mono",
-            value > 0 ? "text-red-600 font-semibold" : "text-muted-foreground"
-          )}
-        >
-          {formatCurrency(value)}
-        </span>
-      )
-    },
-  },
-  {
-    accessorKey: "sobrecupoPct",
-    header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-4"
-          >
-            Sobrecupo %
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-    cell: ({ row }) => {
-      const value = row.getValue("sobrecupoPct") as number
-      return (
-        <span
-          className={cn(
-            "flex items-center gap-1 font-semibold",
-            value > 0 ? "text-red-600" : "text-muted-foreground"
-          )}
-        >
-          {value > 50 && <AlertTriangle className="h-4 w-4" />}
-          {value.toFixed(2)}%
-        </span>
-      )
-    },
-  },
-]
+function DragOverlayContent({
+  columnId,
+  columns,
+}: {
+  columnId: string
+  columns: ColumnDef<VariationClient>[]
+}) {
+  const column = columns.find(
+    (col) => col.id === columnId || (col as { accessorKey?: string }).accessorKey === columnId
+  )
+  const label = (typeof column?.header === 'string' ? column.header : null) ?? columnId
+
+  return (
+    <div className="flex items-center gap-2 rounded-md border border-[#ff6600] bg-[#ff6600]/20 px-3 py-2 font-semibold text-[#ff6600] shadow-md">
+      <GripVertical className="h-4 w-4" />
+      {label}
+    </div>
+  )
+}
 
 export function VariationTable() {
   const [sorting, setSorting] = useState<SortingState>([])
-
-  const table = useReactTable({
-    data: mockVariationData,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    onSortingChange: setSorting,
-    state: {
-      sorting,
-    },
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(VISIBILITY_STORAGE_KEY)
+      if (saved) {
+        try { return JSON.parse(saved) } catch { /* usa default */ }
+      }
+    }
+    return {}
   })
+  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          const defaultColumns = [
+            'nit', 'razonSocial', 'cupo',
+            'carteraMesActual', 'carteraUltimoMes',
+            'variacionCop', 'variacionPct',
+            'sobrecupoCop', 'sobrecupoPct',
+          ]
+          const valid =
+            defaultColumns.every((col) => parsed.includes(col)) &&
+            parsed.every((col: string) => defaultColumns.includes(col))
+          if (valid) return parsed
+        } catch { /* Invalid JSON, use default */ }
+      }
+    }
+    return [
+      'nit', 'razonSocial', 'cupo',
+      'carteraMesActual', 'carteraUltimoMes',
+      'variacionCop', 'variacionPct',
+      'sobrecupoCop', 'sobrecupoPct',
+    ]
+  })
+  const { toast } = useToast()
 
   const [currentMonth, setCurrentMonth] = useState("")
 
   useEffect(() => {
-  setCurrentMonth(new Date().toLocaleDateString("es-CO", {
-    month: "long",
-    year: "numeric",
-  }))}, [])
+    setCurrentMonth(
+      new Date().toLocaleDateString("es-CO", { month: "long", year: "numeric" })
+    )
+  }, [])
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(VISIBILITY_STORAGE_KEY, JSON.stringify(columnVisibility))
+    }
+  }, [columnVisibility])
+
+  // ── Columnas ──────────────────────────────────────────────────────────────
+  const columns: ColumnDef<VariationClient>[] = useMemo(
+    () => [
+      {
+        id: "nit",
+        accessorKey: "nit",
+        header: "NIT",
+        size: 130,
+        cell: ({ row }) => (
+          <span className="font-mono text-sm">{row.getValue("nit")}</span>
+        ),
+      },
+      {
+        id: "razonSocial",
+        accessorKey: "razonSocial",
+        header: "Razón Social",
+        size: 220,
+        cell: ({ row }) => (
+          <span className="font-medium">{row.getValue("razonSocial")}</span>
+        ),
+      },
+      {
+        id: "cupo",
+        accessorKey: "cupo",
+        header: "Cupo (COP)",
+        size: 150,
+        cell: ({ row }) => (
+          <span className="font-medium text-[#22b859]">
+            {formatCurrency(row.getValue("cupo"))}
+          </span>
+        ),
+      },
+      {
+        id: "carteraMesActual",
+        accessorKey: "carteraMesActual",
+        header: "Cartera Mes Actual (COP)",
+        size: 200,
+        cell: ({ row }) => (
+          <span className="font-medium text-[#ff6600]">
+            {formatCurrency(row.getValue("carteraMesActual"))}
+          </span>
+        ),
+      },
+      {
+        id: "carteraUltimoMes",
+        accessorKey: "carteraUltimoMes",
+        header: "Cartera Último Mes (COP)",
+        size: 200,
+        cell: ({ row }) => (
+          <span className="font-medium text-muted-foreground">
+            {formatCurrency(row.getValue("carteraUltimoMes"))}
+          </span>
+        ),
+      },
+      {
+        id: "variacionCop",
+        accessorKey: "variacionCop",
+        header: "Variación COP",
+        size: 160,
+        cell: ({ row }) => {
+          const value = row.getValue("variacionCop") as number
+          const isPositive = value >= 0
+          return (
+            <span
+              className={cn(
+                "flex items-center gap-1 font-medium",
+                isPositive ? "text-green-600" : "text-red-600"
+              )}
+            >
+              {isPositive ? (
+                <TrendingUp className="h-4 w-4" />
+              ) : (
+                <TrendingDown className="h-4 w-4" />
+              )}
+              {formatCurrency(Math.abs(value))}
+            </span>
+          )
+        },
+      },
+      {
+        id: "variacionPct",
+        accessorKey: "variacionPct",
+        header: "Variación %",
+        size: 130,
+        cell: ({ row }) => {
+          const value = row.getValue("variacionPct") as number
+          const isPositive = value >= 0
+          return (
+            <span
+              className={cn(
+                "flex items-center gap-1 font-semibold",
+                isPositive ? "text-green-600" : "text-red-600"
+              )}
+            >
+              {isPositive ? (
+                <TrendingUp className="h-4 w-4" />
+              ) : (
+                <TrendingDown className="h-4 w-4" />
+              )}
+              {formatPercent(value)}
+            </span>
+          )
+        },
+      },
+      {
+        id: "sobrecupoCop",
+        accessorKey: "sobrecupoCop",
+        header: "Sobrecupo (COP)",
+        size: 160,
+        cell: ({ row }) => {
+          const value = row.getValue("sobrecupoCop") as number
+          return (
+            <span
+              className={cn(
+                "font-medium",
+                value > 0 ? "text-destructive" : "text-muted-foreground"
+              )}
+            >
+              {formatCurrency(value)}
+            </span>
+          )
+        },
+      },
+      {
+        id: "sobrecupoPct",
+        accessorKey: "sobrecupoPct",
+        header: "Sobrecupo %",
+        size: 130,
+        cell: ({ row }) => {
+          const value = row.getValue("sobrecupoPct") as number
+          return (
+            <span
+              className={cn(
+                "flex items-center gap-1 font-semibold",
+                value > 0 ? "text-destructive" : "text-muted-foreground"
+              )}
+            >
+              {value > 50 && <AlertTriangle className="h-4 w-4" />}
+              {value.toFixed(2)}%
+            </span>
+          )
+        },
+      },
+    ],
+    []
+  )
+
+  const defaultColumnOrder = columns.map((col) => col.id as string)
+
+  const table = useReactTable({
+    data: mockVariationData,
+    columns,
+    columnResizeMode: "onChange",
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    onSortingChange: setSorting,
+    onColumnOrderChange: setColumnOrder,
+    onColumnSizingChange: setColumnSizing,
+    onColumnVisibilityChange: setColumnVisibility,
+    enableSortingRemoval: true,
+    sortDescFirst: true,
+    state: { sorting, columnOrder, columnSizing, columnVisibility },
+  })
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  const draggableOrder = columnOrder.filter(
+    (id) => !PINNED_START.includes(id) && !PINNED_END.includes(id)
+  )
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string)
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    setActiveId(null)
+
+    if (over && active.id !== over.id) {
+      const oldIndex = draggableOrder.indexOf(active.id as string)
+      const newIndex = draggableOrder.indexOf(over.id as string)
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newDraggableOrder = arrayMove(draggableOrder, oldIndex, newIndex)
+        const newFullOrder = [...PINNED_START, ...newDraggableOrder, ...PINNED_END]
+        setColumnOrder(newFullOrder)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(newFullOrder))
+        }
+        toast({ description: 'Columna reordenada', duration: 2000 })
+      }
+    }
+  }
+
+  const resetColumnOrder = () => {
+    setColumnOrder(defaultColumnOrder)
+    setColumnSizing({})
+    setColumnVisibility({})
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem(VISIBILITY_STORAGE_KEY)
+    }
+    toast({
+      description: 'Orden, tamaño y visibilidad de columnas restablecidos',
+      duration: 2000,
+    })
+  }
 
   return (
     <div className="space-y-6">
-      {/* Table Section */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-between border-b py-2 px-4">
           <div className="flex items-center gap-3">
             <CardTitle>Variación de Cartera — Mes Actual vs Anterior</CardTitle>
             <Badge
@@ -413,60 +645,155 @@ export function VariationTable() {
               {currentMonth}
             </Badge>
           </div>
+          <TooltipProvider>
+            <div className="flex items-center">
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <Columns className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Mostrar / ocultar columnas</p>
+                  </TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuLabel className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Columnas visibles
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {table
+                    .getAllColumns()
+                    .filter((col) => !NON_HIDEABLE.includes(col.id) && col.getCanHide())
+                    .map((col) => {
+                      const label =
+                        typeof col.columnDef.header === 'string'
+                          ? col.columnDef.header
+                          : col.id
+                      return (
+                        <DropdownMenuCheckboxItem
+                          key={col.id}
+                          checked={col.getIsVisible()}
+                          onCheckedChange={(value) => col.toggleVisibility(!!value)}
+                          onSelect={(e) => e.preventDefault()}
+                          className="capitalize"
+                        >
+                          {label}
+                        </DropdownMenuCheckboxItem>
+                      )
+                    })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={resetColumnOrder}>
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Restablecer orden, tamaño y visibilidad de columnas</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => {
-                    const hasSobrecupo = row.original.sobrecupoCop > 0
-                    return (
-                      <TableRow
-                        key={row.id}
-                        className={cn(hasSobrecupo && "bg-red-50 dark:bg-red-950/20")}
+        <CardContent className="p-0">
+          {/* Table */}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="overflow-x-auto">
+              <Table style={{ tableLayout: "fixed", width: table.getTotalSize() }}>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      <SortableContext
+                        items={draggableOrder}
+                        strategy={horizontalListSortingStrategy}
                       >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    )
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
-                    >
-                      No hay datos disponibles.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                        {headerGroup.headers.map((header) => {
+                          const isPinned =
+                            PINNED_START.includes(header.id) ||
+                            PINNED_END.includes(header.id)
+                          const label =
+                            typeof header.column.columnDef.header === "string"
+                              ? header.column.columnDef.header
+                              : header.id
 
+                          return (
+                            <DraggableHeader
+                              key={header.id}
+                              id={header.id}
+                              isPinned={isPinned}
+                              label={label}
+                              size={header.getSize()}
+                              isResizing={header.column.getIsResizing()}
+                              onResizeStart={header.getResizeHandler()}
+                              column={
+                                header.column.getCanSort()
+                                  ? {
+                                      toggleSorting: (desc) =>
+                                        header.column.toggleSorting(desc),
+                                      getIsSorted: () => header.column.getIsSorted(),
+                                      getCanSort: () => header.column.getCanSort(),
+                                      clearSorting: () => header.column.clearSorting(),
+                                    }
+                                  : undefined
+                              }
+                            />
+                          )
+                        })}
+                      </SortableContext>
+                    </TableRow>
+                  ))}
+                </TableHeader>
+
+                <TableBody>
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => {
+                      const hasSobrecupo = row.original.sobrecupoCop > 0
+                      return (
+                        <TableRow
+                          key={row.id}
+                          className={cn(hasSobrecupo && "bg-red-50/50 dark:bg-red-950/20")}
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell
+                              key={cell.id}
+                              style={{ width: cell.column.getSize(), overflow: "hidden" }}
+                            >
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      )
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="h-24 text-center"
+                      >
+                        No hay datos disponibles.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            <DragOverlay>
+              {activeId ? (
+                <DragOverlayContent columnId={activeId} columns={columns} />
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         </CardContent>
       </Card>
     </div>
