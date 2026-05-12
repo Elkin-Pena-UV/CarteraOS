@@ -26,20 +26,23 @@ import {
 // ---------------------------------------------------------------------------
 
 function applyFilters(clients: Client[], filters: ClientFilters): Client[] {
-  const normalizedClientName  = filters.clientName.trim().toLowerCase()
-  const normalizedNoPunct     = normalizedClientName.replace(/[^a-z0-9]/gi, "")
-  const normalizedAdvisor     = filters.advisor.toLowerCase()
-  const normalizedChannel     = filters.channel.toLowerCase()
+  const normalizedClientName = filters.clientName.trim().toLowerCase()
+  const normalizedNoPunct = normalizedClientName.replace(/[^a-z0-9]/gi, "")
   const minValue = filters.minValue === "" ? null : Number(filters.minValue)
   const maxValue = filters.maxValue === "" ? null : Number(filters.maxValue)
 
   return clients.filter((client) => {
-    if (normalizedChannel && normalizedChannel !== "all") {
-      if (!client.channel.toLowerCase().includes(normalizedChannel)) return false
+    if (filters.channel.length > 0) {
+      const match = filters.channel.some((c) =>
+        client.channel.toLowerCase().includes(c.toLowerCase())
+      )
+      if (!match) return false
     }
-
-    if (normalizedAdvisor && normalizedAdvisor !== "all") {
-      if (!client.advisor.toLowerCase().includes(normalizedAdvisor)) return false
+    if (filters.advisor.length > 0) {
+      const match = filters.advisor.some((a) =>
+        client.advisor.toLowerCase().includes(a.toLowerCase())
+      )
+      if (!match) return false
     }
 
     if (normalizedClientName) {
@@ -65,9 +68,9 @@ function applyFilters(clients: Client[], filters: ClientFilters): Client[] {
 
 export default function CarteraDashboard() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
-  const [drawerOpen, setDrawerOpen]         = useState(false)
-  const [draftFilters, setDraftFilters]     = useState<ClientFilters>(initialClientFilters)
-  const [fechaCorte, setFechaCorte]         = useState<FechaCorteState>(initialFechaCorte)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [draftFilters, setDraftFilters] = useState<ClientFilters>(initialClientFilters)
+  const [fechaCorte, setFechaCorte] = useState<FechaCorteState>(initialFechaCorte)
 
   // El hook recibe modo y fecha — react-query cachea cada combinación por separado
   const { data, loading, error } = useCartera(fechaCorte.modo, fechaCorte.fecha)

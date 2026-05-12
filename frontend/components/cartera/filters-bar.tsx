@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Popover,
   PopoverContent,
@@ -29,8 +30,8 @@ import type { ModoFechaCorte } from "@/hooks/use-cartera"
 // ---------------------------------------------------------------------------
 
 export type ClientFilters = {
-  channel: string
-  advisor: string
+  channel: string[]
+  advisor: string[]
   clientName: string
   minValue: string
   maxValue: string
@@ -42,8 +43,8 @@ export type FechaCorteState = {
 }
 
 export const initialClientFilters: ClientFilters = {
-  channel: "",
-  advisor: "",
+  channel: [],
+  advisor: [],
   clientName: "",
   minValue: "",
   maxValue: "",
@@ -75,7 +76,7 @@ const fromYYYYMMDD = (s: string): Date =>
   )
 
 const labelFechaCorte = (estado: FechaCorteState): string => {
-  if (estado.modo === 'hoy')   return 'Hoy'
+  if (estado.modo === 'hoy') return 'Hoy'
   if (estado.modo === 'corte') return 'Último cierre de mes'
   if (estado.fecha) {
     const d = fromYYYYMMDD(estado.fecha)
@@ -93,6 +94,12 @@ interface FiltersBarProps {
   onChange: (nextFilters: ClientFilters) => void
   fechaCorte: FechaCorteState
   onFechaCorteChange: (next: FechaCorteState) => void
+}
+
+function MultiSelectTrigger({ selected, placeholder }: { selected: string[]; placeholder: string }) {
+  if (selected.length === 0) return <span className="text-muted-foreground">{placeholder}</span>
+  if (selected.length === 1) return <span>{selected[0]}</span>
+  return <span>{selected[0]} <span className="text-muted-foreground">+{selected.length - 1}</span></span>
 }
 
 // ---------------------------------------------------------------------------
@@ -211,34 +218,65 @@ export function FiltersBar({
             {/* ── Canal ──────────────────────────────────────────────────── */}
             <div className="min-w-[140px] space-y-1.5">
               <Label className="text-xs text-muted-foreground">Canal</Label>
-              <Select value={value.channel} onValueChange={(v) => updateFilter("channel", v)}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="industrial">Industrial</SelectItem>
-                  <SelectItem value="comercializador">Comercializador</SelectItem>
-                  <SelectItem value="vtd">Venta Directa</SelectItem>
-                </SelectContent>
-              </Select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="h-9 w-full justify-between font-normal">
+                    <MultiSelectTrigger selected={value.channel} placeholder="Todos" />
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-48" align="start">
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">Canal</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {["Industrial", "Comercializador", "Venta Directa"].map((canal) => (
+                    <DropdownMenuCheckboxItem
+                      key={canal}
+                      checked={value.channel.includes(canal)}
+                      onCheckedChange={(checked) =>
+                        updateFilter("channel", checked
+                          ? [...value.channel, canal]
+                          : value.channel.filter((c) => c !== canal)
+                        )
+                      }
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      {canal}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* ── Asesor ─────────────────────────────────────────────────── */}
             <div className="min-w-[140px] space-y-1.5">
               <Label className="text-xs text-muted-foreground">Asesor</Label>
-              <Select value={value.advisor} onValueChange={(v) => updateFilter("advisor", v)}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="carlos">Carlos Méndez</SelectItem>
-                  <SelectItem value="maria">María González</SelectItem>
-                  <SelectItem value="pedro">Pedro Ramírez</SelectItem>
-                  <SelectItem value="laura">Laura Torres</SelectItem>
-                </SelectContent>
-              </Select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="h-9 w-full justify-between font-normal">
+                    <MultiSelectTrigger selected={value.advisor} placeholder="Todos" />
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-48" align="start">
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">Asesor</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {["Carlos Méndez", "María González", "Pedro Ramírez", "Laura Torres"].map((asesor) => (
+                    <DropdownMenuCheckboxItem
+                      key={asesor}
+                      checked={value.advisor.includes(asesor)}
+                      onCheckedChange={(checked) =>
+                        updateFilter("advisor", checked
+                          ? [...value.advisor, asesor]
+                          : value.advisor.filter((a) => a !== asesor)
+                        )
+                      }
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      {asesor}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* ── Nombre / NIT ────────────────────────────────────────────── */}

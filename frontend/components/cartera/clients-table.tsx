@@ -309,18 +309,23 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
   const filteredData = useMemo(() => {
     const normalizedClientName = filters.clientName.trim().toLowerCase()
     const normalizedClientQueryNoPunct = normalizedClientName.replace(/[^a-z0-9]/gi, "")
-    const normalizedAdvisor = filters.advisor.toLowerCase()
-    const normalizedChannel = filters.channel.toLowerCase()
+
     const minValue = filters.minValue === "" ? null : Number(filters.minValue)
     const maxValue = filters.maxValue === "" ? null : Number(filters.maxValue)
 
     return data.filter((client) => {
-      if (normalizedChannel && normalizedChannel !== "all") {
-        if (!client.channel.toLowerCase().includes(normalizedChannel)) return false
+      if (filters.channel.length > 0) {
+        const match = filters.channel.some((c) =>
+          client.channel.toLowerCase().includes(c.toLowerCase())
+        )
+        if (!match) return false
       }
 
-      if (normalizedAdvisor && normalizedAdvisor !== "all") {
-        if (!client.advisor.toLowerCase().includes(normalizedAdvisor)) return false
+      if (filters.advisor.length > 0) {
+        const match = filters.advisor.some((a) =>
+          client.advisor.toLowerCase().includes(a.toLowerCase())
+        )
+        if (!match) return false
       }
 
       if (normalizedClientName) {
@@ -667,97 +672,97 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       </CardHeader>
       <CardContent className="p-0">
         <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <Table style={{ tableLayout: "fixed", width: table.getTotalSize() }}>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                <SortableContext
-                  items={draggableOrder}
-                  strategy={horizontalListSortingStrategy}
-                >
-                  {headerGroup.headers.map((header) => {
-                    const isPinned =
-                      PINNED_START.includes(header.id) ||
-                      PINNED_END.includes(header.id)
-                    const label =
-                      typeof header.column.columnDef.header === "string"
-                        ? header.column.columnDef.header
-                        : header.id
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <Table style={{ tableLayout: "fixed", width: table.getTotalSize() }}>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  <SortableContext
+                    items={draggableOrder}
+                    strategy={horizontalListSortingStrategy}
+                  >
+                    {headerGroup.headers.map((header) => {
+                      const isPinned =
+                        PINNED_START.includes(header.id) ||
+                        PINNED_END.includes(header.id)
+                      const label =
+                        typeof header.column.columnDef.header === "string"
+                          ? header.column.columnDef.header
+                          : header.id
 
-                    return (
-                      <DraggableHeader
-                        key={header.id}
-                        id={header.id}
-                        isPinned={isPinned}
-                        label={label}
-                        size={header.getSize()}
-                        isResizing={header.column.getIsResizing()}
-                        onResizeStart={header.getResizeHandler()}
-                        column={
-                          header.column.getCanSort()
-                            ? {
+                      return (
+                        <DraggableHeader
+                          key={header.id}
+                          id={header.id}
+                          isPinned={isPinned}
+                          label={label}
+                          size={header.getSize()}
+                          isResizing={header.column.getIsResizing()}
+                          onResizeStart={header.getResizeHandler()}
+                          column={
+                            header.column.getCanSort()
+                              ? {
                                 toggleSorting: (desc) => header.column.toggleSorting(desc),
                                 getIsSorted: () => header.column.getIsSorted(),
                                 getCanSort: () => header.column.getCanSort(),
                                 clearSorting: () => header.column.clearSorting(),
                               }
-                            : undefined
-                        }
-                      />
-                    )
-                  })}
-                </SortableContext>
-              </TableRow>
-            ))}
-          </TableHeader>
+                              : undefined
+                          }
+                        />
+                      )
+                    })}
+                  </SortableContext>
+                </TableRow>
+              ))}
+            </TableHeader>
 
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => {
-                const client = row.original
-                const isOverdue90 = client.maxDaysOverdue > 90
-                const isNewlyOverdue = client.isNew
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => {
+                  const client = row.original
+                  const isOverdue90 = client.maxDaysOverdue > 90
+                  const isNewlyOverdue = client.isNew
 
-                return (
-                  <TableRow
-                    key={row.id}
-                    className={cn(
-                      isOverdue90 && "bg-red-50/50 dark:bg-red-950/20",
-                      isNewlyOverdue && !isOverdue90 && "bg-amber-50/50 dark:bg-amber-950/20"
-                    )}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        style={{ width: cell.column.getSize(), overflow: "hidden" }}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                )
-              })
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No se encontraron resultados.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                  return (
+                    <TableRow
+                      key={row.id}
+                      className={cn(
+                        isOverdue90 && "bg-red-50/50 dark:bg-red-950/20",
+                        isNewlyOverdue && !isOverdue90 && "bg-amber-50/50 dark:bg-amber-950/20"
+                      )}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell
+                          key={cell.id}
+                          style={{ width: cell.column.getSize(), overflow: "hidden" }}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  )
+                })
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    No se encontraron resultados.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
 
-        <DragOverlay>
-          {activeId ? (
-            <DragOverlayContent columnId={activeId} columns={columns} />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+          <DragOverlay>
+            {activeId ? (
+              <DragOverlayContent columnId={activeId} columns={columns} />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </CardContent>
     </Card>
   )
