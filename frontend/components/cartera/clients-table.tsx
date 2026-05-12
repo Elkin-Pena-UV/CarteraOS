@@ -31,6 +31,7 @@ import {
   type VisibilityState
 } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -645,63 +646,66 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
   }
 
   return (
-    <div className="rounded-lg border bg-card">
-      <div className="flex items-center justify-end border-b px-4 py-2">
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between border-b py-0.1 px-4">
+        <CardTitle>Tabla de Clientes</CardTitle>
         <TooltipProvider>
-          <DropdownMenu>
+          <div className="flex items-center">
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <Columns className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Mostrar / ocultar columnas</p>
+                </TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Columnas visibles
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {table
+                  .getAllColumns()
+                  .filter(col => !NON_HIDEABLE.includes(col.id) && col.getCanHide())
+                  .map(col => {
+                    const label =
+                      typeof col.columnDef.header === 'string'
+                        ? col.columnDef.header
+                        : col.id
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={col.id}
+                        checked={col.getIsVisible()}
+                        onCheckedChange={value => col.toggleVisibility(!!value)}
+                        onSelect={e => e.preventDefault()}
+                        className="capitalize"
+                      >
+                        {label}
+                      </DropdownMenuCheckboxItem>
+                    )
+                  })}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <Columns className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
+                <Button variant="ghost" size="sm" onClick={resetColumnOrder}>
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Mostrar / ocultar columnas</p>
+                <p>Restablecer orden, tamaño y visibilidad de columnas</p>
               </TooltipContent>
             </Tooltip>
-            <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuLabel className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Columnas visibles
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {table
-                .getAllColumns()
-                .filter(col => !NON_HIDEABLE.includes(col.id) && col.getCanHide())
-                .map(col => {
-                  const label =
-                    typeof col.columnDef.header === 'string'
-                      ? col.columnDef.header
-                      : col.id
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={col.id}
-                      checked={col.getIsVisible()}
-                      onCheckedChange={value => col.toggleVisibility(!!value)}
-                      onSelect={e => e.preventDefault()}
-                      className="capitalize"
-                    >
-                      {label}
-                    </DropdownMenuCheckboxItem>
-                  )
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" onClick={resetColumnOrder}>
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Restablecer orden, tamaño y visibilidad de columnas</p>
-            </TooltipContent>
-          </Tooltip>
+          </div>
         </TooltipProvider>
-      </div>
-
-      <DndContext
+      </CardHeader>
+      <CardContent className="p-0">
+        <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
@@ -793,6 +797,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
           ) : null}
         </DragOverlay>
       </DndContext>
-    </div>
+      </CardContent>
+    </Card>
   )
 }

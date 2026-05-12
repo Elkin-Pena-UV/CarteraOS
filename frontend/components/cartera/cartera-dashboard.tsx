@@ -135,19 +135,16 @@ export default function CarteraDashboard() {
         {/* Gráficos de aging — reaccionan a los mismos filtros que la tabla */}
         <AgingCharts data={agingData} />
 
-        <div>
-          <h2 className="mb-4 text-lg font-semibold">Tabla de Clientes</h2>
-          {/*
-            ClientsTable recibe `clients` (sin filtrar) y aplica filtros internamente.
-            Los gráficos de aging replican la misma lógica con `applyFilters` arriba,
-            garantizando consistencia entre ambas vistas.
-          */}
-          <ClientsTable
-            data={clients}
-            onViewClient={handleViewClient}
-            filters={draftFilters}
-          />
-        </div>
+        {/*
+          ClientsTable recibe `clients` (sin filtrar) y aplica filtros internamente.
+          Los gráficos de aging replican la misma lógica con `applyFilters` arriba,
+          garantizando consistencia entre ambas vistas.
+        */}
+        <ClientsTable
+          data={clients}
+          onViewClient={handleViewClient}
+          filters={draftFilters}
+        />
 
         <ClientDrawer
           client={selectedClient}
