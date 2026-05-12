@@ -29,7 +29,6 @@ function applyFilters(clients: Client[], filters: ClientFilters): Client[] {
   const normalizedClientName  = filters.clientName.trim().toLowerCase()
   const normalizedNoPunct     = normalizedClientName.replace(/[^a-z0-9]/gi, "")
   const normalizedAdvisor     = filters.advisor.toLowerCase()
-  const normalizedStatus      = filters.status.toLowerCase()
   const normalizedChannel     = filters.channel.toLowerCase()
   const minValue = filters.minValue === "" ? null : Number(filters.minValue)
   const maxValue = filters.maxValue === "" ? null : Number(filters.maxValue)
@@ -41,10 +40,6 @@ function applyFilters(clients: Client[], filters: ClientFilters): Client[] {
 
     if (normalizedAdvisor && normalizedAdvisor !== "all") {
       if (!client.advisor.toLowerCase().includes(normalizedAdvisor)) return false
-    }
-
-    if (normalizedStatus && normalizedStatus !== "all") {
-      if (client.status.toLowerCase() !== normalizedStatus) return false
     }
 
     if (normalizedClientName) {

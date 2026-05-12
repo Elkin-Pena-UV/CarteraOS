@@ -89,27 +89,9 @@ export type Client = {
   remittanceValue: number
   remittanceWeight: number
   remittanceDocuments: number
-  status: "corriente" | "vencida" | "gestion"
   isNew?: boolean
 }
 
-const statusConfig = {
-  corriente: {
-    label: "Corriente",
-    color: "bg-green-500",
-    textColor: "text-green-700 dark:text-green-400",
-  },
-  vencida: {
-    label: "Vencida",
-    color: "bg-red-500",
-    textColor: "text-red-700 dark:text-red-400",
-  },
-  gestion: {
-    label: "En gestión",
-    color: "bg-amber-500",
-    textColor: "text-amber-700 dark:text-amber-400",
-  },
-}
 
 const NON_HIDEABLE = ['nit', 'actions']
 const VISIBILITY_STORAGE_KEY = 'cartera_general_column_visibility'
@@ -297,7 +279,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
             'nit', 'name', 'channel', 'paymentCondition', 'quota',
             'current', 'overdue', 'overdue1', 'overdue2', 'overdue3', 'overdue4',
             'overcapacity', 'maxDaysOverdue', 'totalBalance', 'totalCop',
-            'remittanceValue', 'status', 'actions',
+            'remittanceValue', 'actions',
           ]
           const valid =
             defaultColumns.every((col) => parsed.includes(col)) &&
@@ -310,7 +292,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       'nit', 'name', 'channel', 'paymentCondition', 'quota',
       'current', 'overdue', 'overdue1', 'overdue2', 'overdue3', 'overdue4',
       'overcapacity', 'maxDaysOverdue', 'totalBalance', 'totalCop',
-      'remittanceValue', 'status', 'actions',
+      'remittanceValue', 'actions',
     ]
   })
   const { toast } = useToast()
@@ -328,7 +310,6 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
     const normalizedClientName = filters.clientName.trim().toLowerCase()
     const normalizedClientQueryNoPunct = normalizedClientName.replace(/[^a-z0-9]/gi, "")
     const normalizedAdvisor = filters.advisor.toLowerCase()
-    const normalizedStatus = filters.status.toLowerCase()
     const normalizedChannel = filters.channel.toLowerCase()
     const minValue = filters.minValue === "" ? null : Number(filters.minValue)
     const maxValue = filters.maxValue === "" ? null : Number(filters.maxValue)
@@ -340,10 +321,6 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
 
       if (normalizedAdvisor && normalizedAdvisor !== "all") {
         if (!client.advisor.toLowerCase().includes(normalizedAdvisor)) return false
-      }
-
-      if (normalizedStatus && normalizedStatus !== "all") {
-        if (client.status.toLowerCase() !== normalizedStatus) return false
       }
 
       if (normalizedClientName) {
@@ -540,22 +517,6 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         cell: ({ row }) => {
           const value = row.getValue("remittanceValue") as number
           return <span className="font-medium">{formatCurrency(value)}</span>
-        },
-      },
-      {
-        id: "status",
-        accessorKey: "status",
-        header: "Estado",
-        size: 120,
-        cell: ({ row }) => {
-          const status = row.getValue("status") as keyof typeof statusConfig
-          const config = statusConfig[status]
-          return (
-            <div className="flex items-center gap-2">
-              <div className={cn("h-2 w-2 rounded-full", config.color)} />
-              <span className={cn("text-sm", config.textColor)}>{config.label}</span>
-            </div>
-          )
         },
       },
       {

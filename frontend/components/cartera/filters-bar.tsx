@@ -31,7 +31,6 @@ import type { ModoFechaCorte } from "@/hooks/use-cartera"
 export type ClientFilters = {
   channel: string
   advisor: string
-  status: string
   clientName: string
   minValue: string
   maxValue: string
@@ -45,7 +44,6 @@ export type FechaCorteState = {
 export const initialClientFilters: ClientFilters = {
   channel: "",
   advisor: "",
-  status: "",
   clientName: "",
   minValue: "",
   maxValue: "",
@@ -239,22 +237,6 @@ export function FiltersBar({
                   <SelectItem value="maria">María González</SelectItem>
                   <SelectItem value="pedro">Pedro Ramírez</SelectItem>
                   <SelectItem value="laura">Laura Torres</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* ── Estado ─────────────────────────────────────────────────── */}
-            <div className="min-w-[140px] space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Estado</Label>
-              <Select value={value.status} onValueChange={(v) => updateFilter("status", v)}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="corriente">Corriente</SelectItem>
-                  <SelectItem value="vencida">Vencida</SelectItem>
-                  <SelectItem value="gestion">En gestión</SelectItem>
                 </SelectContent>
               </Select>
             </div>

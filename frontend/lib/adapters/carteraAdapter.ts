@@ -1,20 +1,6 @@
 import type { CarteraItem } from "@/hooks/use-cartera"
 import type { Client } from "@/components/cartera/clients-table"
 
-const getStatus = (diasVencido: number): Client["status"] => {
-  if (diasVencido === 0) return "corriente"
-  if (diasVencido <= 60) return "gestion"
-  return "vencida"
-}
-
-const getMaxDaysOverdue = (item: CarteraItem): number => {
-  // Calcula los días vencidos desde la fecha mínima de vencimiento
-  if (item.f1_saldo_vencido_total === 0) return 0
-  const fechaVcto = new Date(item.f1_fecha_vcto_min)
-  const hoy = new Date()
-  const dias = Math.floor((hoy.getTime() - fechaVcto.getTime()) / (1000 * 60 * 60 * 24))
-  return dias > 0 ? dias : 0
-}
 
 export const adaptCarteraToClients = (items: CarteraItem[]): Client[] => {
   return items.map((item) => ({
@@ -43,7 +29,6 @@ export const adaptCarteraToClients = (items: CarteraItem[]): Client[] => {
       item.f1_saldo_vencido4 > 0 ? 120 : 0
     ) : 0,
     dueDate: item.f1_fecha_vcto_max,
-    status: getStatus(getMaxDaysOverdue(item)),
   }))
 }
 
