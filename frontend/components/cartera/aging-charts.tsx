@@ -24,11 +24,15 @@ import type { AgingData } from "@/lib/adapters/carteraAdapter"
 /** Formatea un valor en COP → "123M", "1.2B", etc. para los ejes/tooltips */
 const formatCOP = (value: number): string => {
   if (value === 0) return "$0"
-  if (Math.abs(value) >= 1_000_000)
-    return `$${(value / 1_000_000).toFixed(0)}M`
-  if (Math.abs(value) >= 1_000)
-    return `$${(value / 1_000).toFixed(0)}K`
-  return `$${value.toFixed(0)}`
+  if (Math.abs(value) >= 1_000_000) {
+    const millions = value / 1_000_000
+    return `$${millions.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 1 })}M`
+  }
+  if (Math.abs(value) >= 1_000) {
+    const thousands = value / 1_000
+    return `$${thousands.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 1 })}K`
+  }
+  return `$${value.toLocaleString("es-CO")}`
 }
 
 // ---------------------------------------------------------------------------
