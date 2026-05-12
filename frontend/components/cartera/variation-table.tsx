@@ -393,7 +393,7 @@ const currentMonth = useMemo(() => {
           return (
             <span className={cn(
               "flex items-center gap-1 font-medium",
-              isNeutral ? "text-muted-foreground" : isPositive ? "text-green-600" : "text-red-600"
+              isNeutral ? "text-muted-foreground" : isPositive ? "text-red-600" : "text-green-600"
             )}>
               {!isNeutral && (isPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />)}
               {formatCurrency(Math.abs(value))}
@@ -413,7 +413,7 @@ const currentMonth = useMemo(() => {
           return (
             <span className={cn(
               "flex items-center gap-1 font-semibold",
-              isNeutral ? "text-muted-foreground" : isPositive ? "text-green-600" : "text-red-600"
+              isNeutral ? "text-muted-foreground" : isPositive ? "text-red-600" : "text-green-600"
             )}>
               {!isNeutral && (isPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />)}
               {formatPercent(value)}
