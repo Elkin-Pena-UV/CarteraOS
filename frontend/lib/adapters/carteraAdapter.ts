@@ -88,8 +88,15 @@ export type AgingDistributionRow = {
 
 export type AgingData = {
   byChannel: AgingByChannelRow[]
+  totalCopByChannel: TotalCopByChannelRow[]
   distribution: AgingDistributionRow[]
   totalVencida: number
+}
+
+export type TotalCopByChannelRow = {
+  channel: string
+  totalCop: number
+  participacion: number 
 }
 
 // ---------------------------------------------------------------------------
@@ -135,5 +142,21 @@ export const adaptClientsToAging = (clients: Client[]): AgingData => {
     { name: ">90 días",   value: totalMas90, color: "#EF4444" },
   ]
 
-  return { byChannel, distribution, totalVencida }
+   // Total COP por canal
+  const totalCopMap = new Map<string, number>()
+  for (const c of clients) {
+    const key = c.channel || "Sin canal"
+    totalCopMap.set(key, (totalCopMap.get(key) ?? 0) + c.totalCop)
+  }
+  const grandTotalCop = Array.from(totalCopMap.values()).reduce((s, v) => s + v, 0)
+
+  const totalCopByChannel: TotalCopByChannelRow[] = Array.from(totalCopMap.entries())
+    .map(([channel, totalCop]) => ({
+      channel,
+      totalCop,
+      participacion: grandTotalCop > 0 ? (totalCop / grandTotalCop) * 100 : 0,
+    }))
+    .sort((a, b) => b.totalCop - a.totalCop)
+
+  return { byChannel, totalCopByChannel, distribution, totalVencida }
 }

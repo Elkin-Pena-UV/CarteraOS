@@ -13,6 +13,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  LabelList,
 } from "recharts"
 import type { AgingData } from "@/lib/adapters/carteraAdapter"
 
@@ -29,17 +30,6 @@ const formatCOP = (value: number): string => {
     return `$${(value / 1_000).toFixed(0)}K`
   return `$${value.toFixed(0)}`
 }
-
-// ---------------------------------------------------------------------------
-// Constantes
-// ---------------------------------------------------------------------------
-
-const COLORS = {
-  "1-30d":  "#ff6600",
-  "31-60d": "#00359a",
-  "61-90d": "#F59E0B",
-  ">90d":   "#EF4444",
-} as const
 
 // ---------------------------------------------------------------------------
 // Tooltips
@@ -94,6 +84,64 @@ const DonutTooltip = ({ active, payload }: any) => {
   return null
 }
 
+const CustomYAxisTick = ({ x, y, payload }: any) => {
+  const words = (payload.value as string).split(" ")
+  const lines: string[] = []
+  let current = ""
+
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word
+    if (test.length > 14) {
+      if (current) lines.push(current)
+      current = word
+    } else {
+      current = test
+    }
+  }
+  if (current) lines.push(current)
+
+  const lineHeight = 14
+  const totalHeight = lines.length * lineHeight
+  const startY = y - totalHeight / 2 + lineHeight / 2
+
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {lines.map((line, i) => (
+        <text
+          key={i}
+          x={0}
+          y={startY - y + i * lineHeight}
+          textAnchor="end"
+          fontSize={11}
+          className="fill-muted-foreground"
+          fill="currentColor"
+        >
+          {line}
+        </text>
+      ))}
+    </g>
+  )
+}
+
+
+const CopByChannelTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const { totalCop, participacion } = payload[0].payload
+    return (
+      <div className="rounded-lg border bg-card p-3 shadow-lg">
+        <p className="mb-1 font-semibold text-card-foreground">{label}</p>
+        <p className="text-sm text-muted-foreground">
+          Total COP: <span className="font-medium text-card-foreground">{formatCOP(totalCop)}</span>
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Participación: <span className="font-medium text-card-foreground">{participacion.toFixed(2)}%</span>
+        </p>
+      </div>
+    )
+  }
+  return null
+}
+
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -117,54 +165,53 @@ export function AgingCharts({ data }: AgingChartsProps) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      {/* Aging por Canal — Stacked Bar Chart */}
+      {/* Total COP por Canal — Horizontal Bar Chart */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold">
-            Aging por Canal
+            Total COP por Canal
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {byChannel.length === 0 ? (
+          {data.totalCopByChannel.length === 0 ? (
             <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
-              Sin datos de cartera vencida
+              Sin datos
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
-                data={byChannel}
-                margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                data={data.totalCopByChannel}
+                layout="vertical"
+                margin={{ top: 10, right: 40, left: 10, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-muted" />
                 <XAxis
-                  dataKey="channel"
+                  type="number"
                   tick={{ fontSize: 11 }}
-                  className="text-muted-foreground"
-                  tickLine={false}
-                  axisLine={false}
-                  // Truncar labels muy largos
-                  tickFormatter={(v: string) =>
-                    v.length > 14 ? v.substring(0, 13) + "…" : v
-                  }
-                />
-                <YAxis
-                  tick={{ fontSize: 12 }}
                   className="text-muted-foreground"
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={formatCOP}
                 />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  wrapperStyle={{ paddingTop: 20 }}
-                  formatter={(value) => (
-                    <span className="text-xs text-muted-foreground">{value}</span>
-                  )}
+                <YAxis
+                  type="category"
+                  dataKey="channel"
+                  tick={<CustomYAxisTick />}
+                  className="text-muted-foreground"
+                  tickLine={false}
+                  axisLine={false}
+                  width={99}
+                  tickFormatter={(v: string) => v.length > 14 ? v.substring(0, 13) + "…" : v}
                 />
-                <Bar dataKey="1-30d"  stackId="a" fill={COLORS["1-30d"]}  radius={[0, 0, 0, 0]} />
-                <Bar dataKey="31-60d" stackId="a" fill={COLORS["31-60d"]} />
-                <Bar dataKey="61-90d" stackId="a" fill={COLORS["61-90d"]} />
-                <Bar dataKey=">90d"   stackId="a" fill={COLORS[">90d"]}   radius={[4, 4, 0, 0]} />
+                <Tooltip content={<CopByChannelTooltip />} />
+                <Bar dataKey="totalCop" fill="#ff6600" radius={[0, 4, 4, 0]}>
+                  <LabelList
+                    dataKey="participacion"
+                    position="right"
+                    formatter={(v: number) => `${v.toFixed(2)}%`}
+                    style={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}
