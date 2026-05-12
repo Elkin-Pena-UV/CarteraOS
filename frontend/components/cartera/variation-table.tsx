@@ -59,7 +59,6 @@ import { useToast } from '@/hooks/use-toast'
 import {
   TrendingUp,
   TrendingDown,
-  AlertTriangle,
   ArrowUpDown,
   ArrowDown,
   ArrowUp,
@@ -73,13 +72,15 @@ export interface VariationClient {
   id: string
   nit: string
   razonSocial: string
+  tipoCliente: string
+  canal: string
+  viaje: number
   cupo: number
   carteraMesActual: number
   carteraUltimoMes: number
   variacionCop: number
   variacionPct: number
   sobrecupoCop: number
-  sobrecupoPct: number
 }
 
 const mockVariationData: VariationClient[] = [
@@ -87,121 +88,141 @@ const mockVariationData: VariationClient[] = [
     id: "1",
     nit: "900123456-1",
     razonSocial: "Comercializadora ABC S.A.S.",
+    tipoCliente: "Mayorista",
+    canal: "Directo",
+    viaje: 12500000,
     cupo: 500000000,
     carteraMesActual: 620000000,
     carteraUltimoMes: 480000000,
     variacionCop: 140000000,
     variacionPct: 29.17,
     sobrecupoCop: 120000000,
-    sobrecupoPct: 24,
   },
   {
     id: "2",
     nit: "800987654-2",
     razonSocial: "Distribuidora del Norte Ltda.",
+    tipoCliente: "Minorista",
+    canal: "Distribuidor",
+    viaje: 8000000,
     cupo: 300000000,
     carteraMesActual: 280000000,
     carteraUltimoMes: 320000000,
     variacionCop: -40000000,
     variacionPct: -12.5,
     sobrecupoCop: 0,
-    sobrecupoPct: 0,
   },
   {
     id: "3",
     nit: "901234567-3",
     razonSocial: "Inversiones XYZ S.A.",
+    tipoCliente: "Corporativo",
+    canal: "Directo",
+    viaje: 18000000,
     cupo: 800000000,
     carteraMesActual: 1050000000,
     carteraUltimoMes: 750000000,
     variacionCop: 300000000,
     variacionPct: 40,
     sobrecupoCop: 250000000,
-    sobrecupoPct: 31.25,
   },
   {
     id: "4",
     nit: "890456789-4",
     razonSocial: "Grupo Empresarial del Caribe",
+    tipoCliente: "Mayorista",
+    canal: "Agente",
+    viaje: 22000000,
     cupo: 450000000,
     carteraMesActual: 720000000,
     carteraUltimoMes: 400000000,
     variacionCop: 320000000,
     variacionPct: 80,
     sobrecupoCop: 270000000,
-    sobrecupoPct: 60,
   },
   {
     id: "5",
     nit: "800111222-5",
     razonSocial: "Almacenes Unidos S.A.",
+    tipoCliente: "Minorista",
+    canal: "Distribuidor",
+    viaje: 6500000,
     cupo: 250000000,
     carteraMesActual: 180000000,
     carteraUltimoMes: 220000000,
     variacionCop: -40000000,
     variacionPct: -18.18,
     sobrecupoCop: 0,
-    sobrecupoPct: 0,
   },
   {
     id: "6",
     nit: "901555666-6",
     razonSocial: "Suministros Industriales Ltda.",
+    tipoCliente: "Corporativo",
+    canal: "Directo",
+    viaje: 9000000,
     cupo: 600000000,
     carteraMesActual: 550000000,
     carteraUltimoMes: 480000000,
     variacionCop: 70000000,
     variacionPct: 14.58,
     sobrecupoCop: 0,
-    sobrecupoPct: 0,
   },
   {
     id: "7",
     nit: "800777888-7",
     razonSocial: "Ferretería Central S.A.S.",
+    tipoCliente: "Minorista",
+    canal: "Agente",
+    viaje: 15000000,
     cupo: 200000000,
     carteraMesActual: 350000000,
     carteraUltimoMes: 190000000,
     variacionCop: 160000000,
     variacionPct: 84.21,
     sobrecupoCop: 150000000,
-    sobrecupoPct: 75,
   },
   {
     id: "8",
     nit: "890999000-8",
     razonSocial: "Textiles del Pacífico S.A.",
+    tipoCliente: "Mayorista",
+    canal: "Distribuidor",
+    viaje: 11000000,
     cupo: 400000000,
     carteraMesActual: 380000000,
     carteraUltimoMes: 410000000,
     variacionCop: -30000000,
     variacionPct: -7.32,
     sobrecupoCop: 0,
-    sobrecupoPct: 0,
   },
   {
     id: "9",
     nit: "901888999-9",
     razonSocial: "Importadora Global Ltda.",
+    tipoCliente: "Corporativo",
+    canal: "Directo",
+    viaje: 14000000,
     cupo: 700000000,
     carteraMesActual: 680000000,
     carteraUltimoMes: 550000000,
     variacionCop: 130000000,
     variacionPct: 23.64,
     sobrecupoCop: 0,
-    sobrecupoPct: 0,
   },
   {
     id: "10",
     nit: "800333444-0",
     razonSocial: "Químicos del Valle S.A.",
+    tipoCliente: "Mayorista",
+    canal: "Agente",
+    viaje: 7500000,
     cupo: 350000000,
     carteraMesActual: 420000000,
     carteraUltimoMes: 380000000,
     variacionCop: 40000000,
     variacionPct: 10.53,
     sobrecupoCop: 70000000,
-    sobrecupoPct: 20,
   },
 ]
 
@@ -386,10 +407,9 @@ export function VariationTable() {
         try {
           const parsed = JSON.parse(saved)
           const defaultColumns = [
-            'nit', 'razonSocial', 'cupo',
+            'nit', 'razonSocial', 'tipoCliente', 'canal', 'cupo',
             'carteraMesActual', 'carteraUltimoMes',
-            'variacionCop', 'variacionPct',
-            'sobrecupoCop', 'sobrecupoPct',
+            'variacionCop', 'variacionPct', 'viaje', 'sobrecupoCop',
           ]
           const valid =
             defaultColumns.every((col) => parsed.includes(col)) &&
@@ -399,10 +419,9 @@ export function VariationTable() {
       }
     }
     return [
-      'nit', 'razonSocial', 'cupo',
+      'nit', 'razonSocial', 'tipoCliente', 'canal', 'cupo',
       'carteraMesActual', 'carteraUltimoMes',
-      'variacionCop', 'variacionPct',
-      'sobrecupoCop', 'sobrecupoPct',
+      'variacionCop', 'variacionPct', 'viaje', 'sobrecupoCop',
     ]
   })
   const { toast } = useToast()
@@ -443,6 +462,24 @@ export function VariationTable() {
         ),
       },
       {
+        id: "tipoCliente",
+        accessorKey: "tipoCliente",
+        header: "Tipo de Cliente",
+        size: 170,
+        cell: ({ row }) => (
+          <span className="text-sm">{row.getValue("tipoCliente")}</span>
+        ),
+      },
+      {
+        id: "canal",
+        accessorKey: "canal",
+        header: "Canal",
+        size: 130,
+        cell: ({ row }) => (
+          <span className="text-sm">{row.getValue("canal")}</span>
+        ),
+      },
+      {
         id: "cupo",
         accessorKey: "cupo",
         header: "Cupo (COP)",
@@ -457,7 +494,7 @@ export function VariationTable() {
         id: "carteraMesActual",
         accessorKey: "carteraMesActual",
         header: "Cartera Mes Actual (COP)",
-        size: 200,
+        size: 250,
         cell: ({ row }) => (
           <span className="font-medium text-[#ff6600]">
             {formatCurrency(row.getValue("carteraMesActual"))}
@@ -468,7 +505,7 @@ export function VariationTable() {
         id: "carteraUltimoMes",
         accessorKey: "carteraUltimoMes",
         header: "Cartera Último Mes (COP)",
-        size: 200,
+        size: 250,
         cell: ({ row }) => (
           <span className="font-medium text-muted-foreground">
             {formatCurrency(row.getValue("carteraUltimoMes"))}
@@ -504,7 +541,7 @@ export function VariationTable() {
         id: "variacionPct",
         accessorKey: "variacionPct",
         header: "Variación %",
-        size: 130,
+        size: 150,
         cell: ({ row }) => {
           const value = row.getValue("variacionPct") as number
           const isPositive = value >= 0
@@ -526,10 +563,21 @@ export function VariationTable() {
         },
       },
       {
+        id: "viaje",
+        accessorKey: "viaje",
+        header: "Viaje (COP)",
+        size: 160,
+        cell: ({ row }) => (
+          <span className="font-medium text-muted-foreground">
+            {formatCurrency(row.getValue("viaje"))}
+          </span>
+        ),
+      },
+      {
         id: "sobrecupoCop",
         accessorKey: "sobrecupoCop",
         header: "Sobrecupo (COP)",
-        size: 160,
+        size: 180,
         cell: ({ row }) => {
           const value = row.getValue("sobrecupoCop") as number
           return (
@@ -540,26 +588,6 @@ export function VariationTable() {
               )}
             >
               {formatCurrency(value)}
-            </span>
-          )
-        },
-      },
-      {
-        id: "sobrecupoPct",
-        accessorKey: "sobrecupoPct",
-        header: "Sobrecupo %",
-        size: 130,
-        cell: ({ row }) => {
-          const value = row.getValue("sobrecupoPct") as number
-          return (
-            <span
-              className={cn(
-                "flex items-center gap-1 font-semibold",
-                value > 0 ? "text-destructive" : "text-muted-foreground"
-              )}
-            >
-              {value > 50 && <AlertTriangle className="h-4 w-4" />}
-              {value.toFixed(2)}%
             </span>
           )
         },
