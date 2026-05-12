@@ -39,14 +39,24 @@ export const adaptCarteraToKPIs = (items: CarteraItem[]) => {
   const clientesEnMora = items.filter((i) => i.f1_saldo_vencido_total > 0).length
   const porcentajeVencida = totalCartera > 0 ? (totalVencida / totalCartera) * 100 : 0
 
-  const formatBillions = (value: number) => {
-    if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(0)}M`
-    return `$${value.toLocaleString("es-CO")}`
+
+  /** Formatea un valor en COP → "123M", "1.2B", etc. para los ejes/tooltips */
+const formatCOP = (value: number): string => {
+  if (value === 0) return "$0"
+  if (Math.abs(value) >= 1_000_000) {
+    const millions = value / 1_000_000
+    return `$${millions.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 1 })}M`
   }
+  if (Math.abs(value) >= 1_000) {
+    const thousands = value / 1_000
+    return `$${thousands.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 1 })}K`
+  }
+  return `$${value.toLocaleString("es-CO")}`
+}
 
   return {
-    totalCorriente: formatBillions(totalCorriente),
-    totalVencida: formatBillions(totalVencida),
+    totalCorriente: formatCOP(totalCorriente),
+    totalVencida: formatCOP(totalVencida),
     clientesEnMora,
     totalClientes: items.length,
     porcentajeVencida: porcentajeVencida.toFixed(1),
