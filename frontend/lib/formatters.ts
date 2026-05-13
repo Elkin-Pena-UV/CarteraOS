@@ -37,9 +37,9 @@ export const formatNumber = (value: number): string =>
   numberFormatter.format(value)
 
 /**
- * Formatea un número como moneda compacta (M / B).
+ * Formatea un número como moneda compacta (M).
  * Usada en gráficos y KPIs donde el espacio es limitado.
- * Ej: 1_500_000_000 → "$1.5 B" | 750_000_000 → "$750 M"
+ * Ej: 1_500_000_000 → "$1.500 M" | 750_000_000 → "$750 M"
  */
 export const formatCurrencyCompact = (value: number): string => {
   if (value >= 1_000_000)         return `$${(value / 1_000_000).toFixed(0)} M`
