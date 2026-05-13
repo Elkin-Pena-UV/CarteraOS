@@ -56,6 +56,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTableState } from "@/hooks/use-table-state"
+import { formatCurrency } from "@/lib/formatters"
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 export interface VariationClient {
@@ -85,16 +86,6 @@ const DEFAULT_COLUMN_ORDER = [
   'carteraMesActual', 'carteraUltimoMes',
   'variacionCop', 'variacionPct', 'sobrecupoCop',
 ]
-
-// ── Formatters ────────────────────────────────────────────────────────────────
-const currencyFormatter = new Intl.NumberFormat("es-CO", {
-  style: "currency",
-  currency: "COP",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-})
-
-const formatCurrency = (value: number) => currencyFormatter.format(value)
 
 const formatPercent = (value: number | null | undefined) => {
   if (value == null) return "0.00%"
@@ -324,7 +315,7 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
       {
         id: "cupo",
         accessorKey: "cupo",
-        header: "Cupo (COP)",
+        header: "Cupo",
         size: 150,
         cell: ({ row }) => (
           <span className="font-medium text-[#22b859]">{formatCurrency(row.getValue("cupo"))}</span>
@@ -333,7 +324,7 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
       {
         id: "carteraMesActual",
         accessorKey: "carteraMesActual",
-        header: "Cartera Mes Actual",
+        header: "Cartera Mes",
         size: 180,
         cell: ({ row }) => (
           <span className="font-medium text-[#ff6600]">{formatCurrency(row.getValue("carteraMesActual"))}</span>
@@ -343,7 +334,7 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
         id: "carteraUltimoMes",
         accessorKey: "carteraUltimoMes",
         header: "Cartera Mes Anterior",
-        size: 185,
+        size: 195,
         cell: ({ row }) => (
           <span className="font-medium text-[#ff6600]">{formatCurrency(row.getValue("carteraUltimoMes"))}</span>
         ),
@@ -351,7 +342,7 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
       {
         id: "variacionCop",
         accessorKey: "variacionCop",
-        header: "Variación (COP)",
+        header: "Variación",
         size: 160,
         cell: ({ row }) => {
           const value = row.getValue("variacionCop") as number
@@ -371,7 +362,7 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
         id: "variacionPct",
         accessorKey: "variacionPct",
         header: "Variación (%)",
-        size: 140,
+        size: 150,
         cell: ({ row }) => {
           const value = row.getValue("variacionPct") as number
           const isPositive = value > 0
@@ -393,7 +384,7 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
       {
         id: "sobrecupoCop",
         accessorKey: "sobrecupoCop",
-        header: "Sobrecupo (COP)",
+        header: "Sobrecupo",
         size: 170,
         cell: ({ row }) => {
           const value = row.getValue("sobrecupoCop") as number

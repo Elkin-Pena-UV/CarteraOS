@@ -16,6 +16,7 @@ import type { Client } from "./clients-table"
 import { useFacturas } from "@/hooks/use-facturas"
 import { PaginationControls } from "@/components/ui/pagination-controls"
 import { useEffect, useMemo, useState } from "react"
+import { formatCurrency } from "@/lib/formatters"
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 type SortField =
@@ -33,17 +34,6 @@ type SortDirection = "asc" | "desc" | null
 interface SortState {
   field: SortField | null
   direction: SortDirection
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value)
 }
 
 const formatDate = (dateString: string) => {

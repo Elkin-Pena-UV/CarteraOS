@@ -56,6 +56,7 @@ import {
 } from '@/components/ui/tooltip'
 import { cn } from "@/lib/utils"
 import { useTableState } from "@/hooks/use-table-state"
+import { formatCurrency } from "@/lib/formatters"
 import type { ClientFilters } from "./filters-bar"
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -92,25 +93,10 @@ const PINNED_END = ['actions']
 
 const DEFAULT_COLUMN_ORDER = [
   'nit', 'name', 'channel', 'paymentCondition', 'quota',
-  'current', 'overdue', 'overdue1', 'overdue2', 'overdue3', 'overdue4',
+  'current', 'overdue1', 'overdue2', 'overdue3', 'overdue4', 'overdue',
   'overcapacity', 'maxDaysOverdue', 'totalBalance', 'totalCop',
   'remittanceValue', 'actions',
 ]
-
-// ── Formatters ────────────────────────────────────────────────────────────────
-const currencyFormatter = new Intl.NumberFormat("es-CO", {
-  style: "currency",
-  currency: "COP",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-})
-
-const numberFormatter = new Intl.NumberFormat("es-CO", {
-  maximumFractionDigits: 0,
-})
-
-const formatCurrency = (value: number) => currencyFormatter.format(value)
-const formatNumber = (value: number) => numberFormatter.format(value)
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface ClientsTableProps {
@@ -349,7 +335,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "paymentCondition",
         accessorKey: "paymentCondition",
         header: "Cond. Pago",
-        size: 120,
+        size: 145,
         cell: ({ row }) => (
           <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
             {row.getValue("paymentCondition")}
@@ -359,7 +345,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "quota",
         accessorKey: "quota",
-        header: "Cupo COP",
+        header: "Cupo",
         size: 140,
         cell: ({ row }) => {
           const value = row.getValue("quota") as number
@@ -370,31 +356,17 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "current",
         accessorKey: "current",
         header: "Saldo Corriente",
-        size: 150,
+        size: 170,
         cell: ({ row }) => {
           const value = row.getValue("current") as number
           return <span className="font-medium text-[#ff6600]">{formatCurrency(value)}</span>
         },
       },
       {
-        id: "overdue",
-        accessorKey: "overdue",
-        header: "Total Vencida",
-        size: 160,
-        cell: ({ row }) => {
-          const value = row.getValue("overdue") as number
-          return (
-            <span className={cn("font-medium", value > 0 && "text-red-700")}>
-              {formatCurrency(value)}
-            </span>
-          )
-        },
-      },
-      {
         id: "overdue1",
         accessorKey: "overdue1",
         header: "Vencido 1-30",
-        size: 130,
+        size: 155,
         cell: ({ row }) => {
           const value = row.getValue("overdue1") as number
           return (
@@ -408,7 +380,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "overdue2",
         accessorKey: "overdue2",
         header: "Vencido 31-60",
-        size: 135,
+        size: 165,
         cell: ({ row }) => {
           const value = row.getValue("overdue2") as number
           return (
@@ -422,7 +394,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "overdue3",
         accessorKey: "overdue3",
         header: "Vencido 61-90",
-        size: 135,
+        size: 165,
         cell: ({ row }) => {
           const value = row.getValue("overdue3") as number
           return (
@@ -436,7 +408,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         id: "overdue4",
         accessorKey: "overdue4",
         header: "Vencido +90",
-        size: 130,
+        size: 155,
         cell: ({ row }) => {
           const value = row.getValue("overdue4") as number
           return (
@@ -447,9 +419,23 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         },
       },
       {
+        id: "overdue",
+        accessorKey: "overdue",
+        header: "Total Vencido",
+        size: 155,
+        cell: ({ row }) => {
+          const value = row.getValue("overdue") as number
+          return (
+            <span className={cn("font-medium", value > 0 && "text-red-700")}>
+              {formatCurrency(value)}
+            </span>
+          )
+        },
+      },
+      {
         id: "overcapacity",
         accessorKey: "overcapacity",
-        header: "Sobrecupo COP",
+        header: "Sobrecupo",
         size: 145,
         cell: ({ row }) => {
           const value = row.getValue("overcapacity") as number
@@ -463,7 +449,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "totalBalance",
         accessorKey: "totalBalance",
-        header: "Saldo Total COP",
+        header: "Saldo Total",
         size: 150,
         cell: ({ row }) => {
           const value = row.getValue("totalBalance") as number
@@ -483,7 +469,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "remittanceValue",
         accessorKey: "remittanceValue",
-        header: "Valor remisión COP",
+        header: "Valor remisión",
         size: 160,
         cell: ({ row }) => {
           const value = row.getValue("remittanceValue") as number
