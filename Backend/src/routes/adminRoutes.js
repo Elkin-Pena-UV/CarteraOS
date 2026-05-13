@@ -2,6 +2,7 @@ import express from 'express';
 import { invalidateCache, clearCache, getCacheStats } from '../middleware/cacheMiddleware.js';
 import { getCartera } from '../services/carteraService.js';
 import logger from '../config/logger.js';
+import { getVariacion } from '../services/variacionService.js';
 
 const router = express.Router();
 
@@ -62,6 +63,61 @@ router.get('/diagnostico/cartera', async (req, res) => {
     };
 
     // 🆕 Recomendaciones automáticas según tiempos
+    if (result.tiempos.conexion > 100) {
+      diagnostico.recomendaciones.push(
+        '⚠️ Conexión lenta — revisar connection pooling en db.js'
+      );
+    }
+    if (result.tiempos.query > 1000) {
+      diagnostico.recomendaciones.push(
+        '🔴 Query muy lenta (+1s) — se necesitan índices en SQL Server'
+      );
+    } else if (result.tiempos.query > 500) {
+      diagnostico.recomendaciones.push(
+        '🟡 Query moderada (+500ms) — índices recomendados'
+      );
+    } else {
+      diagnostico.recomendaciones.push(
+        '✅ Query rápida — no se necesitan índices urgentes'
+      );
+    }
+
+    res.json(diagnostico);
+
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// Diagnóstico de performance de variación
+router.get('/diagnostico/variacion', async (req, res) => {
+  try {
+    const { fecha } = req.query;
+
+    if (!fecha) {
+      return res.status(400).json({
+        ok: false,
+        message: "Se requiere el parámetro 'fecha' en formato YYYYMMDD"
+      });
+    }
+
+    logger.info('🔍 Iniciando diagnóstico de variación...');
+    const inicio = Date.now();
+
+    const result = await getVariacion(fecha);
+
+    const diagnostico = {
+      ok: true,
+      resumen: {
+        tiempoTotal: `${Date.now() - inicio}ms`,
+        registros: result.tiempos.registros,
+        tiempoConexion: `${result.tiempos.conexion}ms`,
+        tiempoQuery: `${result.tiempos.query}ms`,
+        fecha: result.fecha,
+      },
+      recomendaciones: []
+    };
+
     if (result.tiempos.conexion > 100) {
       diagnostico.recomendaciones.push(
         '⚠️ Conexión lenta — revisar connection pooling en db.js'
