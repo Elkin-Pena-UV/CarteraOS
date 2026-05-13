@@ -102,7 +102,6 @@ const DEFAULT_COLUMN_ORDER = [
 interface ClientsTableProps {
   data: Client[]
   onViewClient: (client: Client) => void
-  filters: ClientFilters
 }
 
 // ── DraggableHeader ───────────────────────────────────────────────────────────
@@ -240,7 +239,7 @@ function DragOverlayContent({ columnId, columns }: { columnId: string; columns: 
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
-export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps) {
+export function ClientsTable({ data, onViewClient }: ClientsTableProps) {
 
   // ── Estado de tabla (hook compartido) ─────────────────────────────────────
   const {
@@ -258,46 +257,6 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
     pinnedStart: PINNED_START,
     pinnedEnd: PINNED_END,
   })
-
-  // ── Filtrado ──────────────────────────────────────────────────────────────
-  const filteredData = useMemo(() => {
-    const normalizedClientName = filters.clientName.trim().toLowerCase()
-    const normalizedClientQueryNoPunct = normalizedClientName.replace(/[^a-z0-9]/gi, "")
-
-    const minValue = filters.minValue === "" ? null : Number(filters.minValue)
-    const maxValue = filters.maxValue === "" ? null : Number(filters.maxValue)
-
-    return data.filter((client) => {
-      if (filters.channel.length > 0) {
-        const match = filters.channel.some((c) =>
-          client.channel.toLowerCase().includes(c.toLowerCase())
-        )
-        if (!match) return false
-      }
-
-      if (filters.advisor.length > 0) {
-        const match = filters.advisor.some((a) =>
-          client.advisor.toLowerCase().includes(a.toLowerCase())
-        )
-        if (!match) return false
-      }
-
-      if (normalizedClientName) {
-        const nameMatches = client.name.toLowerCase().includes(normalizedClientName)
-        const nitNormalized = client.nit
-          ? client.nit.toLowerCase().replace(/[^a-z0-9]/gi, "")
-          : ""
-        const nitMatches = nitNormalized.includes(normalizedClientQueryNoPunct)
-        if (!nameMatches && !nitMatches) return false
-      }
-
-      const portfolioValue = client.current + client.overdue
-      if (minValue !== null && !Number.isNaN(minValue) && portfolioValue < minValue) return false
-      if (maxValue !== null && !Number.isNaN(maxValue) && portfolioValue > maxValue) return false
-
-      return true
-    })
-  }, [data, filters])
 
   // ── Columnas ──────────────────────────────────────────────────────────────
   const columns: ColumnDef<Client>[] = useMemo(
@@ -501,7 +460,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
 
   // ── TanStack Table ────────────────────────────────────────────────────────
   const table = useReactTable({
-    data: filteredData,
+    data,
     columns,
     columnResizeMode: "onChange",
     getCoreRowModel: getCoreRowModel(),
