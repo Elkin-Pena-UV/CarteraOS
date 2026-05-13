@@ -155,52 +155,62 @@ function DraggableHeader({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group select-none overflow-hidden whitespace-nowrap px-3 py-2",
-        isDragging && "opacity-50",
+        'group whitespace-nowrap overflow-hidden',
+        isDragging &&
+        'bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,hsl(var(--border))_5px,hsl(var(--border))_6px)] opacity-50',
         isPinned && "bg-muted/40"
       )}
     >
-      <div className="flex items-center gap-1">
-        {canSort ? (
-          <button
-            type="button"
-            onClick={() => {
-              if (column!.getIsSorted() === "asc") column!.toggleSorting(true)
-              else if (column!.getIsSorted() === "desc") column!.clearSorting()
-              else column!.toggleSorting(false)
-            }}
-            className="flex items-center gap-1 text-sm font-medium hover:text-foreground"
-          >
-            {label}
-            {column!.getIsSorted() === "desc" ? (
-              <ArrowDown className="h-3.5 w-3.5" />
-            ) : column!.getIsSorted() === "asc" ? (
-              <ArrowUp className="h-3.5 w-3.5" />
-            ) : (
-              <ArrowUpDown className="h-3.5 w-3.5" />
-            )}
-          </button>
-        ) : (
-          <span className="text-sm font-medium">{label}</span>
-        )}
+      <div className="flex items-center justify-between gap-1">
+        <span className="text-sm font-medium text-foreground truncate">{label}</span>
 
-        {!isPinned && (
-          <button
-            type="button"
-            {...attributes}
-            {...listeners}
-            aria-label="Arrastrar columna"
-            className={cn(
-              'flex h-6 w-5 items-center justify-center rounded transition-all duration-150',
-              'opacity-0 group-hover:opacity-40 hover:!opacity-100 hover:text-[#ff6600]',
-              'cursor-grab active:cursor-grabbing focus:outline-none'
-            )}
-            tabIndex={-1}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GripVertical className="h-4 w-4" />
-          </button>
-        )}
+        <div className="flex shrink-0 items-center gap-0.5">
+          {canSort && column && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                const sorted = column.getIsSorted()
+                if (sorted === false) column.toggleSorting(true)
+                else if (sorted === "desc") column.toggleSorting(false)
+                else column.clearSorting()
+              }}
+              className={cn(
+                'flex h-6 w-6 items-center justify-center rounded transition-all duration-150',
+                'opacity-0 group-hover:opacity-60 hover:!opacity-100',
+                'hover:bg-muted focus:outline-none',
+                column.getIsSorted() && '!opacity-100 text-[#ff6600]'
+              )}
+              title="Ordenar"
+            >
+              {column.getIsSorted() === "desc" ? (
+                <ArrowDown className="h-3.5 w-3.5" />
+              ) : column.getIsSorted() === "asc" ? (
+                <ArrowUp className="h-3.5 w-3.5" />
+              ) : (
+                <ArrowUpDown className="h-3.5 w-3.5" />
+              )}
+            </button>
+          )}
+
+          {!isPinned && (
+            <button
+              type="button"
+              {...attributes}
+              {...listeners}
+              aria-label="Arrastrar columna"
+              className={cn(
+                'flex h-6 w-5 items-center justify-center rounded transition-all duration-150',
+                'opacity-0 group-hover:opacity-40 hover:!opacity-100 hover:text-[#ff6600]',
+                'cursor-grab active:cursor-grabbing focus:outline-none'
+              )}
+              tabIndex={-1}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {!isPinned && (
