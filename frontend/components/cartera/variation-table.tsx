@@ -1,21 +1,13 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useMemo } from "react"
 import {
   DndContext,
   closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
   DragOverlay,
-  type DragStartEvent,
-  type DragEndEvent,
 } from '@dnd-kit/core'
 import {
-  arrayMove,
   SortableContext,
-  sortableKeyboardCoordinates,
   useSortable,
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable'
@@ -26,9 +18,6 @@ import {
   getSortedRowModel,
   flexRender,
   type ColumnDef,
-  type SortingState,
-  type ColumnSizingState,
-  type VisibilityState,
 } from "@tanstack/react-table"
 import {
   Table,
@@ -55,23 +44,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useToast } from '@/hooks/use-toast'
 import {
   TrendingUp,
   TrendingDown,
-  ArrowUpDown,
   ArrowDown,
   ArrowUp,
+  ArrowUpDown,
   GripVertical,
   RotateCcw,
   Columns,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-// ── Nuevos imports ──────────────────────────────────────────────────────────
-import { useVariacion } from "@/hooks/use-variacion"
-import { adaptVariacionToClients } from "@/lib/adapters/variacionAdapter"
+import { useTableState } from "@/hooks/use-table-state"
 
-// ── Tipos ───────────────────────────────────────────────────────────────────
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 export interface VariationClient {
   id: string
   nit: string
@@ -87,34 +73,41 @@ export interface VariationClient {
   sobrecupoCop: number
 }
 
-// ── Constantes ───────────────────────────────────────────────────────────────
+// ── Constantes ────────────────────────────────────────────────────────────────
 const NON_HIDEABLE = ['nit']
 const VISIBILITY_STORAGE_KEY = 'cartera_variation_column_visibility'
 const STORAGE_KEY = 'cartera_variation_column_order'
 const PINNED_START = ['nit']
 const PINNED_END: string[] = []
 
-const defaultColumnOrder = [
+const DEFAULT_COLUMN_ORDER = [
   'nit', 'razonSocial', 'tipoCliente', 'canal', 'cupo',
   'carteraMesActual', 'carteraUltimoMes',
-  'variacionCop', 'variacionPct', 'viaje', 'sobrecupoCop',
+  'variacionCop', 'variacionPct', 'sobrecupoCop',
 ]
 
-// ── Formatters ───────────────────────────────────────────────────────────────
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value)
+// ── Formatters ────────────────────────────────────────────────────────────────
+const currencyFormatter = new Intl.NumberFormat("es-CO", {
+  style: "currency",
+  currency: "COP",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+})
 
-// Por esto:
+const formatCurrency = (value: number) => currencyFormatter.format(value)
+
 const formatPercent = (value: number | null | undefined) => {
   if (value == null) return "0.00%"
   return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`
 }
-// ── DraggableHeader ──────────────────────────────────────────────────────────
+
+// ── Props ─────────────────────────────────────────────────────────────────────
+interface VariationTableProps {
+  data: VariationClient[]
+  fecha: string
+}
+
+// ── DraggableHeader ───────────────────────────────────────────────────────────
 interface DraggableHeaderProps {
   id: string
   isPinned?: boolean
@@ -227,7 +220,6 @@ function DraggableHeader({
   )
 }
 
-// ── DragOverlayContent ────────────────────────────────────────────────────────
 function DragOverlayContent({
   columnId,
   columns,
@@ -248,66 +240,35 @@ function DragOverlayContent({
   )
 }
 
-// ── VariationTable ────────────────────────────────────────────────────────────
-interface VariationTableProps {
-  data: VariationClient[]
-  fecha: string
-}
-
+// ── Componente principal ──────────────────────────────────────────────────────
 export function VariationTable({ data, fecha }: VariationTableProps) {
-  // ── Datos reales desde el backend ──────────────────────────────────────────
-  // ── Estado de la tabla ────────────────────────────────────────────────────
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [activeId, setActiveId] = useState<string | null>(null)
-  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(VISIBILITY_STORAGE_KEY)
-      if (saved) {
-        try { return JSON.parse(saved) } catch { /* usa default */ }
-      }
-    }
-    return {}
-  })
-  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          const valid =
-            defaultColumnOrder.every((col) => parsed.includes(col)) &&
-            parsed.every((col: string) => defaultColumnOrder.includes(col))
-          if (valid) return parsed
-        } catch { /* Invalid JSON, use default */ }
-      }
-    }
-    return defaultColumnOrder
+
+  // ── Estado de tabla (hook compartido) ─────────────────────────────────────
+  const {
+    sorting, setSorting,
+    columnOrder, setColumnOrder,
+    columnSizing, setColumnSizing,
+    columnVisibility, setColumnVisibility,
+    activeId, sensors, draggableOrder,
+    handleDragStart, handleDragEnd,
+    resetTableState,
+  } = useTableState({
+    orderStorageKey: STORAGE_KEY,
+    visibilityStorageKey: VISIBILITY_STORAGE_KEY,
+    defaultOrder: DEFAULT_COLUMN_ORDER,
+    pinnedStart: PINNED_START,
+    pinnedEnd: PINNED_END,
   })
 
-  const { toast } = useToast()
-
-  // Por esto:
-const currentMonth = useMemo(() => {
-  const year = Number(fecha.slice(0, 4))
-  const month = Number(fecha.slice(4, 6)) - 1
-  return new Date(year, month, 1).toLocaleDateString("es-CO", {
-    month: "long",
-    year: "numeric",
-  })
-}, [fecha])
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(VISIBILITY_STORAGE_KEY, JSON.stringify(columnVisibility))
-    }
-  }, [columnVisibility])
-
-  // ── DnD sensors ───────────────────────────────────────────────────────────
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
+  // ── Mes actual formateado ─────────────────────────────────────────────────
+  const currentMonth = useMemo(() => {
+    const year = Number(fecha.slice(0, 4))
+    const month = Number(fecha.slice(4, 6)) - 1
+    return new Date(year, month, 1).toLocaleDateString("es-CO", {
+      month: "long",
+      year: "numeric",
+    })
+  }, [fecha])
 
   // ── Columnas ──────────────────────────────────────────────────────────────
   const columns: ColumnDef<VariationClient>[] = useMemo(
@@ -343,9 +304,11 @@ const currentMonth = useMemo(() => {
         id: "canal",
         accessorKey: "canal",
         header: "Canal",
-        size: 180,
+        size: 160,
         cell: ({ row }) => (
-          <span className="text-sm">{row.getValue("canal")}</span>
+          <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
+            {row.getValue("canal")}
+          </span>
         ),
       },
       {
@@ -354,49 +317,42 @@ const currentMonth = useMemo(() => {
         header: "Cupo (COP)",
         size: 150,
         cell: ({ row }) => (
-          <span className="font-medium text-[#22b859]">
-            {formatCurrency(row.getValue("cupo"))}
-          </span>
+          <span className="font-medium text-[#22b859]">{formatCurrency(row.getValue("cupo"))}</span>
         ),
       },
       {
         id: "carteraMesActual",
         accessorKey: "carteraMesActual",
-        header: "Cartera Mes Actual (COP)",
-        size: 250,
+        header: "Cartera Mes Actual",
+        size: 180,
         cell: ({ row }) => (
-          <span className="font-medium text-[#ff6600]">
-            {formatCurrency(row.getValue("carteraMesActual"))}
-          </span>
+          <span className="font-medium text-[#ff6600]">{formatCurrency(row.getValue("carteraMesActual"))}</span>
         ),
       },
       {
         id: "carteraUltimoMes",
         accessorKey: "carteraUltimoMes",
-        header: "Cartera Último Mes (COP)",
-        size: 250,
+        header: "Cartera Mes Anterior",
+        size: 185,
         cell: ({ row }) => (
-          <span className="font-medium text-muted-foreground">
-            {formatCurrency(row.getValue("carteraUltimoMes"))}
-          </span>
+          <span className="font-medium text-[#ff6600]">{formatCurrency(row.getValue("carteraUltimoMes"))}</span>
         ),
       },
       {
         id: "variacionCop",
         accessorKey: "variacionCop",
-        header: "Variación COP",
+        header: "Variación (COP)",
         size: 160,
         cell: ({ row }) => {
           const value = row.getValue("variacionCop") as number
-          const isPositive = value > 0   // ← cambia >= 0 por > 0
-          const isNeutral = value === 0  // ← nuevo
+          const isPositive = value > 0
+          const isNeutral = value === 0
           return (
             <span className={cn(
-              "flex items-center gap-1 font-medium",
+              "font-medium",
               isNeutral ? "text-muted-foreground" : isPositive ? "text-red-600" : "text-green-600"
             )}>
-              {!isNeutral && (isPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />)}
-              {formatCurrency(Math.abs(value))}
+              {formatCurrency(value)}
             </span>
           )
         },
@@ -404,33 +360,25 @@ const currentMonth = useMemo(() => {
       {
         id: "variacionPct",
         accessorKey: "variacionPct",
-        header: "Variación %",
-        size: 150,
+        header: "Variación (%)",
+        size: 140,
         cell: ({ row }) => {
           const value = row.getValue("variacionPct") as number
           const isPositive = value > 0
           const isNeutral = value === 0
           return (
             <span className={cn(
-              "flex items-center gap-1 font-semibold",
+              "flex items-center gap-1 font-medium",
               isNeutral ? "text-muted-foreground" : isPositive ? "text-red-600" : "text-green-600"
             )}>
-              {!isNeutral && (isPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />)}
+              {!isNeutral && (isPositive
+                ? <TrendingUp className="h-4 w-4" />
+                : <TrendingDown className="h-4 w-4" />
+              )}
               {formatPercent(value)}
             </span>
           )
         },
-      },
-      {
-        id: "viaje",
-        accessorKey: "viaje",
-        header: "Viaje (COP)",
-        size: 150,
-        cell: ({ row }) => (
-          <span className="font-mono text-sm">
-            {formatCurrency(row.getValue("viaje"))}
-          </span>
-        ),
       },
       {
         id: "sobrecupoCop",
@@ -439,9 +387,8 @@ const currentMonth = useMemo(() => {
         size: 170,
         cell: ({ row }) => {
           const value = row.getValue("sobrecupoCop") as number
-          const hasSobrecupo = value > 0
           return (
-            <span className={cn("font-medium", hasSobrecupo ? "text-red-600" : "text-muted-foreground")}>
+            <span className={cn("font-medium", value > 0 ? "text-red-600" : "text-muted-foreground")}>
               {formatCurrency(value)}
             </span>
           )
@@ -449,12 +396,6 @@ const currentMonth = useMemo(() => {
       },
     ],
     []
-  )
-
-  // ── Columnas arrastrables (excluye pinned) ────────────────────────────────
-  const draggableOrder = useMemo(
-    () => columnOrder.filter((id) => !PINNED_START.includes(id) && !PINNED_END.includes(id)),
-    [columnOrder]
   )
 
   // ── TanStack Table ────────────────────────────────────────────────────────
@@ -470,44 +411,6 @@ const currentMonth = useMemo(() => {
     getSortedRowModel: getSortedRowModel(),
     columnResizeMode: "onChange",
   })
-
-  // ── DnD handlers ─────────────────────────────────────────────────────────
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string)
-  }
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    setActiveId(null)
-    const { active, over } = event
-    if (over && active.id !== over.id) {
-      const oldIndex = draggableOrder.indexOf(active.id as string)
-      const newIndex = draggableOrder.indexOf(over.id as string)
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const newDraggableOrder = arrayMove(draggableOrder, oldIndex, newIndex)
-        const newFullOrder = [...PINNED_START, ...newDraggableOrder, ...PINNED_END]
-        setColumnOrder(newFullOrder)
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(newFullOrder))
-        }
-        toast({ description: 'Columna reordenada', duration: 2000 })
-      }
-    }
-  }
-
-  const resetColumnOrder = () => {
-    setColumnOrder(defaultColumnOrder)
-    setColumnSizing({})
-    setColumnVisibility({})
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEY)
-      localStorage.removeItem(VISIBILITY_STORAGE_KEY)
-    }
-    toast({
-      description: 'Orden, tamaño y visibilidad de columnas restablecidos',
-      duration: 2000,
-    })
-  }
-
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -564,7 +467,7 @@ const currentMonth = useMemo(() => {
               </DropdownMenu>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" onClick={resetColumnOrder}>
+                  <Button variant="ghost" size="sm" onClick={resetTableState}>
                     <RotateCcw className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>

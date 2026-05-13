@@ -1,21 +1,15 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useMemo } from "react"
 import {
   DndContext,
   closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
   DragOverlay,
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core'
 import {
-  arrayMove,
   SortableContext,
-  sortableKeyboardCoordinates,
   useSortable,
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable'
@@ -26,9 +20,6 @@ import {
   getSortedRowModel,
   flexRender,
   type ColumnDef,
-  type SortingState,
-  type ColumnSizingState,
-  type VisibilityState
 } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -42,13 +33,12 @@ import {
 } from "@/components/ui/table"
 import {
   Eye,
-  ArrowUpDown,
   GripVertical,
   RotateCcw,
   ArrowDown,
   ArrowUp,
+  ArrowUpDown,
   Columns,
-  Check,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -64,10 +54,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useToast } from '@/hooks/use-toast'
 import { cn } from "@/lib/utils"
+import { useTableState } from "@/hooks/use-table-state"
 import type { ClientFilters } from "./filters-bar"
 
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 export type Client = {
   nit: string
   name: string
@@ -92,37 +83,43 @@ export type Client = {
   isNew?: boolean
 }
 
-
+// ── Constantes ────────────────────────────────────────────────────────────────
 const NON_HIDEABLE = ['nit', 'actions']
 const VISIBILITY_STORAGE_KEY = 'cartera_general_column_visibility'
 const STORAGE_KEY = 'cartera_general_column_order'
 const PINNED_START = ['nit']
 const PINNED_END = ['actions']
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value)
-}
+const DEFAULT_COLUMN_ORDER = [
+  'nit', 'name', 'channel', 'paymentCondition', 'quota',
+  'current', 'overdue', 'overdue1', 'overdue2', 'overdue3', 'overdue4',
+  'overcapacity', 'maxDaysOverdue', 'totalBalance', 'totalCop',
+  'remittanceValue', 'actions',
+]
 
-const formatNumber = (value: number) => {
-  return new Intl.NumberFormat("es-CO", {
-    maximumFractionDigits: 0,
-  }).format(value)
-}
+// ── Formatters ────────────────────────────────────────────────────────────────
+const currencyFormatter = new Intl.NumberFormat("es-CO", {
+  style: "currency",
+  currency: "COP",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+})
 
+const numberFormatter = new Intl.NumberFormat("es-CO", {
+  maximumFractionDigits: 0,
+})
+
+const formatCurrency = (value: number) => currencyFormatter.format(value)
+const formatNumber = (value: number) => numberFormatter.format(value)
+
+// ── Props ─────────────────────────────────────────────────────────────────────
 interface ClientsTableProps {
   data: Client[]
   onViewClient: (client: Client) => void
   filters: ClientFilters
 }
 
-// ---------------------------------------------------------------------------
-// DraggableHeader
-// ---------------------------------------------------------------------------
+// ── DraggableHeader ───────────────────────────────────────────────────────────
 interface DraggableHeaderProps {
   id: string
   isPinned?: boolean
@@ -256,56 +253,27 @@ function DragOverlayContent({ columnId, columns }: { columnId: string; columns: 
   )
 }
 
+// ── Componente principal ──────────────────────────────────────────────────────
 export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [activeId, setActiveId] = useState<string | null>(null)
-  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(VISIBILITY_STORAGE_KEY)
-      if (saved) {
-        try { return JSON.parse(saved) } catch { /* usa default */ }
-      }
-    }
-    return {}
-  })
-  const [columnOrder, setColumnOrder] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          const defaultColumns = [
-            'nit', 'name', 'channel', 'paymentCondition', 'quota',
-            'current', 'overdue', 'overdue1', 'overdue2', 'overdue3', 'overdue4',
-            'overcapacity', 'maxDaysOverdue', 'totalBalance', 'totalCop',
-            'remittanceValue', 'actions',
-          ]
-          const valid =
-            defaultColumns.every((col) => parsed.includes(col)) &&
-            parsed.every((col: string) => defaultColumns.includes(col))
-          if (valid) return parsed
-        } catch { /* Invalid JSON, use default */ }
-      }
-    }
-    return [
-      'nit', 'name', 'channel', 'paymentCondition', 'quota',
-      'current', 'overdue', 'overdue1', 'overdue2', 'overdue3', 'overdue4',
-      'overcapacity', 'maxDaysOverdue', 'totalBalance', 'totalCop',
-      'remittanceValue', 'actions',
-    ]
-  })
-  const { toast } = useToast()
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(VISIBILITY_STORAGE_KEY, JSON.stringify(columnVisibility))
-    }
-  }, [columnVisibility])
+  // ── Estado de tabla (hook compartido) ─────────────────────────────────────
+  const {
+    sorting, setSorting,
+    columnOrder, setColumnOrder,
+    columnSizing, setColumnSizing,
+    columnVisibility, setColumnVisibility,
+    activeId, sensors, draggableOrder,
+    handleDragStart, handleDragEnd,
+    resetTableState,
+  } = useTableState({
+    orderStorageKey: STORAGE_KEY,
+    visibilityStorageKey: VISIBILITY_STORAGE_KEY,
+    defaultOrder: DEFAULT_COLUMN_ORDER,
+    pinnedStart: PINNED_START,
+    pinnedEnd: PINNED_END,
+  })
 
   // ── Filtrado ──────────────────────────────────────────────────────────────
-  // La fecha de corte ya NO se filtra aquí — es parámetro de la query al
-  // backend (modo/fechaCorte). Solo se filtran atributos de los registros.
   const filteredData = useMemo(() => {
     const normalizedClientName = filters.clientName.trim().toLowerCase()
     const normalizedClientQueryNoPunct = normalizedClientName.replace(/[^a-z0-9]/gi, "")
@@ -380,7 +348,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "paymentCondition",
         accessorKey: "paymentCondition",
-        header: "Cond. pago",
+        header: "Cond. Pago",
         size: 120,
         cell: ({ row }) => (
           <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
@@ -391,34 +359,32 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "quota",
         accessorKey: "quota",
-        header: "Cupo (COP)",
+        header: "Cupo COP",
         size: 140,
-        cell: ({ row }) => (
-          <span className="font-medium text-[#22b859]">
-            {formatCurrency(row.getValue("quota"))}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const value = row.getValue("quota") as number
+          return <span className="font-medium text-[#22b859]">{formatCurrency(value)}</span>
+        },
       },
       {
         id: "current",
         accessorKey: "current",
-        header: "Corriente (COP)",
+        header: "Saldo Corriente",
         size: 150,
-        cell: ({ row }) => (
-          <span className="font-medium text-[#ff6600]">
-            {formatCurrency(row.getValue("current"))}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const value = row.getValue("current") as number
+          return <span className="font-medium text-[#ff6600]">{formatCurrency(value)}</span>
+        },
       },
       {
         id: "overdue",
         accessorKey: "overdue",
-        header: "Vencida (COP)",
+        header: "Total Vencida",
         size: 160,
         cell: ({ row }) => {
           const value = row.getValue("overdue") as number
           return (
-            <span className={cn("font-medium", value > 0 && "text-destructive")}>
+            <span className={cn("font-medium", value > 0 && "text-red-700")}>
               {formatCurrency(value)}
             </span>
           )
@@ -427,12 +393,12 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "overdue1",
         accessorKey: "overdue1",
-        header: "Venc. 1-30",
-        size: 150,
+        header: "Vencido 1-30",
+        size: 130,
         cell: ({ row }) => {
           const value = row.getValue("overdue1") as number
           return (
-            <span className={cn("font-medium", value > 0 && "text-amber-600")}>
+            <span className={cn("font-medium", value > 0 && "text-red-500")}>
               {formatCurrency(value)}
             </span>
           )
@@ -441,12 +407,12 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "overdue2",
         accessorKey: "overdue2",
-        header: "Venc. 31-60",
-        size: 150,
+        header: "Vencido 31-60",
+        size: 135,
         cell: ({ row }) => {
           const value = row.getValue("overdue2") as number
           return (
-            <span className={cn("font-medium", value > 0 && "text-orange-600")}>
+            <span className={cn("font-medium", value > 0 && "text-red-500")}>
               {formatCurrency(value)}
             </span>
           )
@@ -455,8 +421,8 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "overdue3",
         accessorKey: "overdue3",
-        header: "Venc. 61-90",
-        size: 150,
+        header: "Vencido 61-90",
+        size: 135,
         cell: ({ row }) => {
           const value = row.getValue("overdue3") as number
           return (
@@ -469,12 +435,12 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "overdue4",
         accessorKey: "overdue4",
-        header: "+90 días",
-        size: 150,
+        header: "Vencido +90",
+        size: 130,
         cell: ({ row }) => {
           const value = row.getValue("overdue4") as number
           return (
-            <span className={cn("font-medium", value > 0 && "text-destructive")}>
+            <span className={cn("font-medium", value > 0 && "text-red-500")}>
               {formatCurrency(value)}
             </span>
           )
@@ -483,8 +449,8 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "overcapacity",
         accessorKey: "overcapacity",
-        header: "Sobrecupo (COP)",
-        size: 150,
+        header: "Sobrecupo COP",
+        size: 145,
         cell: ({ row }) => {
           const value = row.getValue("overcapacity") as number
           return (
@@ -497,8 +463,8 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
       {
         id: "totalBalance",
         accessorKey: "totalBalance",
-        header: "Saldo total",
-        size: 140,
+        header: "Saldo Total COP",
+        size: 150,
         cell: ({ row }) => {
           const value = row.getValue("totalBalance") as number
           return <span className="font-medium">{formatCurrency(value)}</span>
@@ -511,7 +477,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
         size: 140,
         cell: ({ row }) => {
           const value = row.getValue("totalCop") as number
-          return <span className="font-medium">{formatCurrency(value)}</span>
+          return <span className="font-medium text-[#22b859]">{formatCurrency(value)}</span>
         },
       },
       {
@@ -547,8 +513,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
     [onViewClient]
   )
 
-  const defaultColumnOrder = columns.map(col => col.id as string)
-
+  // ── TanStack Table ────────────────────────────────────────────────────────
   const table = useReactTable({
     data: filteredData,
     columns,
@@ -564,53 +529,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
     state: { sorting, columnOrder, columnSizing, columnVisibility },
   })
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
-
-  const draggableOrder = columnOrder.filter(
-    (id) => !PINNED_START.includes(id) && !PINNED_END.includes(id)
-  )
-
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string)
-  }
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    setActiveId(null)
-
-    if (over && active.id !== over.id) {
-      const oldIndex = draggableOrder.indexOf(active.id as string)
-      const newIndex = draggableOrder.indexOf(over.id as string)
-
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const newDraggableOrder = arrayMove(draggableOrder, oldIndex, newIndex)
-        const newFullOrder = [...PINNED_START, ...newDraggableOrder, ...PINNED_END]
-        setColumnOrder(newFullOrder)
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(newFullOrder))
-        }
-        toast({ description: 'Columna reordenada', duration: 2000 })
-      }
-    }
-  }
-
-  const resetColumnOrder = () => {
-    setColumnOrder(defaultColumnOrder)
-    setColumnSizing({})
-    setColumnVisibility({})
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEY)
-      localStorage.removeItem(VISIBILITY_STORAGE_KEY)
-    }
-    toast({
-      description: 'Orden, tamaño y visibilidad de columnas restablecidos',
-      duration: 2000,
-    })
-  }
-
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between border-b py-0.1 px-4">
@@ -659,7 +578,7 @@ export function ClientsTable({ data, onViewClient, filters }: ClientsTableProps)
             </DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={resetColumnOrder}>
+                <Button variant="ghost" size="sm" onClick={resetTableState}>
                   <RotateCcw className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
