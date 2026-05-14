@@ -8,8 +8,11 @@ import {
   type ColumnDef,
   type SortingState,
   flexRender,
-  type Column,
 } from "@tanstack/react-table"
+import {
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import {
   Table,
   TableBody,
@@ -19,14 +22,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   Tooltip,
   TooltipContent,
@@ -46,9 +41,15 @@ import {
   ReferenceArea,
   LabelList,
 } from "recharts"
-import { Download, Info, ArrowUpDown, Mail } from "lucide-react"
+import {
+  Info,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 export interface RotationData {
   periodo: string
   cartera: number
@@ -60,6 +61,7 @@ export interface RotationData {
   rotCxC: number
 }
 
+// ── Mock data ─────────────────────────────────────────────────────────────────
 const mockRotationData: RotationData[] = [
   {
     periodo: "202505",
@@ -193,7 +195,7 @@ const mockRotationData: RotationData[] = [
   },
 ]
 
-
+// ── Helpers ───────────────────────────────────────────────────────────────────
 const formatCurrency = (value: number): string => {
   if (value >= 1_000_000_000_000) {
     return `$${(value / 1_000_000_000_000).toFixed(1)} B`
@@ -204,19 +206,18 @@ const formatCurrency = (value: number): string => {
   return `$${value.toLocaleString("es-CO")}`
 }
 
-const formatCurrencyFull = (value: number) => {
-  return new Intl.NumberFormat("es-CO", {
+const formatCurrencyFull = (value: number) =>
+  new Intl.NumberFormat("es-CO", {
     style: "currency",
     currency: "COP",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value)
-}
 
 const getRotationColor = (days: number): string => {
-  if (days <= 30) return "#22C55E" // green
-  if (days <= 45) return "#F59E0B" // yellow
-  return "#EF4444" // red
+  if (days <= 30) return "#22C55E"
+  if (days <= 45) return "#F59E0B"
+  return "#EF4444"
 }
 
 const getRotationBgClass = (days: number): string => {
@@ -225,9 +226,11 @@ const getRotationBgClass = (days: number): string => {
   return "bg-red-100 dark:bg-red-950/50"
 }
 
+// ── Tooltips por columna ──────────────────────────────────────────────────────
 const columnTooltips: Record<string, string> = {
   periodo: "Mes en formato YYYYMM",
-  cartera: "Saldo en $$ de cuenta 13050505 (Clientes nacionales) y cuenta 28050505 (Anticipos recibidos)",
+  cartera:
+    "Saldo en $$ de cuenta 13050505 (Clientes nacionales) y cuenta 28050505 (Anticipos recibidos)",
   ventaBruta: "Saldo en $$ de cuenta 41 (mayor de ingresos)",
   rebate: "Saldo en $$ de cuenta 53053501 (descuentos comerciales)",
   ventaNeta: "(Venta Bruta − Rebate)",
@@ -236,52 +239,140 @@ const columnTooltips: Record<string, string> = {
   rotCxC: "(Cartera / Acumulado Venta N últimos 12 meses) × 360",
 }
 
-const HeaderWithTooltip = ({
-  label,
-  tooltipKey,
-  column,
-}: {
+// ── DraggableHeader — mismo estándar que clients-table / variation-table ──────
+interface DraggableHeaderProps {
+  id: string
+  isPinned?: boolean
   label: string
-  tooltipKey: string
-  column?: Column<RotationData, unknown>
-}) => (
-  <div className="flex items-center gap-1">
-    {column ? (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="-ml-4"
-      >
-        {label}
-        <ArrowUpDown className="ml-1 h-4 w-4" />
-      </Button>
-    ) : (
-      <span>{label}</span>
-    )}
+  tooltip?: string
+  size?: number
+  isResizing?: boolean
+  onResizeStart?: (e: React.MouseEvent | React.TouchEvent) => void
+  column?: {
+    toggleSorting: (desc: boolean) => void
+    getIsSorted: () => false | "desc" | "asc"
+    getCanSort: () => boolean
+    clearSorting: () => void
+  }
+}
 
-    {/* El tooltip queda solo en el ícono Info, independiente del botón */}
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground" />
-        </TooltipTrigger>
-        <TooltipContent className="max-w-xs">
-          <p className="text-xs">{columnTooltips[tooltipKey]}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  </div>
-)
+function DraggableHeader({
+  id,
+  isPinned = false,
+  label,
+  tooltip,
+  size,
+  isResizing,
+  onResizeStart,
+  column,
+}: DraggableHeaderProps) {
+  const { setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled: isPinned,
+  })
 
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    ...(size !== undefined ? { width: size } : {}),
+    position: "relative",
+  }
+
+  const canSort = column?.getCanSort() ?? false
+
+  return (
+    <TableHead
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "group whitespace-nowrap overflow-hidden",
+        isDragging &&
+          "bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,hsl(var(--border))_5px,hsl(var(--border))_6px)] opacity-50"
+      )}
+    >
+      <div className="flex items-center justify-between gap-1">
+        <span className="text-sm font-medium text-foreground truncate">{label}</span>
+
+        <div className="flex shrink-0 items-center gap-0.5">
+          {/* ── Tooltip info ────────────────────────────────── */}
+          {tooltip && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className={cn(
+                    "flex h-6 w-6 items-center justify-center rounded",
+                    "opacity-0 group-hover:opacity-60 hover:!opacity-100 cursor-help",
+                    "transition-opacity duration-150"
+                  )}
+                >
+                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">{tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* ── Sort button ──────────────────────────────────── */}
+          {canSort && column && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                const sorted = column.getIsSorted()
+                if (sorted === false) column.toggleSorting(true)
+                else if (sorted === "desc") column.toggleSorting(false)
+                else column.clearSorting()
+              }}
+              className={cn(
+                "flex h-6 w-6 items-center justify-center rounded transition-all duration-150",
+                "opacity-0 group-hover:opacity-60 hover:!opacity-100",
+                "hover:bg-muted focus:outline-none",
+                column.getIsSorted() && "!opacity-100 text-[#ff6600]"
+              )}
+              title="Ordenar"
+            >
+              {column.getIsSorted() === "desc" ? (
+                <ArrowDown className="h-3.5 w-3.5" />
+              ) : column.getIsSorted() === "asc" ? (
+                <ArrowUp className="h-3.5 w-3.5" />
+              ) : (
+                <ArrowUpDown className="h-3.5 w-3.5" />
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Resize handle ────────────────────────────────────── */}
+      {onResizeStart && (
+        <div
+          onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e) }}
+          onTouchStart={(e) => { e.stopPropagation(); onResizeStart(e) }}
+          className={cn(
+            "absolute right-0 top-0 h-full w-1.5 cursor-col-resize select-none touch-none z-10",
+            "opacity-0 group-hover:opacity-100 transition-opacity",
+            "hover:bg-[#ff6600]/60 rounded-sm",
+            isResizing && "bg-[#ff6600] opacity-100"
+          )}
+          title="Arrastrar para redimensionar"
+        />
+      )}
+    </TableHead>
+  )
+}
+
+// ── Columnas ──────────────────────────────────────────────────────────────────
 const columns: ColumnDef<RotationData>[] = [
   {
+    id: "periodo",
     accessorKey: "periodo",
-    header: ({ column }) => (
-      <HeaderWithTooltip label="Período" tooltipKey="periodo" column={column} />
-    ),
+    header: "Período",
     cell: ({ row }) => {
       const periodo = row.getValue("periodo") as string
-      const isCurrentMonth = periodo === mockRotationData[mockRotationData.length - 1].periodo
+      const isCurrentMonth =
+        periodo === mockRotationData[mockRotationData.length - 1].periodo
       return (
         <span className={cn("font-mono text-sm", isCurrentMonth && "font-bold")}>
           {periodo}
@@ -290,29 +381,26 @@ const columns: ColumnDef<RotationData>[] = [
     },
   },
   {
+    id: "cartera",
     accessorKey: "cartera",
-    header: ({ column }) => (
-    <HeaderWithTooltip label="Cartera" tooltipKey="cartera" column={column} />
-    ),
+    header: "Cartera",
     cell: ({ row }) => {
-      const periodo = row.original.periodo
-      const isCurrentMonth = periodo === mockRotationData[mockRotationData.length - 1].periodo
+      const isCurrentMonth =
+        row.original.periodo === mockRotationData[mockRotationData.length - 1].periodo
       return (
         <span className={cn("font-mono text-sm", isCurrentMonth && "font-bold")}>
           {formatCurrency(row.getValue("cartera"))}
-          {/* {row.getValue("cartera")} */}
         </span>
       )
     },
   },
   {
+    id: "ventaBruta",
     accessorKey: "ventaBruta",
-    header: ({ column }) => (
-    <HeaderWithTooltip label="Venta Bruta" tooltipKey="ventaBruta" column={column} />
-   ),
+    header: "Venta Bruta",
     cell: ({ row }) => {
-      const periodo = row.original.periodo
-      const isCurrentMonth = periodo === mockRotationData[mockRotationData.length - 1].periodo
+      const isCurrentMonth =
+        row.original.periodo === mockRotationData[mockRotationData.length - 1].periodo
       return (
         <span className={cn("font-mono text-sm", isCurrentMonth && "font-bold")}>
           {formatCurrency(row.getValue("ventaBruta"))}
@@ -321,59 +409,64 @@ const columns: ColumnDef<RotationData>[] = [
     },
   },
   {
+    id: "rebate",
     accessorKey: "rebate",
-    header: ({ column }) => (
-    <HeaderWithTooltip label="Rebate" tooltipKey="rebate" column={column} />
-    ),
+    header: "Rebate",
     cell: ({ row }) => {
-      const periodo = row.original.periodo
-      const isCurrentMonth = periodo === mockRotationData[mockRotationData.length - 1].periodo
+      const isCurrentMonth =
+        row.original.periodo === mockRotationData[mockRotationData.length - 1].periodo
       return (
-        <span className={cn("font-mono text-sm text-[#ff6600]", isCurrentMonth && "font-bold")}>
+        <span
+          className={cn("font-mono text-sm text-[#ff6600]", isCurrentMonth && "font-bold")}
+        >
           {formatCurrency(row.getValue("rebate"))}
         </span>
       )
     },
   },
   {
+    id: "ventaNeta",
     accessorKey: "ventaNeta",
-    header: ({ column }) => (
-    <HeaderWithTooltip label="Venta Neta" tooltipKey="ventaNeta" column={column} />
-    ),
+    header: "Venta Neta",
     cell: ({ row }) => {
-      const periodo = row.original.periodo
-      const isCurrentMonth = periodo === mockRotationData[mockRotationData.length - 1].periodo
+      const isCurrentMonth =
+        row.original.periodo === mockRotationData[mockRotationData.length - 1].periodo
       return (
-        <span className={cn("font-mono text-sm text-[#00359a]", isCurrentMonth && "font-bold")}>
+        <span
+          className={cn("font-mono text-sm text-[#00359a]", isCurrentMonth && "font-bold")}
+        >
           {formatCurrency(row.getValue("ventaNeta"))}
         </span>
       )
     },
   },
   {
+    id: "promedioVentas3m",
     accessorKey: "promedioVentas3m",
-    header: ({ column }) => (
-    <HeaderWithTooltip label="Prom. Ventas (3m)" tooltipKey="promedioVentas3m" column={column} />
-    ),
+    header: "Prom. Ventas (3m)",
     cell: ({ row }) => {
-      const periodo = row.original.periodo
-      const isCurrentMonth = periodo === mockRotationData[mockRotationData.length - 1].periodo
+      const isCurrentMonth =
+        row.original.periodo === mockRotationData[mockRotationData.length - 1].periodo
       return (
-        <span className={cn("font-mono text-sm text-muted-foreground", isCurrentMonth && "font-bold text-foreground")}>
+        <span
+          className={cn(
+            "font-mono text-sm text-muted-foreground",
+            isCurrentMonth && "font-bold text-foreground"
+          )}
+        >
           {formatCurrency(row.getValue("promedioVentas3m"))}
         </span>
       )
     },
   },
   {
+    id: "rotCxC",
     accessorKey: "rotCxC",
-    header: ({ column }) => (
-    <HeaderWithTooltip label="Rot CxC (días)" tooltipKey="rotCxC" column={column} />
-    ),
+    header: "Rot CxC (días)",
     cell: ({ row }) => {
       const days = row.getValue("rotCxC") as number
-      const periodo = row.original.periodo
-      const isCurrentMonth = periodo === mockRotationData[mockRotationData.length - 1].periodo
+      const isCurrentMonth =
+        row.original.periodo === mockRotationData[mockRotationData.length - 1].periodo
       return (
         <span
           className={cn(
@@ -390,27 +483,40 @@ const columns: ColumnDef<RotationData>[] = [
   },
 ]
 
+// ── Custom tooltip del gráfico ────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
-    const cartera = payload.find((p: { dataKey: string }) => p.dataKey === "cartera")?.value || 0
-    const ventaNeta = payload.find((p: { dataKey: string }) => p.dataKey === "ventaNeta")?.value || 0
-    const rotCxC = payload.find((p: { dataKey: string }) => p.dataKey === "rotCxC")?.value || 0
+    const cartera =
+      payload.find((p: { dataKey: string }) => p.dataKey === "cartera")?.value || 0
+    const ventaNeta =
+      payload.find((p: { dataKey: string }) => p.dataKey === "ventaNeta")?.value || 0
+    const rotCxC =
+      payload.find((p: { dataKey: string }) => p.dataKey === "rotCxC")?.value || 0
 
     return (
       <div className="rounded-lg border bg-background p-3 shadow-lg">
         <p className="mb-2 font-semibold">Período: {label}</p>
         <div className="space-y-1 text-sm">
           <p>
-            <span className="inline-block w-3 h-3 rounded mr-2" style={{ backgroundColor: "#ff6600" }} />
+            <span
+              className="inline-block w-3 h-3 rounded mr-2"
+              style={{ backgroundColor: "#ff6600" }}
+            />
             Cartera: {formatCurrencyFull(cartera)}
           </p>
           <p>
-            <span className="inline-block w-3 h-3 rounded mr-2" style={{ backgroundColor: "#00359a" }} />
+            <span
+              className="inline-block w-3 h-3 rounded mr-2"
+              style={{ backgroundColor: "#00359a" }}
+            />
             Venta Neta: {formatCurrencyFull(ventaNeta)}
           </p>
           <p>
-            <span className="inline-block w-3 h-3 rounded-full border-2 mr-2" style={{ borderColor: getRotationColor(rotCxC) }} />
+            <span
+              className="inline-block w-3 h-3 rounded-full border-2 mr-2"
+              style={{ borderColor: getRotationColor(rotCxC) }}
+            />
             Rot CxC:{" "}
             <span style={{ color: getRotationColor(rotCxC), fontWeight: "bold" }}>
               {rotCxC} días
@@ -423,6 +529,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null
 }
 
+// ── Componente principal ──────────────────────────────────────────────────────
 export function RotationTable() {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "periodo", desc: false },
@@ -432,220 +539,235 @@ export function RotationTable() {
     data: mockRotationData,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),  // 👈 agregar
-    onSortingChange: setSorting,             // 👈 agregar
-    state: { sorting }, 
+    getSortedRowModel: getSortedRowModel(),
+    onSortingChange: setSorting,
+    state: { sorting },
   })
 
-  // Calculate totals/averages
   const totals = {
-    cartera: mockRotationData.reduce((acc, d) => acc + d.cartera, 0) / mockRotationData.length,
+    cartera:
+      mockRotationData.reduce((acc, d) => acc + d.cartera, 0) /
+      mockRotationData.length,
     ventaBruta: mockRotationData.reduce((acc, d) => acc + d.ventaBruta, 0),
     rebate: mockRotationData.reduce((acc, d) => acc + d.rebate, 0),
     ventaNeta: mockRotationData.reduce((acc, d) => acc + d.ventaNeta, 0),
-    rotCxC: Math.round(mockRotationData.reduce((acc, d) => acc + d.rotCxC, 0) / mockRotationData.length),
+    rotCxC: Math.round(
+      mockRotationData.reduce((acc, d) => acc + d.rotCxC, 0) /
+        mockRotationData.length
+    ),
   }
 
   return (
-    <div className="space-y-6">
-      {/* Combined Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">
-            Evolución Cartera - Venta Neta - Rotación CxC — últimos 12 períodos
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[400px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={mockRotationData}
-                margin={{ top: 20, right: 60, left: 20, bottom: 20 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis
-                  dataKey="periodo"
-                  tick={{ fontSize: 12 }}
-                  className="text-muted-foreground"
-                />
-                <YAxis
-                  yAxisId="left"
-                  tickFormatter={(value) => formatCurrency(value)}
-                  tick={{ fontSize: 11 }}
-                  className="text-muted-foreground"
-                  domain={[0, "auto"]}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  domain={[0, 60]}
-                  tick={{ fontSize: 11 }}
-                  className="text-muted-foreground"
-                  tickFormatter={(value) => `${value}d`}
-                />
-                <RechartsTooltip content={<CustomTooltip />} />
-                <Legend
-                  wrapperStyle={{ paddingTop: 20 }}
-                  formatter={(value) => {
-                    const labels: Record<string, string> = {
-                      cartera: "Cartera",
-                      ventaNeta: "Venta Neta",
-                      rotCxC: "Rot CxC (días)",
-                    }
-                    return labels[value] || value
-                  }}
-                />
-                
-                {/* Reference area for optimal rotation zone */}
-                <ReferenceArea
-                  yAxisId="right"
-                  y1={0}
-                  y2={30}
-                  fill="#22C55E"
-                  fillOpacity={0.1}
-                  label={{
-                    value: "Zona óptima",
-                    position: "insideRight",
-                    fontSize: 10,
-                    fill: "#22C55E",
-                  }}
-                />
-                
-                <Bar
-                  yAxisId="left"
-                  dataKey="cartera"
-                  fill="#ff6600"
-                  fillOpacity={0.8}
-                  radius={[4, 4, 0, 0]}
-                  barSize={30}
-                />
-                <Bar
-                  yAxisId="left"
-                  dataKey="ventaNeta"
-                  fill="#00359a"
-                  fillOpacity={0.8}
-                  radius={[4, 4, 0, 0]}
-                  barSize={30}
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="rotCxC"
-                  stroke="#6B7280"
-                  strokeWidth={2.5}
-                  dot={{ r: 4, fill: "#fff", stroke: "#6B7280", strokeWidth: 2 }}
-                  activeDot={{ r: 6 }}
+    <TooltipProvider>
+      <div className="space-y-6">
+        {/* ── Gráfico ──────────────────────────────────────────────────────── */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">
+              Evolución Cartera - Venta Neta - Rotación CxC — últimos 12 períodos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[400px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart
+                  data={mockRotationData}
+                  margin={{ top: 20, right: 60, left: 20, bottom: 20 }}
                 >
-                  <LabelList
-                    dataKey="rotCxC"
-                    position="top"
-                    formatter={(value: number) => `${value}d`}
-                    style={{ fontSize: 10, fill: "#6B7280" }}
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="periodo"
+                    tick={{ fontSize: 12 }}
+                    className="text-muted-foreground"
                   />
-                </Line>
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+                  <YAxis
+                    yAxisId="left"
+                    tickFormatter={(value) => formatCurrency(value)}
+                    tick={{ fontSize: 11 }}
+                    className="text-muted-foreground"
+                    domain={[0, "auto"]}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    domain={[0, 60]}
+                    tick={{ fontSize: 11 }}
+                    className="text-muted-foreground"
+                    tickFormatter={(value) => `${value}d`}
+                  />
+                  <RechartsTooltip content={<CustomTooltip />} />
+                  <Legend
+                    wrapperStyle={{ paddingTop: 20 }}
+                    formatter={(value) => {
+                      const labels: Record<string, string> = {
+                        cartera: "Cartera",
+                        ventaNeta: "Venta Neta",
+                        rotCxC: "Rot CxC (días)",
+                      }
+                      return labels[value] || value
+                    }}
+                  />
+                  <ReferenceArea
+                    yAxisId="right"
+                    y1={0}
+                    y2={30}
+                    fill="#22C55E"
+                    fillOpacity={0.1}
+                    label={{
+                      value: "Zona óptima",
+                      position: "insideRight",
+                      fontSize: 10,
+                      fill: "#22C55E",
+                    }}
+                  />
+                  <Bar
+                    yAxisId="left"
+                    dataKey="cartera"
+                    fill="#ff6600"
+                    fillOpacity={0.8}
+                    radius={[4, 4, 0, 0]}
+                    barSize={30}
+                  />
+                  <Bar
+                    yAxisId="left"
+                    dataKey="ventaNeta"
+                    fill="#00359a"
+                    fillOpacity={0.8}
+                    radius={[4, 4, 0, 0]}
+                    barSize={30}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="rotCxC"
+                    stroke="#6B7280"
+                    strokeWidth={2.5}
+                    dot={{ r: 4, fill: "#fff", stroke: "#6B7280", strokeWidth: 2 }}
+                    activeDot={{ r: 6 }}
+                  >
+                    <LabelList
+                      dataKey="rotCxC"
+                      position="top"
+                      formatter={(value: number) => `${value}d`}
+                      style={{ fontSize: 10, fill: "#6B7280" }}
+                    />
+                  </Line>
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Table Section */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div className="flex items-center gap-4">
+        {/* ── Tabla ────────────────────────────────────────────────────────── */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between border-b py-0.5 px-4">
             <CardTitle>Rotación de Cartera</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => {
+                        const colId = header.column.id
+                        return (
+                          <DraggableHeader
+                            key={header.id}
+                            id={colId}
+                            isPinned={false}
+                            label={
+                              typeof header.column.columnDef.header === "string"
+                                ? header.column.columnDef.header
+                                : colId
+                            }
+                            tooltip={columnTooltips[colId]}
+                            isResizing={header.column.getIsResizing()}
+                            onResizeStart={header.getResizeHandler()}
+                            column={
+                              header.column.getCanSort()
+                                ? header.column
+                                : undefined
+                            }
+                          />
+                        )
+                      })}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows?.length ? (
+                    <>
+                      {table.getRowModel().rows.map((row) => {
+                        const isCurrentMonth =
+                          row.original.periodo ===
+                          mockRotationData[mockRotationData.length - 1].periodo
+                        return (
+                          <TableRow
+                            key={row.id}
+                            className={cn(
+                              isCurrentMonth && "bg-muted/50 font-semibold"
                             )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  <>
-                    {table.getRowModel().rows.map((row) => {
-                      const isCurrentMonth =
-                        row.original.periodo ===
-                        mockRotationData[mockRotationData.length - 1].periodo
-                      return (
-                        <TableRow
-                          key={row.id}
-                          className={cn(
-                            isCurrentMonth && "bg-muted/50 font-semibold"
-                          )}
-                        >
-                          {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id}>
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext()
-                              )}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      )
-                    })}
-                    {/* Totals/Averages Row */}
-                    <TableRow className="bg-muted font-semibold">
-                      <TableCell>TOTALES / PROM.</TableCell>
-                      <TableCell className="font-mono">
-                        {formatCurrency(totals.cartera)}
-                      </TableCell>
-                      <TableCell className="font-mono">
-                        {formatCurrency(totals.ventaBruta)}
-                      </TableCell>
-                      <TableCell className="font-mono text-[#ff6600]">
-                        {formatCurrency(totals.rebate)}
-                      </TableCell>
-                      <TableCell className="font-mono text-[#00359a]">
-                        {formatCurrency(totals.ventaNeta)}
-                      </TableCell>
-                      <TableCell className="font-mono text-muted-foreground">
-                        —
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={cn(
-                            "inline-flex items-center justify-center rounded-md px-2 py-1 font-mono text-sm font-semibold",
-                            getRotationBgClass(totals.rotCxC)
-                          )}
-                          style={{ color: getRotationColor(totals.rotCxC) }}
-                        >
-                          {totals.rotCxC} días
-                        </span>
+                          >
+                            {row.getVisibleCells().map((cell) => (
+                              <TableCell key={cell.id}>
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        )
+                      })}
+
+                      {/* ── Fila de totales ────────────────────────────── */}
+                      <TableRow className="bg-muted font-semibold">
+                        <TableCell>TOTALES / PROM.</TableCell>
+                        <TableCell className="font-mono">
+                          {formatCurrency(totals.cartera)}
+                        </TableCell>
+                        <TableCell className="font-mono">
+                          {formatCurrency(totals.ventaBruta)}
+                        </TableCell>
+                        <TableCell className="font-mono text-[#ff6600]">
+                          {formatCurrency(totals.rebate)}
+                        </TableCell>
+                        <TableCell className="font-mono text-[#00359a]">
+                          {formatCurrency(totals.ventaNeta)}
+                        </TableCell>
+                        <TableCell className="font-mono text-muted-foreground">
+                          —
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={cn(
+                              "inline-flex items-center justify-center rounded-md px-2 py-1 font-mono text-sm font-semibold",
+                              getRotationBgClass(totals.rotCxC)
+                            )}
+                            style={{ color: getRotationColor(totals.rotCxC) }}
+                          >
+                            {totals.rotCxC} días
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    </>
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="h-24 text-center"
+                      >
+                        No hay datos disponibles.
                       </TableCell>
                     </TableRow>
-                  </>
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
-                    >
-                      No hay datos disponibles.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </TooltipProvider>
   )
 }
