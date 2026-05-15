@@ -85,10 +85,11 @@ export type Client = {
 }
 
 // ── Constantes ────────────────────────────────────────────────────────────────
-const NON_HIDEABLE = ['nit', 'actions']
+const NON_HIDEABLE = ['actions']
 const VISIBILITY_STORAGE_KEY = 'cartera_general_column_visibility'
 const STORAGE_KEY = 'cartera_general_column_order'
-const PINNED_START = ['nit']
+const PINNED_START = ['nit', 'name']
+const STICKY_COLS = ['name']
 const PINNED_END = ['actions']
 
 const DEFAULT_COLUMN_ORDER = [
@@ -108,6 +109,8 @@ interface ClientsTableProps {
 interface DraggableHeaderProps {
   id: string
   isPinned?: boolean
+  isResizable?: boolean
+  stickyLeft?: number
   label: string
   size: number
   isResizing: boolean
@@ -123,9 +126,11 @@ interface DraggableHeaderProps {
 function DraggableHeader({
   id,
   isPinned = false,
+  stickyLeft,
   label,
   size,
   isResizing,
+  isResizable = true,
   onResizeStart,
   column,
 }: DraggableHeaderProps) {
@@ -142,7 +147,10 @@ function DraggableHeader({
     transform: CSS.Transform.toString(transform),
     transition,
     width: size,
-    position: "relative",
+    // sticky si aplica:
+    ...(isPinned && stickyLeft !== undefined
+      ? { position: "sticky", left: stickyLeft, zIndex: 3 }
+      : { position: "relative" }),
   }
 
   const canSort = column?.getCanSort() ?? false
@@ -154,7 +162,8 @@ function DraggableHeader({
       className={cn(
         'group whitespace-nowrap overflow-hidden',
         isDragging &&
-        'bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,hsl(var(--border))_5px,hsl(var(--border))_6px)] opacity-50'
+        'bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,hsl(var(--border))_5px,hsl(var(--border))_6px)] opacity-50',
+        isPinned && "bg-background shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]"
       )}
     >
       <div className="flex items-center justify-between gap-1">
@@ -209,7 +218,7 @@ function DraggableHeader({
         </div>
       </div>
 
-      {!isPinned && (
+      {isResizable && (
         <div
           onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e) }}
           onTouchStart={(e) => { e.stopPropagation(); onResizeStart(e) }}
@@ -472,6 +481,13 @@ export function ClientsTable({ data, onViewClient }: ClientsTableProps) {
     enableSortingRemoval: true,
     sortDescFirst: true,
     state: { sorting, columnOrder, columnSizing, columnVisibility },
+    enableColumnPinning: true,
+    initialState: {
+      columnPinning: {
+        left: ['nit', 'name'],   // clients-table
+        // left: ['nit', 'razonSocial'],  // variation-table
+      },
+    },
   })
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -549,37 +565,46 @@ export function ClientsTable({ data, onViewClient }: ClientsTableProps) {
                     items={draggableOrder}
                     strategy={horizontalListSortingStrategy}
                   >
-                    {headerGroup.headers.map((header) => {
-                      const isPinned =
-                        PINNED_START.includes(header.id) ||
-                        PINNED_END.includes(header.id)
-                      const label =
-                        typeof header.column.columnDef.header === "string"
-                          ? header.column.columnDef.header
-                          : header.id
+                    {(() => {
+                      let stickyOffset = 0
+                      return headerGroup.headers.map((header) => {
+                        const isPinned =
+                          PINNED_START.includes(header.id) ||
+                          PINNED_END.includes(header.id)
+                        const isSticky = STICKY_COLS.includes(header.id)
+                        const currentOffset = isSticky ? stickyOffset : undefined
+                        if (isSticky) stickyOffset += header.getSize()
 
-                      return (
-                        <DraggableHeader
-                          key={header.id}
-                          id={header.id}
-                          isPinned={isPinned}
-                          label={label}
-                          size={header.getSize()}
-                          isResizing={header.column.getIsResizing()}
-                          onResizeStart={header.getResizeHandler()}
-                          column={
-                            header.column.getCanSort()
-                              ? {
-                                toggleSorting: (desc) => header.column.toggleSorting(desc),
-                                getIsSorted: () => header.column.getIsSorted(),
-                                getCanSort: () => header.column.getCanSort(),
-                                clearSorting: () => header.column.clearSorting(),
-                              }
-                              : undefined
-                          }
-                        />
-                      )
-                    })}
+                        const label =
+                          typeof header.column.columnDef.header === "string"
+                            ? header.column.columnDef.header
+                            : header.id
+
+                        return (
+                          <DraggableHeader
+                            key={header.id}
+                            id={header.id}
+                            isPinned={isPinned}
+                            isResizable={header.column.getCanResize()}
+                            stickyLeft={currentOffset}
+                            label={label}
+                            size={header.getSize()}
+                            isResizing={header.column.getIsResizing()}
+                            onResizeStart={header.getResizeHandler()}
+                            column={
+                              header.column.getCanSort()
+                                ? {
+                                  toggleSorting: (desc) => header.column.toggleSorting(desc),
+                                  getIsSorted: () => header.column.getIsSorted(),
+                                  getCanSort: () => header.column.getCanSort(),
+                                  clearSorting: () => header.column.clearSorting(),
+                                }
+                                : undefined
+                            }
+                          />
+                        )
+                      })
+                    })()}
                   </SortableContext>
                 </TableRow>
               ))}
@@ -600,14 +625,29 @@ export function ClientsTable({ data, onViewClient }: ClientsTableProps) {
                         isNewlyOverdue && !isOverdue90 && "bg-amber-50/50 dark:bg-amber-950/20"
                       )}
                     >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell
-                          key={cell.id}
-                          style={{ width: cell.column.getSize(), overflow: "hidden" }}
-                        >
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
+                      {(() => {
+                        let stickyOffset = 0
+                        return row.getVisibleCells().map((cell) => {
+                          const isStickyCol = STICKY_COLS.includes(cell.column.id)
+                          const currentOffset = isStickyCol ? stickyOffset : undefined
+                          if (isStickyCol) stickyOffset += cell.column.getSize()
+                          return (
+                            <TableCell
+                              key={cell.id}
+                              style={{
+                                width: cell.column.getSize(),
+                                overflow: "hidden",
+                                ...(isStickyCol && currentOffset !== undefined
+                                  ? { position: "sticky", left: currentOffset, zIndex: 2 }
+                                  : {}),
+                              }}
+                              className={cn(isStickyCol && "bg-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.2)]")}
+                            >
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          )
+                        })
+                      })()}
                     </TableRow>
                   )
                 })
