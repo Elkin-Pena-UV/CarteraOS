@@ -157,7 +157,7 @@ function DraggableHeader({
         'group whitespace-nowrap overflow-hidden',
         isDragging &&
         'bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,hsl(var(--border))_5px,hsl(var(--border))_6px)] opacity-50',
-        isPinned && "bg-muted/40"
+        isPinned && "bg-background shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]"
       )}
     >
       <div className="flex items-center justify-between gap-1">
