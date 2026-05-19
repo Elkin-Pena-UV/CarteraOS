@@ -75,4 +75,53 @@ const parsearFechaCorte = (fechaStr) => {
   return limpia;
 };
 
-export { getFechaCorte, getFechaInicioMes, getFechaInicioMesDe, getFechaHoy, parsearFechaCorte };
+/**
+ * Último día de un mes específico → 'YYYYMMDD'
+ * @param {number} año
+ * @param {number} mes - 1-12
+ */
+
+const getUltimoDiaDelMes = (año, mes) => {
+  const ultimoDia = new Date(año, mes, 0); // día 0 del mes siguiente = último del actual
+  const a = ultimoDia.getFullYear();
+  const m = String(ultimoDia.getMonth() + 1).padStart(2, '0');
+  const d = String(ultimoDia.getDate()).padStart(2, '0');
+  return `${a}${m}${d}`;
+};
+
+/**
+ * Primer día de un mes específico → 'YYYYMMDD'
+ */
+const getPrimerDiaDelMes = (año, mes) => {
+  const m = String(mes).padStart(2, '0');
+  return `${año}${m}01`;
+};
+
+/**
+ * Genera los últimos N periodos hasta una fecha de referencia.
+ * Retorna array de objetos { periodo, año, mes, fechaInicio, fechaFin }
+ * @param {string} fechaRefYYYYMMDD - Fecha de referencia (último periodo incluido)
+ * @param {number} cantidad         - Cantidad de periodos hacia atrás (incluyendo el de referencia)
+ * Ej: getUltimosPeriodos('20260331', 12) → 12 periodos desde 202504 hasta 202603
+ */
+const getUltimosPeriodos = (fechaRefYYYYMMDD, cantidad) => {
+  const añoRef = parseInt(fechaRefYYYYMMDD.substring(0, 4), 10);
+  const mesRef = parseInt(fechaRefYYYYMMDD.substring(4, 6), 10);
+
+  const periodos = [];
+  for (let i = cantidad - 1; i >= 0; i--) {
+    const fecha = new Date(añoRef, mesRef - 1 - i, 1);
+    const año = fecha.getFullYear();
+    const mes = fecha.getMonth() + 1;
+    periodos.push({
+      periodo: `${año}${String(mes).padStart(2, '0')}`,
+      año,
+      mes,
+      fechaInicio: getPrimerDiaDelMes(año, mes),
+      fechaFin: getUltimoDiaDelMes(año, mes),
+    });
+  }
+  return periodos;
+};
+
+export { getFechaCorte, getFechaInicioMes, getFechaInicioMesDe, getFechaHoy, parsearFechaCorte, getUltimoDiaDelMes, getPrimerDiaDelMes, getUltimosPeriodos };

@@ -9,6 +9,7 @@ import logger from './config/logger.js';
 import schedulerService from './services/schedulerService.js';
 import adminRoutes from './routes/adminRoutes.js';
 import variacionRoutes from './routes/variacionRoutes.js';
+import rotacionRoutes from './routes/rotacionRoutes.js';
 
 dotenv.config();
 
@@ -51,7 +52,7 @@ app.use('/api/cartera', carteraRoutes);
 app.use('/api/facturas', facturasRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/variacion', variacionRoutes);
-
+app.use('/api/rotacion', rotacionRoutes);
 // Middleware para manejo de rutas no encontradas
 app.use((req, res) => {
     res.status(404).json({ message: 'Ruta no encontrada' });
