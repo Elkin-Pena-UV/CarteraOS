@@ -56,8 +56,14 @@ function KPICard({ title, value, subtitle, trend, accentColor, badge }: KPICardP
 export function KPICards({ data }: KPIVariationCardsProps) {
   const kpis = useMemo(() => {
     const clientesEnSobrecupo = data.filter((c) => c.sobrecupoCop > 0).length
-    const mayorSobrecupo = Math.max(0, ...data.map((c) => c.sobrecupoCop))
-    const mayorSobrecupoCliente = data.find((c) => c.sobrecupoCop === mayorSobrecupo)
+
+    // Excluir SIDOC (NIT 890333023) del cálculo del mayor sobrecupo
+    const EXCLUIDOS_MAYOR_SOBRECUPO = ["890333023"]
+    const dataMayorSobrecupo = data.filter(
+      (c) => !EXCLUIDOS_MAYOR_SOBRECUPO.includes(c.nit.trim())
+    )
+    const mayorSobrecupo = Math.max(0, ...dataMayorSobrecupo.map((c) => c.sobrecupoCop))
+    const mayorSobrecupoCliente = dataMayorSobrecupo.find((c) => c.sobrecupoCop === mayorSobrecupo)
     const carteraTotalMesActual = data.reduce((acc, c) => acc + c.carteraMesActual, 0)
     const carteraTotalMesAnterior = data.reduce((acc, c) => acc + c.carteraUltimoMes, 0)
     const variacionTotalPct = carteraTotalMesAnterior !== 0
