@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { getRotacion } from "@/lib/services/rotacionService"
+import { getRotacion, type RotacionFiltros } from "@/lib/services/rotacionService"
 
 export type RotacionItem = {
   periodo: string
@@ -16,21 +16,23 @@ export type RotacionItem = {
 
 export const rotacionKeys = {
   all: ["rotacion"] as const,
-  byFecha: (fechaRef: string | null) =>
-    [...rotacionKeys.all, fechaRef ?? "default"] as const,
+  byFecha: (fechaRef: string | null, filtros: RotacionFiltros) =>
+    [...rotacionKeys.all, fechaRef ?? "default", filtros] as const,
 }
 
-export function useRotacion(fechaRef: string | null = null) {
+export function useRotacion(
+  fechaRef: string | null = null,
+  filtros: RotacionFiltros = {}
+) {
   const query = useQuery({
-    queryKey: rotacionKeys.byFecha(fechaRef),
+    queryKey: rotacionKeys.byFecha(fechaRef, filtros),
     queryFn: async () => {
-      const response = await getRotacion(fechaRef) as unknown as {
+      const response = await getRotacion(fechaRef, filtros) as unknown as {
         ok: boolean
         data: RotacionItem[]
       }
       return response.data ?? []
     },
-    // Sin enabled — null es válido, el backend responde con el cierre por defecto
   })
 
   return {

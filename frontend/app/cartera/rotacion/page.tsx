@@ -5,12 +5,24 @@ import { AppShell } from "@/components/layout/app-shell"
 import { RotationTable } from "@/components/cartera/rotation-table"
 import { FiltersBarCopy } from "@/components/cartera/filters-barcopy"
 import { useRotacion } from "@/hooks/use-rotacion"
+import type { RotacionFiltros } from "@/lib/services/rotacionService"
 import { Loader2 } from "lucide-react"
 
 export default function RotacionPage() {
   const [fechaRef, setFechaRef] = useState<string | null>(null)
+  const [filtros, setFiltros]   = useState<RotacionFiltros>({})
 
-  const { data, loading, error, isFetching } = useRotacion(fechaRef)
+  const { data, loading, error, isFetching } = useRotacion(fechaRef, filtros)
+
+  const handleConsultar = (fecha: string, f: RotacionFiltros) => {
+    setFechaRef(fecha)
+    setFiltros(f)
+  }
+
+  const handleLimpiar = () => {
+    setFechaRef(null)
+    setFiltros({})
+  }
 
   return (
     <AppShell>
@@ -23,8 +35,8 @@ export default function RotacionPage() {
         </div>
 
         <FiltersBarCopy
-          onConsultar={setFechaRef}
-          onLimpiar={() => setFechaRef(null)}
+          onConsultar={handleConsultar}
+          onLimpiar={handleLimpiar}
           isFetching={isFetching}
         />
 
