@@ -1,81 +1,116 @@
 import { sql, poolPromise } from '../config/db_sm_real.js';
+import {
+  getUltimosCierres,
+  getInicioVentanaMeses,
+} from '../utils/fechaUtils.js';
 import logger from '../config/logger.js';
-import { getUltimosPeriodos } from '../utils/fechaUtils.js';
 
-// Referencias que se consideran rebate (no venta bruta)
+const N_VISIBLES = 12;
+const N_CALENTAMIENTO = 11;           // 11 previos para que el 1er visible tenga 12m completos
+const N_TOTAL = N_VISIBLES + N_CALENTAMIENTO; // 23
+
+// Referencias contables clasificadas como rebate
 const REFERENCIAS_REBATE = ['0022530', '0022529'];
 
 /**
- * Consulta el detalle de rotación (ventas) en un rango de fechas.
+ * Query A: ventas agregadas por período (YYYYMM) en una ventana.
+ * Devuelve 13 filas para una ventana de 13 meses.
  */
-const consultarDetalleRotacion = async (request, fechaInicio, fechaFin) => {
-  request.input('fechaInicio', sql.VarChar(8), fechaInicio);
-  request.input('fechaFin',    sql.VarChar(8), fechaFin);
+const fetchVentasAgregadas = async (pool, fechaIni, fechaFin) => {
+  const request = pool.request();
+  request.input('fechaIni', sql.VarChar(8), fechaIni);
+  request.input('fechaFin', sql.VarChar(8), fechaFin);
+
+  // Construimos la lista de referencias rebate como parámetros separados
+  // para evitar inyección y permitir que SQL use índices.
+  const refsParams = REFERENCIAS_REBATE
+    .map((ref, i) => {
+      request.input(`ref${i}`, sql.VarChar, ref);
+      return `@ref${i}`;
+    })
+    .join(', ');
 
   const query = `
-    SELECT f_referencia, f_valor_subtotal_local
+    SELECT
+      LEFT(CONVERT(varchar(8), f_fecha, 112), 6) AS periodo,
+      SUM(CASE WHEN f_referencia NOT IN (${refsParams})
+               THEN f_valor_subtotal_local ELSE 0 END) AS venta_bruta,
+      SUM(CASE WHEN f_referencia IN (${refsParams})
+               THEN f_valor_subtotal_local ELSE 0 END) AS rebate_negativo
     FROM v_ti_rotacion_cartera
-    WHERE f_fecha BETWEEN @fechaInicio AND @fechaFin
+    WHERE f_fecha >= @fechaIni
+      AND f_fecha <  DATEADD(DAY, 1, @fechaFin)
+    GROUP BY LEFT(CONVERT(varchar(8), f_fecha, 112), 6);
   `;
+
   const result = await request.query(query);
-  return result.recordset;
+  return result.recordset; // [{ periodo: '202504', venta_bruta, rebate_negativo }, ...]
 };
 
 /**
- * Consulta el saldo total de cartera auxiliar a una fecha.
+ * Query B (x12): saldo total de cartera para una fecha de cierre.
+ * Sumamos en SQL para no traer ~90 filas por cada cierre.
  */
-const consultarCarteraAux = async (request, fecha) => {
-  request.input('fecha', sql.VarChar(8), fecha);
-
-  const query = `SELECT f1_saldo_total FROM dbo.fn_ti_cartera_x_aux(@fecha)`;
-  const result = await request.query(query);
-  return result.recordset;
+const fetchSaldoCartera = async (pool, fechaCierre) => {
+  const request = pool.request();
+  request.input('fecha', sql.VarChar(8), fechaCierre);
+  const result = await request.query(`
+    SELECT SUM(f1_saldo_total) AS saldo
+    FROM dbo.fn_ti_cartera_x_aux(@fecha);
+  `);
+  return result.recordset[0]?.saldo ?? 0;
 };
 
 /**
- * Calcula ventas brutas y rebates a partir de los registros de rotación.
- *   - rebate = suma de f_valor_subtotal_local donde f_referencia ∈ REFERENCIAS_REBATE
- *   - ventaBruta = suma del resto
+ * Recibe una serie de N_TOTAL (23) períodos: 11 de calentamiento + 12 visibles.
+ * Calcula promedio-3m, acumulado-12m y rotCxC para los 12 visibles
+ * usando los 11 previos como histórico. Devuelve solo los 12 visibles.
  */
-const calcularVentas = (registros) => {
-  let ventaBruta = 0;
-  let rebate = 0;
+const calcularSerie = (ventasMap, carteraMap, periodos) => {
+  // Paso 1: armar la serie cruda completa (23 períodos)
+  const serie = periodos.map((periodo) => {
+    const v = ventasMap.get(periodo) ?? { venta_bruta: 0, rebate_negativo: 0 };
+    const ventaBruta = Number(v.venta_bruta) || 0;
+    const rebateNeg  = Number(v.rebate_negativo) || 0;
+    const ventaNeta  = ventaBruta + rebateNeg;
+    const rebateAbs  = Math.abs(rebateNeg);
 
-  for (const r of registros) {
-    const valor = Number(r.f_valor_subtotal_local) || 0;
-    const ref = String(r.f_referencia || '').trim();
+    return {
+      periodo,
+      cartera: Number(carteraMap.get(periodo) ?? 0), // 0 para los meses de calentamiento
+      ventaBruta,
+      rebate: rebateAbs,
+      ventaNeta,
+      promedioVentas3m: 0,
+      acumuladoVenta12m: 0,
+      rotCxC: 0,
+    };
+  });
 
-    if (REFERENCIAS_REBATE.includes(ref)) {
-      rebate += valor;
-    } else {
-      ventaBruta += valor;
-    }
+  // Paso 2: calcular ventanas móviles SOLO para los visibles (i >= N_CALENTAMIENTO)
+  // En esos índices ya tenemos garantizados los 11 previos.
+  for (let i = N_CALENTAMIENTO; i < serie.length; i++) {
+    const sum3 = serie[i].ventaNeta + serie[i - 1].ventaNeta + serie[i - 2].ventaNeta;
+    serie[i].promedioVentas3m = sum3 / 3;
+
+    let sum12 = 0;
+    for (let k = i - 11; k <= i; k++) sum12 += serie[k].ventaNeta;
+    serie[i].acumuladoVenta12m = sum12;
+
+    serie[i].rotCxC = serie[i].acumuladoVenta12m > 0
+      ? Math.round((serie[i].cartera / serie[i].acumuladoVenta12m) * 360)
+      : 0;
   }
 
-  return { ventaBruta, rebate, ventaNeta: ventaBruta - rebate };
+  // Paso 3: devolver solo los 12 visibles
+  return serie.slice(N_CALENTAMIENTO);
 };
 
 /**
- * Suma el saldo total de cartera auxiliar.
+ * Servicio principal: rotación de cartera para los 12 períodos
+ * terminando en fechaCorte (formato YYYYMMDD).
  */
-const calcularCartera = (registros) =>
-  registros.reduce((acc, r) => acc + (Number(r.f1_saldo_total) || 0), 0);
-
-/**
- * Construye la tabla de rotación de los últimos 12 meses respecto a la fecha de referencia.
- *
- * Para cada uno de los 12 periodos:
- *   - cartera     → saldo total de cartera auxiliar al último día del periodo
- *   - ventaBruta  → ∑ valor_subtotal_local SIN referencias de rebate
- *   - rebate      → ∑ valor_subtotal_local CON referencias de rebate
- *   - ventaNeta   → ventaBruta − rebate
- *   - prom3m      → promedio venta neta de los 3 periodos previos (incluyendo el actual)
- *   - acum12m     → suma de venta neta de los 12 periodos (rolling)
- *   - rotCxC      → (cartera / acum12m) × 360
- *
- * @param {string} fechaRef - Fecha de referencia YYYYMMDD (último periodo)
- */
-const getRotacion = async (fechaRef) => {
+const getRotacion = async (fechaCorte) => {
   const tiempos = {};
   const t0 = Date.now();
 
@@ -83,92 +118,45 @@ const getRotacion = async (fechaRef) => {
     const pool = await poolPromise;
     tiempos.conexion = Date.now() - t0;
 
-    // 🔑 Consultamos 23 periodos: 12 a mostrar + 11 previos
-    // necesarios para que el acum12m del primer periodo visible
-    // ya tenga sus 12 meses reales acumulados.
-    const PERIODOS_VISIBLES = 12;
-    const PERIODOS_HISTORICOS = 11;
-    const TOTAL_PERIODOS = PERIODOS_VISIBLES + PERIODOS_HISTORICOS; // 23
+    // Ventana de períodos completa: 11 calentamiento + 12 visibles = 23
+    const cierresTotales = getUltimosCierres(fechaCorte, N_TOTAL);
+    const periodos = cierresTotales.map(c => c.substring(0, 6));
 
-    const periodos = getUltimosPeriodos(fechaRef, TOTAL_PERIODOS);
-    logger.debug(
-      `📅 Rotación: consultando ${periodos.length} periodos (${periodos[0].periodo}→${periodos[periodos.length - 1].periodo}), retornando últimos ${PERIODOS_VISIBLES}`
-    );
+    // Ventana de cartera: SOLO los 12 visibles (los últimos)
+    const cierresVisibles = cierresTotales.slice(N_CALENTAMIENTO);
 
+    // Ventana de ventas: desde el 1er día del 1er período de calentamiento
+    const fechaIniVentas = getInicioVentanaMeses(fechaCorte, N_TOTAL); // hace 23 meses, día 1
+    const fechaFinVentas = fechaCorte;
+
+    // Disparar en paralelo: 1 query de ventas (23 meses agregados) + 12 queries de cartera
     const t1 = Date.now();
+    const [ventasRaw, ...saldos] = await Promise.all([
+      fetchVentasAgregadas(pool, fechaIniVentas, fechaFinVentas),
+      ...cierresVisibles.map(fc => fetchSaldoCartera(pool, fc)),
+    ]);
+    tiempos.queriesParalelas = Date.now() - t1;
 
-    // Por cada periodo: 1 query de ventas + 1 query de cartera
-    const resultados = await Promise.all(
-      periodos.map(async (p, idx) => {
-        // Solo necesitamos cartera para los periodos visibles (los últimos 12);
-        // para los 11 previos basta con la venta bruta/neta (para alimentar prom3m y acum12m).
-        const esVisible = idx >= PERIODOS_HISTORICOS;
+    // Indexar por período
+    const ventasMap = new Map(ventasRaw.map(r => [r.periodo, r]));
 
-        const [ventas, cartera] = await Promise.all([
-          consultarDetalleRotacion(pool.request(), p.fechaInicio, p.fechaFin),
-          esVisible
-            ? consultarCarteraAux(pool.request(), p.fechaFin)
-            : Promise.resolve([]),
-        ]);
-
-        const { ventaBruta, rebate, ventaNeta } = calcularVentas(ventas);
-        return {
-          periodo: p.periodo,
-          cartera: calcularCartera(cartera),
-          ventaBruta,
-          rebate,
-          ventaNeta,
-        };
-      })
+    // Cartera solo existe para los visibles → los de calentamiento quedan en 0
+    const carteraMap = new Map(
+      cierresVisibles.map((c, i) => [c.substring(0, 6), saldos[i]])
     );
 
-    tiempos.query = Date.now() - t1;
-
-    // Calcular prom3m, acum12m, rotCxC sobre la serie completa de 23 periodos
-    const dataCompleta = resultados.map((row, idx) => {
-      // Promedio últimos 3 (incluido el actual) — sobre VENTA BRUTA
-      const inicio3 = Math.max(0, idx - 2);
-      const ventana3 = resultados.slice(inicio3, idx + 1);
-      const promedioVentas3m =
-        ventana3.reduce((acc, r) => acc + r.ventaBruta, 0) / ventana3.length;
-
-      // Acumulado rolling últimos 12 (incluido el actual) — sobre VENTA NETA
-      const inicio12 = Math.max(0, idx - 11);
-      const ventana12 = resultados.slice(inicio12, idx + 1);
-      const acumuladoVenta12m = ventana12.reduce((acc, r) => acc + r.ventaNeta, 0);
-
-      const rotCxC =
-        acumuladoVenta12m > 0
-          ? Math.round((row.cartera / acumuladoVenta12m) * 360)
-          : 0;
-
-      return {
-        ...row,
-        promedioVentas3m: Math.round(promedioVentas3m),
-        acumuladoVenta12m,
-        rotCxC,
-      };
-    });
-
-    // 🔑 Devolvemos solo los últimos PERIODOS_VISIBLES (12)
-    const data = dataCompleta.slice(-PERIODOS_VISIBLES);
+    const data = calcularSerie(ventasMap, carteraMap, periodos);
 
     tiempos.registros = data.length;
     tiempos.total = Date.now() - t0;
 
-    if (tiempos.total > 1500) {
+    if (tiempos.total > 1000) {
       logger.warn(`⚠️  Rotación lenta: ${JSON.stringify(tiempos)}`);
     } else {
       logger.debug(`✅ Rotación OK: ${JSON.stringify(tiempos)}`);
     }
 
-    return {
-      data,
-      tiempos,
-      fechaRef,
-      periodos: data.map((d) => d.periodo),
-    };
-
+    return { data, tiempos, fechaCorte };
   } catch (error) {
     logger.error('Error en getRotacion:', error);
     throw error;

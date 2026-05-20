@@ -124,4 +124,52 @@ const getUltimosPeriodos = (fechaRefYYYYMMDD, cantidad) => {
   return periodos;
 };
 
-export { getFechaCorte, getFechaInicioMes, getFechaInicioMesDe, getFechaHoy, parsearFechaCorte, getUltimoDiaDelMes, getPrimerDiaDelMes, getUltimosPeriodos };
+/**
+ * Devuelve los últimos N cierres de mes a partir de una fecha YYYYMMDD.
+ * Ej: getUltimosCierres('20260430', 13) →
+ *   ['20250430','20250531','20250630',...,'20260331','20260430']
+ *
+ * El primer elemento es el más antiguo. El último es la fechaCorte pasada.
+ */
+const getUltimosCierres = (fechaCorteYYYYMMDD, n = 13) => {
+  const año  = parseInt(fechaCorteYYYYMMDD.substring(0, 4), 10);
+  const mes  = parseInt(fechaCorteYYYYMMDD.substring(4, 6), 10);
+
+  const cierres = [];
+  for (let i = n - 1; i >= 0; i--) {
+    // último día del mes (mes, día 0) = último día del mes anterior; por eso usamos mes sin restar
+    const d = new Date(año, mes - i, 0);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    cierres.push(`${y}${m}${day}`);
+  }
+  return cierres;
+};
+
+/**
+ * Devuelve el primer día del primer mes de una serie de N meses
+ * terminando en fechaCorteYYYYMMDD.
+ * Ej: getInicioVentanaMeses('20260430', 13) → '20250401'
+ */
+const getInicioVentanaMeses = (fechaCorteYYYYMMDD, n = 13) => {
+  const año = parseInt(fechaCorteYYYYMMDD.substring(0, 4), 10);
+  const mes = parseInt(fechaCorteYYYYMMDD.substring(4, 6), 10);
+  const d = new Date(año, mes - n, 1); // n-1 meses atrás, primer día
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  return `${y}${m}01`;
+};
+
+export { 
+  getFechaCorte, 
+  getFechaInicioMes, 
+  getFechaInicioMesDe, 
+  getFechaHoy, 
+  parsearFechaCorte, 
+  getUltimoDiaDelMes, 
+  getPrimerDiaDelMes, 
+  getUltimosPeriodos, 
+  getUltimosCierres, 
+  getInicioVentanaMeses 
+};
