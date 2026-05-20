@@ -38,7 +38,6 @@ import {
   Tooltip as RechartsTooltip,
   Legend,
   ResponsiveContainer,
-  ReferenceArea,
   LabelList,
 } from "recharts"
 import {
@@ -46,162 +45,18 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { RotacionItem } from "@/hooks/use-rotacion"
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
-export interface RotationData {
-  periodo: string
-  cartera: number
-  ventaBruta: number
-  rebate: number
-  ventaNeta: number
-  promedioVentas3m: number
-  acumuladoVenta12m: number
-  rotCxC: number
-}
-
-// ── Mock data ─────────────────────────────────────────────────────────────────
-const mockRotationData: RotationData[] = [
-  {
-    periodo: "202505",
-    cartera: 653610396,
-    ventaBruta: 1215000000,
-    rebate: 74000000,
-    ventaNeta: 1140342704,
-    promedioVentas3m: 1140000000,
-    acumuladoVenta12m: 1140000000,
-    rotCxC: 206,
-  },
-  {
-    periodo: "202506",
-    cartera: 699284396,
-    ventaBruta: 855000000,
-    rebate: 44000000,
-    ventaNeta: 810096668,
-    promedioVentas3m: 975000000,
-    acumuladoVenta12m: 1950000000,
-    rotCxC: 129,
-  },
-  {
-    periodo: "202507",
-    cartera: 617256392,
-    ventaBruta: 901000000,
-    rebate: 83000000,
-    ventaNeta: 817271697,
-    promedioVentas3m: 923000000,
-    acumuladoVenta12m: 2768000000,
-    rotCxC: 80,
-  },
-  {
-    periodo: "202508",
-    cartera: 407896236,
-    ventaBruta: 1204000000,
-    rebate: 79000000,
-    ventaNeta: 1124562805,
-    promedioVentas3m: 917000000,
-    acumuladoVenta12m: 3892000000,
-    rotCxC: 38,
-  },
-  {
-    periodo: "202509",
-    cartera: 534969660,
-    ventaBruta: 911000000,
-    rebate: 77000000,
-    ventaNeta: 834291188,
-    promedioVentas3m: 925000000,
-    acumuladoVenta12m: 4727000000,
-    rotCxC: 41,
-  },
-  {
-    periodo: "202510",
-    cartera: 491196081,
-    ventaBruta: 966000000,
-    rebate: 45000000,
-    ventaNeta: 920281796,
-    promedioVentas3m: 960000000,
-    acumuladoVenta12m: 5647000000,
-    rotCxC: 31,
-  },
-  {
-    periodo: "202511",
-    cartera: 471454815,
-    ventaBruta: 945000000,
-    rebate: 25000000,
-    ventaNeta: 920524964,
-    promedioVentas3m: 892000000,
-    acumuladoVenta12m: 6567000000,
-    rotCxC: 26,
-  },
-  {
-    periodo: "202512",
-    cartera: 666583570,
-    ventaBruta: 937000000,
-    rebate: 43000000,
-    ventaNeta: 893899919,
-    promedioVentas3m: 912000000,
-    acumuladoVenta12m: 7461000000,
-    rotCxC: 32,
-  },
-  {
-    periodo: "202601",
-    cartera: 499139798,
-    ventaBruta: 1094000000,
-    rebate: 47000000,
-    ventaNeta: 1047608980,
-    promedioVentas3m: 954000000,
-    acumuladoVenta12m: 8509000000,
-    rotCxC: 21,
-  },
-  {
-    periodo: "202602",
-    cartera: 478712963,
-    ventaBruta: 1054000000,
-    rebate: 88000000,
-    ventaNeta: 965610506,
-    promedioVentas3m: 969000000,
-    acumuladoVenta12m: 9474000000,
-    rotCxC: 18,
-  },
-  {
-    periodo: "202603",
-    cartera: 537328519,
-    ventaBruta: 966000000,
-    rebate: 59000000,
-    ventaNeta: 907583775,
-    promedioVentas3m: 974000000,
-    acumuladoVenta12m: 10000000000,
-    rotCxC: 19,
-  },
-  {
-    periodo: "202604",
-    cartera: 607853936,
-    ventaBruta: 960000000,
-    rebate: 26000000,
-    ventaNeta: 934050547,
-    promedioVentas3m: 936000000,
-    acumuladoVenta12m: 11000000000,
-    rotCxC: 19,
-  },
-  {
-    periodo: "202605",
-    cartera: 707343936,
-    ventaBruta: 1060000000,
-    rebate: 25000000,
-    ventaNeta: 1035000000,
-    promedioVentas3m: 936000000,
-    acumuladoVenta12m: 11000000000,
-    rotCxC: 19,
-  },
-]
+export type { RotacionItem as RotationData }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const formatCurrency = (value: number): string => {
-  if (value >= 1_000_000_000_000) {
-    return `$${(value / 1_000_000_000_000).toFixed(1)} B`
-  }
-  if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(0)} M`
+  if (Math.abs(value) >= 1_000_000) {
+    return `$${(value / 1_000_000).toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} M`
   }
   return `$${value.toLocaleString("es-CO")}`
 }
@@ -236,10 +91,10 @@ const columnTooltips: Record<string, string> = {
   ventaNeta: "(Venta Bruta − Rebate)",
   promedioVentas3m: "Promedio aritmético de Venta Neta de los últimos 3 períodos",
   acumuladoVenta12m: "Suma acumulada de Venta Neta de los últimos 12 períodos",
-  rotCxC: "(Cartera / Acumulado Venta N últimos 12 meses) × 360",
+  rotCxC: "(Cartera / Acumulado Venta Neta últimos 12 meses) × 360",
 }
 
-// ── DraggableHeader — mismo estándar que clients-table / variation-table ──────
+// ── DraggableHeader ───────────────────────────────────────────────────────────
 interface DraggableHeaderProps {
   id: string
   isPinned?: boolean
@@ -285,67 +140,43 @@ function DraggableHeader({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group whitespace-nowrap overflow-hidden",
-        isDragging &&
-          "bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,hsl(var(--border))_5px,hsl(var(--border))_6px)] opacity-50"
+        "group select-none whitespace-nowrap",
+        isDragging && "opacity-50 bg-muted z-10"
       )}
     >
-      <div className="flex items-center justify-between gap-1">
-        <span className="text-sm font-medium text-foreground truncate">{label}</span>
-
-        <div className="flex shrink-0 items-center gap-0.5">
-          {/* ── Tooltip info ────────────────────────────────── */}
-          {tooltip && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span
-                  className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded",
-                    "opacity-0 group-hover:opacity-60 hover:!opacity-100 cursor-help",
-                    "transition-opacity duration-150"
-                  )}
-                >
-                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="text-xs">{tooltip}</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-
-          {/* ── Sort button ──────────────────────────────────── */}
-          {canSort && column && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                const sorted = column.getIsSorted()
-                if (sorted === false) column.toggleSorting(true)
-                else if (sorted === "desc") column.toggleSorting(false)
-                else column.clearSorting()
-              }}
-              className={cn(
-                "flex h-6 w-6 items-center justify-center rounded transition-all duration-150",
-                "opacity-0 group-hover:opacity-60 hover:!opacity-100",
-                "hover:bg-muted focus:outline-none",
-                column.getIsSorted() && "!opacity-100 text-[#ff6600]"
-              )}
-              title="Ordenar"
-            >
-              {column.getIsSorted() === "desc" ? (
-                <ArrowDown className="h-3.5 w-3.5" />
-              ) : column.getIsSorted() === "asc" ? (
-                <ArrowUp className="h-3.5 w-3.5" />
-              ) : (
-                <ArrowUpDown className="h-3.5 w-3.5" />
-              )}
-            </button>
-          )}
-        </div>
+      <div className="flex items-center gap-1.5 pr-3">
+        {tooltip && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs text-xs">
+              {tooltip}
+            </TooltipContent>
+          </Tooltip>
+        )}
+        <span className="text-xs font-semibold">{label}</span>
+        {canSort && column && (
+          <button
+            onClick={() => {
+              if (column.getIsSorted() === false) column.toggleSorting(false)
+              else if (column.getIsSorted() === "asc") column.toggleSorting(true)
+              else column.clearSorting()
+            }}
+            className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {column.getIsSorted() === "desc" ? (
+              <ArrowDown className="h-3.5 w-3.5" />
+            ) : column.getIsSorted() === "asc" ? (
+              <ArrowUp className="h-3.5 w-3.5" />
+            ) : (
+              <ArrowUpDown className="h-3.5 w-3.5" />
+            )}
+          </button>
+        )}
       </div>
 
-      {/* ── Resize handle ────────────────────────────────────── */}
+      {/* Resize handle */}
       {onResizeStart && (
         <div
           onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e) }}
@@ -362,126 +193,6 @@ function DraggableHeader({
     </TableHead>
   )
 }
-
-// ── Columnas ──────────────────────────────────────────────────────────────────
-const columns: ColumnDef<RotationData>[] = [
-  {
-    id: "periodo",
-    accessorKey: "periodo",
-    header: "Período",
-    cell: ({ row }) => {
-      const periodo = row.getValue("periodo") as string
-      const isCurrentMonth =
-        periodo === mockRotationData[mockRotationData.length - 1].periodo
-      return (
-        <span className={cn("font-mono text-sm", isCurrentMonth && "font-bold")}>
-          {periodo}
-        </span>
-      )
-    },
-  },
-  {
-    id: "cartera",
-    accessorKey: "cartera",
-    header: "Cartera",
-    cell: ({ row }) => {
-      const isCurrentMonth =
-        row.original.periodo === mockRotationData[mockRotationData.length - 1].periodo
-      return (
-        <span className={cn("font-mono text-sm", isCurrentMonth && "font-bold")}>
-          {formatCurrency(row.getValue("cartera"))}
-        </span>
-      )
-    },
-  },
-  {
-    id: "ventaBruta",
-    accessorKey: "ventaBruta",
-    header: "Venta Bruta",
-    cell: ({ row }) => {
-      const isCurrentMonth =
-        row.original.periodo === mockRotationData[mockRotationData.length - 1].periodo
-      return (
-        <span className={cn("font-mono text-sm", isCurrentMonth && "font-bold")}>
-          {formatCurrency(row.getValue("ventaBruta"))}
-        </span>
-      )
-    },
-  },
-  {
-    id: "rebate",
-    accessorKey: "rebate",
-    header: "Rebate",
-    cell: ({ row }) => {
-      const isCurrentMonth =
-        row.original.periodo === mockRotationData[mockRotationData.length - 1].periodo
-      return (
-        <span
-          className={cn("font-mono text-sm text-[#ff6600]", isCurrentMonth && "font-bold")}
-        >
-          {formatCurrency(row.getValue("rebate"))}
-        </span>
-      )
-    },
-  },
-  {
-    id: "ventaNeta",
-    accessorKey: "ventaNeta",
-    header: "Venta Neta",
-    cell: ({ row }) => {
-      const isCurrentMonth =
-        row.original.periodo === mockRotationData[mockRotationData.length - 1].periodo
-      return (
-        <span
-          className={cn("font-mono text-sm text-[#00359a]", isCurrentMonth && "font-bold")}
-        >
-          {formatCurrency(row.getValue("ventaNeta"))}
-        </span>
-      )
-    },
-  },
-  {
-    id: "promedioVentas3m",
-    accessorKey: "promedioVentas3m",
-    header: "Prom. Ventas (3m)",
-    cell: ({ row }) => {
-      const isCurrentMonth =
-        row.original.periodo === mockRotationData[mockRotationData.length - 1].periodo
-      return (
-        <span
-          className={cn(
-            "font-mono text-sm text-muted-foreground",
-            isCurrentMonth && "font-bold text-foreground"
-          )}
-        >
-          {formatCurrency(row.getValue("promedioVentas3m"))}
-        </span>
-      )
-    },
-  },
-  {
-    id: "rotCxC",
-    accessorKey: "rotCxC",
-    header: "Rot CxC (días)",
-    cell: ({ row }) => {
-      const days = row.getValue("rotCxC") as number
-      const isCurrentMonth =
-        row.original.periodo === mockRotationData[mockRotationData.length - 1].periodo
-      return (
-        <span
-          className={cn(
-            "inline-flex items-center justify-center rounded-md px-2 py-1 font-mono text-sm font-semibold",
-            getRotationBgClass(days),
-            isCurrentMonth && "ring-2 ring-offset-1"
-          )}
-          style={{ color: getRotationColor(days) }}
-        >
-          {days} días
-        </span>
-      )
-    },
-  },
-]
 
 // ── Custom tooltip del gráfico ────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -529,14 +240,124 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null
 }
 
+// ── Props ─────────────────────────────────────────────────────────────────────
+interface RotationTableProps {
+  data: RotacionItem[]
+  fechaRef: string | null
+  isFetching?: boolean
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
-export function RotationTable() {
+export function RotationTable({ data, fechaRef, isFetching = false }: RotationTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "periodo", desc: false },
   ])
 
+  // Periodo más reciente de la serie (para destacar la fila)
+  const lastPeriodo = data.length > 0 ? data[data.length - 1].periodo : null
+
+  // ── Columnas ────────────────────────────────────────────────────────────────
+  const columns: ColumnDef<RotacionItem>[] = [
+    {
+      id: "periodo",
+      accessorKey: "periodo",
+      header: "Período",
+      cell: ({ row }) => (
+        <span className={cn("font-mono text-sm", row.original.periodo === lastPeriodo && "font-bold")}>
+          {row.getValue("periodo")}
+        </span>
+      ),
+    },
+    {
+      id: "cartera",
+      accessorKey: "cartera",
+      header: "Cartera",
+      cell: ({ row }) => (
+        <span className={cn("font-mono text-sm", row.original.periodo === lastPeriodo && "font-bold")}>
+          {formatCurrency(row.getValue("cartera"))}
+        </span>
+      ),
+    },
+    {
+      id: "ventaBruta",
+      accessorKey: "ventaBruta",
+      header: "Venta Bruta",
+      cell: ({ row }) => (
+        <span className={cn("font-mono text-sm", row.original.periodo === lastPeriodo && "font-bold")}>
+          {formatCurrency(row.getValue("ventaBruta"))}
+        </span>
+      ),
+    },
+    {
+      id: "rebate",
+      accessorKey: "rebate",
+      header: "Rebate",
+      cell: ({ row }) => (
+        <span className={cn("font-mono text-sm text-[#ff6600]", row.original.periodo === lastPeriodo && "font-bold")}>
+          {formatCurrency(row.getValue("rebate"))}
+        </span>
+      ),
+    },
+    {
+      id: "ventaNeta",
+      accessorKey: "ventaNeta",
+      header: "Venta Neta",
+      cell: ({ row }) => (
+        <span className={cn("font-mono text-sm text-[#00359a]", row.original.periodo === lastPeriodo && "font-bold")}>
+          {formatCurrency(row.getValue("ventaNeta"))}
+        </span>
+      ),
+    },
+    {
+      id: "promedioVentas3m",
+      accessorKey: "promedioVentas3m",
+      header: "Prom. Ventas (3m)",
+      cell: ({ row }) => (
+        <span className={cn(
+          "font-mono text-sm text-muted-foreground",
+          row.original.periodo === lastPeriodo && "font-bold text-foreground"
+        )}>
+          {formatCurrency(row.getValue("promedioVentas3m"))}
+        </span>
+      ),
+    },
+    {
+      id: "acumuladoVenta12m",
+      accessorKey: "acumuladoVenta12m",
+      header: "Acum. Venta (12m)",
+      cell: ({ row }) => (
+        <span className={cn(
+          "font-mono text-sm text-muted-foreground",
+          row.original.periodo === lastPeriodo && "font-bold text-foreground"
+        )}>
+          {formatCurrency(row.getValue("acumuladoVenta12m"))}
+        </span>
+      ),
+    },
+    {
+      id: "rotCxC",
+      accessorKey: "rotCxC",
+      header: "Rot CxC (días)",
+      cell: ({ row }) => {
+        const days = row.getValue("rotCxC") as number
+        return (
+          <span
+            className={cn(
+              "inline-flex items-center justify-center rounded-md px-2 py-1 font-mono text-sm font-semibold",
+              getRotationBgClass(days),
+              row.original.periodo === lastPeriodo && "ring-2 ring-offset-1"
+            )}
+            style={{ color: getRotationColor(days) }}
+          >
+            {days} días
+          </span>
+        )
+      },
+    },
+  ]
+
   const table = useReactTable({
-    data: mockRotationData,
+    data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -545,81 +366,53 @@ export function RotationTable() {
   })
 
   const totals = {
-    cartera:
-      mockRotationData.reduce((acc, d) => acc + d.cartera, 0) /
-      mockRotationData.length,
-    ventaBruta: mockRotationData.reduce((acc, d) => acc + d.ventaBruta, 0),
-    rebate: mockRotationData.reduce((acc, d) => acc + d.rebate, 0),
-    ventaNeta: mockRotationData.reduce((acc, d) => acc + d.ventaNeta, 0),
-    rotCxC: Math.round(
-      mockRotationData.reduce((acc, d) => acc + d.rotCxC, 0) /
-        mockRotationData.length
-    ),
+    cartera: data.length > 0
+      ? data.reduce((acc, d) => acc + d.cartera, 0) / data.length
+      : 0,
+    ventaBruta:     data.reduce((acc, d) => acc + d.ventaBruta, 0),
+    rebate:         data.reduce((acc, d) => acc + d.rebate, 0),
+    ventaNeta:      data.reduce((acc, d) => acc + d.ventaNeta, 0),
+    rotCxC: data.length > 0
+      ? Math.round(data.reduce((acc, d) => acc + d.rotCxC, 0) / data.length)
+      : 0,
   }
 
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        {/* ── Gráfico ──────────────────────────────────────────────────────── */}
+        {/* ── Gráfico ────────────────────────────────────────────────────── */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">
               Evolución Cartera - Venta Neta - Rotación CxC — últimos 12 períodos
+              {fechaRef && (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  (ref: {fechaRef.substring(0, 4)}-{fechaRef.substring(4, 6)}-{fechaRef.substring(6, 8)})
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart
-                  data={mockRotationData}
-                  margin={{ top: 20, right: 60, left: 20, bottom: 20 }}
-                >
+                <ComposedChart data={data}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis
-                    dataKey="periodo"
-                    tick={{ fontSize: 12 }}
-                    className="text-muted-foreground"
-                  />
+                  <XAxis dataKey="periodo" tick={{ fontSize: 11 }} />
                   <YAxis
                     yAxisId="left"
-                    tickFormatter={(value) => formatCurrency(value)}
-                    tick={{ fontSize: 11 }}
-                    className="text-muted-foreground"
-                    domain={[0, "auto"]}
+                    tickFormatter={(v) => formatCurrency(v)}
+                    tick={{ fontSize: 10 }}
+                    width={80}
                   />
                   <YAxis
                     yAxisId="right"
                     orientation="right"
-                    domain={[0, 60]}
-                    tick={{ fontSize: 11 }}
-                    className="text-muted-foreground"
-                    tickFormatter={(value) => `${value}d`}
+                    tickFormatter={(v) => `${v}d`}
+                    tick={{ fontSize: 10 }}
+                    width={45}
                   />
                   <RechartsTooltip content={<CustomTooltip />} />
-                  <Legend
-                    wrapperStyle={{ paddingTop: 20 }}
-                    formatter={(value) => {
-                      const labels: Record<string, string> = {
-                        cartera: "Cartera",
-                        ventaNeta: "Venta Neta",
-                        rotCxC: "Rot CxC (días)",
-                      }
-                      return labels[value] || value
-                    }}
-                  />
-                  <ReferenceArea
-                    yAxisId="right"
-                    y1={0}
-                    y2={30}
-                    fill="#22C55E"
-                    fillOpacity={0.1}
-                    label={{
-                      value: "Zona óptima",
-                      position: "insideRight",
-                      fontSize: 10,
-                      fill: "#22C55E",
-                    }}
-                  />
+                  <Legend />
                   <Bar
                     yAxisId="left"
                     dataKey="cartera"
@@ -658,10 +451,11 @@ export function RotationTable() {
           </CardContent>
         </Card>
 
-        {/* ── Tabla ────────────────────────────────────────────────────────── */}
+        {/* ── Tabla ──────────────────────────────────────────────────────── */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between border-b py-0.5 px-4">
             <CardTitle>Rotación de Cartera</CardTitle>
+            {isFetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </CardHeader>
           <CardContent className="p-0">
             <div className="rounded-md border">
@@ -698,30 +492,22 @@ export function RotationTable() {
                 <TableBody>
                   {table.getRowModel().rows?.length ? (
                     <>
-                      {table.getRowModel().rows.map((row) => {
-                        const isCurrentMonth =
-                          row.original.periodo ===
-                          mockRotationData[mockRotationData.length - 1].periodo
-                        return (
-                          <TableRow
-                            key={row.id}
-                            className={cn(
-                              isCurrentMonth && "bg-muted/50 font-semibold"
-                            )}
-                          >
-                            {row.getVisibleCells().map((cell) => (
-                              <TableCell key={cell.id}>
-                                {flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext()
-                                )}
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        )
-                      })}
+                      {table.getRowModel().rows.map((row) => (
+                        <TableRow
+                          key={row.id}
+                          className={cn(
+                            row.original.periodo === lastPeriodo && "bg-muted/50 font-semibold"
+                          )}
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id}>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
 
-                      {/* ── Fila de totales ────────────────────────────── */}
+                      {/* ── Fila de totales ──────────────────────────── */}
                       <TableRow className="bg-muted font-semibold">
                         <TableCell>TOTALES / PROM.</TableCell>
                         <TableCell className="font-mono">
@@ -736,9 +522,8 @@ export function RotationTable() {
                         <TableCell className="font-mono text-[#00359a]">
                           {formatCurrency(totals.ventaNeta)}
                         </TableCell>
-                        <TableCell className="font-mono text-muted-foreground">
-                          —
-                        </TableCell>
+                        <TableCell className="font-mono text-muted-foreground">—</TableCell>
+                        <TableCell className="font-mono text-muted-foreground">—</TableCell>
                         <TableCell>
                           <span
                             className={cn(
@@ -754,10 +539,7 @@ export function RotationTable() {
                     </>
                   ) : (
                     <TableRow>
-                      <TableCell
-                        colSpan={columns.length}
-                        className="h-24 text-center"
-                      >
+                      <TableCell colSpan={columns.length} className="h-24 text-center">
                         No hay datos disponibles.
                       </TableCell>
                     </TableRow>
