@@ -1,34 +1,86 @@
 import { sql, poolPromise } from '../config/db_sm_real.js';
-import {
-  getUltimosCierres,
-  getInicioVentanaMeses,
-} from '../utils/fechaUtils.js';
+import { getUltimosCierres, getInicioVentanaMeses } from '../utils/fechaUtils.js';
 import logger from '../config/logger.js';
 
+const REFERENCIAS_REBATE = ['0022530', '0022529'];
 const N_VISIBLES = 12;
-const N_CALENTAMIENTO = 11;           // 11 previos para que el 1er visible tenga 12m completos
+const N_CALENTAMIENTO = 11;
 const N_TOTAL = N_VISIBLES + N_CALENTAMIENTO; // 23
 
-// Referencias contables clasificadas como rebate
-const REFERENCIAS_REBATE = ['0022530', '0022529'];
+// ─────────────────────────────────────────────────────────────────────────────
+// Paso 1 — universo de clientes con sus metadatos (canal, condPago, saldo)
+// Recibe los filtros y devuelve las filas que los pasan + la lista de
+// razonSocial para filtrar ventas en el paso 2.
+// ─────────────────────────────────────────────────────────────────────────────
+const fetchClientesFiltrados = async (pool, fechaCorte, filtros) => {
+  const { canal, condPago, razonSocial } = filtros;
 
-/**
- * Query A: ventas agregadas por período (YYYYMM) en una ventana.
- * Devuelve 13 filas para una ventana de 13 meses.
- */
-const fetchVentasAgregadas = async (pool, fechaIni, fechaFin) => {
+  const request = pool.request();
+  request.input('fecha', sql.VarChar(8), fechaCorte);
+  const result = await request.query(`
+    SELECT
+      f1_tercero,
+      f1_tercero_razon_social,
+      f1_canal,
+      f1_cond_pago_tipo,
+      f1_saldo_total
+    FROM dbo.fn_ti_cartera_x_aux(@fecha)
+  `);
+
+  let filas = result.recordset;
+
+  // Filtros en Node (AND entre tipos, OR dentro del mismo tipo)
+  if (canal.length > 0) {
+    filas = filas.filter(r =>
+      canal.some(c => r.f1_canal?.trim().toLowerCase().includes(c.toLowerCase()))
+    )
+  }
+  if (condPago.length > 0) {
+    filas = filas.filter(r =>
+      condPago.some(cp => r.f1_cond_pago_tipo?.trim().toLowerCase() === cp.toLowerCase())
+    )
+  }
+  if (razonSocial) {
+    const term = razonSocial.trim().toLowerCase()
+    filas = filas.filter(r =>
+      r.f1_tercero_razon_social?.trim().toLowerCase().includes(term)
+    )
+  }
+
+  const listaRazonSocial = filas.map(r => r.f1_tercero_razon_social?.trim()).filter(Boolean)
+
+  return { clientes: filas, listaRazonSocial }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Paso 2A — ventas agregadas por período, filtradas por lista de clientes
+// ─────────────────────────────────────────────────────────────────────────────
+const fetchVentasAgregadas = async (pool, fechaIni, fechaFin, listaRazonSocial) => {
   const request = pool.request();
   request.input('fechaIni', sql.VarChar(8), fechaIni);
   request.input('fechaFin', sql.VarChar(8), fechaFin);
 
-  // Construimos la lista de referencias rebate como parámetros separados
-  // para evitar inyección y permitir que SQL use índices.
-  const refsParams = REFERENCIAS_REBATE
-    .map((ref, i) => {
-      request.input(`ref${i}`, sql.VarChar, ref);
-      return `@ref${i}`;
-    })
-    .join(', ');
+  const refsParams = REFERENCIAS_REBATE.map((ref, i) => {
+    request.input(`ref${i}`, sql.VarChar, ref);
+    return `@ref${i}`;
+  }).join(', ');
+
+  // Si hay lista de clientes → filtrar; si está vacía → no hay resultados
+  let whereCliente = ''
+  // null = sin filtro → consulta todo
+  if (listaRazonSocial === null) {
+    // sin filtro → whereCliente queda '', consulta todo ✅
+  }
+  else if (listaRazonSocial.length === 0) {
+    return []; // filtro activo sin resultados ✅
+  }
+  else {
+    const clienteParams = listaRazonSocial.map((rs, i) => {
+      request.input(`rs${i}`, sql.NVarChar, rs);
+      return `@rs${i}`;
+    }).join(', ');
+    whereCliente = `AND f_cliente_fact_razon_soc IN (${clienteParams})`;
+  }
 
   const query = `
     SELECT
@@ -40,44 +92,54 @@ const fetchVentasAgregadas = async (pool, fechaIni, fechaFin) => {
     FROM v_ti_rotacion_cartera
     WHERE f_fecha >= @fechaIni
       AND f_fecha <  DATEADD(DAY, 1, @fechaFin)
+      ${whereCliente}
     GROUP BY LEFT(CONVERT(varchar(8), f_fecha, 112), 6);
   `;
 
   const result = await request.query(query);
-  return result.recordset; // [{ periodo: '202504', venta_bruta, rebate_negativo }, ...]
-};
+  return result.recordset;
+}
 
-/**
- * Query B (x12): saldo total de cartera para una fecha de cierre.
- * Sumamos en SQL para no traer ~90 filas por cada cierre.
- */
-const fetchSaldoCartera = async (pool, fechaCierre) => {
+// ─────────────────────────────────────────────────────────────────────────────
+// Paso 2B — saldo de cartera para un cierre, filtrado directo en SQL
+// ─────────────────────────────────────────────────────────────────────────────
+const fetchSaldoCartera = async (pool, fechaCierre, listaRazonSocial) => {
   const request = pool.request();
   request.input('fecha', sql.VarChar(8), fechaCierre);
+
+  let whereCliente = ''
+  if (listaRazonSocial !== null && listaRazonSocial.length === 0) {
+    return 0 // sin clientes → saldo 0
+  }
+  if (listaRazonSocial !== null && listaRazonSocial.length > 0) {
+    listaRazonSocial.forEach((rs, i) => {
+      request.input(`rs${i}`, sql.NVarChar, rs);
+    });
+    const params = listaRazonSocial.map((_, i) => `@rs${i}`).join(', ');
+    whereCliente = `WHERE f1_tercero_razon_social IN (${params})`
+  }
+
   const result = await request.query(`
     SELECT SUM(f1_saldo_total) AS saldo
-    FROM dbo.fn_ti_cartera_x_aux(@fecha);
+    FROM dbo.fn_ti_cartera_x_aux(@fecha)
+    ${whereCliente}
   `);
   return result.recordset[0]?.saldo ?? 0;
-};
+}
 
-/**
- * Recibe una serie de N_TOTAL (23) períodos: 11 de calentamiento + 12 visibles.
- * Calcula promedio-3m, acumulado-12m y rotCxC para los 12 visibles
- * usando los 11 previos como histórico. Devuelve solo los 12 visibles.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// Paso 3 — calcular serie de 12 períodos visibles
+// ─────────────────────────────────────────────────────────────────────────────
 const calcularSerie = (ventasMap, carteraMap, periodos) => {
-  // Paso 1: armar la serie cruda completa (23 períodos)
   const serie = periodos.map((periodo) => {
     const v = ventasMap.get(periodo) ?? { venta_bruta: 0, rebate_negativo: 0 };
     const ventaBruta = Number(v.venta_bruta) || 0;
-    const rebateNeg  = Number(v.rebate_negativo) || 0;
-    const ventaNeta  = ventaBruta + rebateNeg;
-    const rebateAbs  = Math.abs(rebateNeg);
-
+    const rebateNeg = Number(v.rebate_negativo) || 0;
+    const ventaNeta = ventaBruta + rebateNeg;
+    const rebateAbs = Math.abs(rebateNeg);
     return {
       periodo,
-      cartera: Number(carteraMap.get(periodo) ?? 0), // 0 para los meses de calentamiento
+      cartera: Number(carteraMap.get(periodo) ?? 0),
       ventaBruta,
       rebate: rebateAbs,
       ventaNeta,
@@ -87,11 +149,9 @@ const calcularSerie = (ventasMap, carteraMap, periodos) => {
     };
   });
 
-  // Paso 2: calcular ventanas móviles SOLO para los visibles (i >= N_CALENTAMIENTO)
-  // En esos índices ya tenemos garantizados los 11 previos.
   for (let i = N_CALENTAMIENTO; i < serie.length; i++) {
-    const sum3 = serie[i].ventaNeta + serie[i - 1].ventaNeta + serie[i - 2].ventaNeta;
-    serie[i].promedioVentas3m = sum3 / 3;
+    serie[i].promedioVentas3m =
+      (serie[i].ventaNeta + serie[i - 1].ventaNeta + serie[i - 2].ventaNeta) / 3;
 
     let sum12 = 0;
     for (let k = i - 11; k <= i; k++) sum12 += serie[k].ventaNeta;
@@ -102,15 +162,21 @@ const calcularSerie = (ventasMap, carteraMap, periodos) => {
       : 0;
   }
 
-  // Paso 3: devolver solo los 12 visibles
   return serie.slice(N_CALENTAMIENTO);
-};
+}
 
-/**
- * Servicio principal: rotación de cartera para los 12 períodos
- * terminando en fechaCorte (formato YYYYMMDD).
- */
-const getRotacion = async (fechaCorte) => {
+// ─────────────────────────────────────────────────────────────────────────────
+// Servicio principal
+// ─────────────────────────────────────────────────────────────────────────────
+const getRotacion = async (fechaCorte, filtros = {}) => {
+  const {
+    canal = [],   // string[]  ej: ['comercializador']
+    condPago = [],   // string[]  ej: ['Credito']
+    razonSocial = '',   // string
+  } = filtros;
+
+  const hayFiltros = canal.length > 0 || condPago.length > 0 || razonSocial.trim() !== '';
+
   const tiempos = {};
   const t0 = Date.now();
 
@@ -118,49 +184,63 @@ const getRotacion = async (fechaCorte) => {
     const pool = await poolPromise;
     tiempos.conexion = Date.now() - t0;
 
-    // Ventana de períodos completa: 11 calentamiento + 12 visibles = 23
     const cierresTotales = getUltimosCierres(fechaCorte, N_TOTAL);
-    const periodos = cierresTotales.map(c => c.substring(0, 6));
-
-    // Ventana de cartera: SOLO los 12 visibles (los últimos)
     const cierresVisibles = cierresTotales.slice(N_CALENTAMIENTO);
+    const periodos = cierresTotales.map(c => c.substring(0, 6));
+    const fechaIniVentas = getInicioVentanaMeses(fechaCorte, N_TOTAL);
 
-    // Ventana de ventas: desde el 1er día del 1er período de calentamiento
-    const fechaIniVentas = getInicioVentanaMeses(fechaCorte, N_TOTAL); // hace 23 meses, día 1
-    const fechaFinVentas = fechaCorte;
+    // Paso 1 — universo de clientes (solo si hay filtros activos)
+    let clientes = [];
+    let listaRazonSocial = null; // null = sin filtro (todos)
 
-    // Disparar en paralelo: 1 query de ventas (23 meses agregados) + 12 queries de cartera
-    const t1 = Date.now();
+    if (hayFiltros) {
+      const t1 = Date.now();
+      const resultado = await fetchClientesFiltrados(pool, fechaCorte, { canal, condPago, razonSocial });
+      clientes = resultado.clientes;
+      listaRazonSocial = resultado.listaRazonSocial;
+      tiempos.filtrado = Date.now() - t1;
+    }
+
+    // Paso 2 — ventas + cartera en paralelo
+    const t2 = Date.now();
     const [ventasRaw, ...saldos] = await Promise.all([
-      fetchVentasAgregadas(pool, fechaIniVentas, fechaFinVentas),
-      ...cierresVisibles.map(fc => fetchSaldoCartera(pool, fc)),
+      fetchVentasAgregadas(pool, fechaIniVentas, fechaCorte, listaRazonSocial),
+      ...cierresVisibles.map(fc => fetchSaldoCartera(pool, fc, listaRazonSocial)),
     ]);
-    tiempos.queriesParalelas = Date.now() - t1;
+    tiempos.queriesParalelas = Date.now() - t2;
 
     // Indexar por período
     const ventasMap = new Map(ventasRaw.map(r => [r.periodo, r]));
+    const carteraMap = new Map(cierresVisibles.map((c, i) => [c.substring(0, 6), saldos[i]]));
 
-    // Cartera solo existe para los visibles → los de calentamiento quedan en 0
-    const carteraMap = new Map(
-      cierresVisibles.map((c, i) => [c.substring(0, 6), saldos[i]])
-    );
+    // Paso 3 — calcular serie
+    // Cuando hay filtros Y no hay ventas para períodos de calentamiento,
+    // los 11 meses previos sin datos quedan en 0 — correcto porque
+    // calcularSerie ya maneja ventasMap con fallback a 0.
+    // Para el caso sin filtros, pasamos el array completo desde SQL.
+    let ventasParaSerie = ventasRaw;
+    if (!hayFiltros) {
+      // Sin filtros: la query de ventas trae los 23 meses, úsalos todos
+      ventasParaSerie = ventasRaw;
+    }
 
     const data = calcularSerie(ventasMap, carteraMap, periodos);
 
-    tiempos.registros = data.length;
     tiempos.total = Date.now() - t0;
+    tiempos.registros = data.length;
 
-    if (tiempos.total > 1000) {
+    if (tiempos.total > 1500) {
       logger.warn(`⚠️  Rotación lenta: ${JSON.stringify(tiempos)}`);
     } else {
       logger.debug(`✅ Rotación OK: ${JSON.stringify(tiempos)}`);
     }
 
-    return { data, tiempos, fechaCorte };
+    return { data, clientes, tiempos, fechaCorte };
+
   } catch (error) {
     logger.error('Error en getRotacion:', error);
     throw error;
   }
-};
+}
 
 export { getRotacion };
