@@ -10,6 +10,8 @@ import schedulerService from './services/schedulerService.js';
 import adminRoutes from './routes/adminRoutes.js';
 import variacionRoutes from './routes/variacionRoutes.js';
 import rotacionRoutes from './routes/rotacionRoutes.js';
+// import carteraAux from './routes/carteraAuxRoutes.js';
+// import rotRoutes from './routes/rotRoutes.js';
 
 dotenv.config();
 
@@ -53,6 +55,8 @@ app.use('/api/facturas', facturasRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/variacion', variacionRoutes);
 app.use('/api/rotacion', rotacionRoutes);
+// app.use('/api/cartera-aux', carteraAux);
+// app.use('/api/rot', rotRoutes);
 // Middleware para manejo de rutas no encontradas
 app.use((req, res) => {
     res.status(404).json({ message: 'Ruta no encontrada' });
