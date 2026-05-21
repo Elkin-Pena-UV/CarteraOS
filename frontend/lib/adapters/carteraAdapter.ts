@@ -33,7 +33,7 @@ export const adaptCarteraToClients = (items: CarteraItem[]): Client[] => {
 }
 
 export const adaptCarteraToKPIs = (items: CarteraItem[]) => {
-  const totalCorriente = items.reduce((sum, i) => sum + i.f1_saldo_total, 0)
+  const totalCorriente = items.reduce((sum, i) => sum + i.f1_saldo_corriente_total, 0)
   console.log("totalCorriente raw:", totalCorriente, "| items:", items.length)
   const totalVencida = items.reduce((sum, i) => sum + i.f1_saldo_vencido_total, 0)
   const totalCartera = totalCorriente + totalVencida
