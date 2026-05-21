@@ -11,7 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { ChevronDown, ChevronUp, Filter, Mail, X, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
@@ -34,14 +41,16 @@ const monthOptions = [
   { value: "diciembre",  label: "Diciembre",  num: 12 },
 ]
 
-const currentYear  = String(new Date().getFullYear())
-const yearOptions  = Array.from({ length: 8 }, (_, i) =>
+const currentYear = String(new Date().getFullYear())
+const yearOptions = Array.from({ length: 8 }, (_, i) =>
   String(Number(currentYear) - 5 + i)
 )
 
+// Valores que el backend busca con .includes(value.toLowerCase())
+// sobre el campo f1_canal ("01 - COMERCIALIZADOR", "02 - INDUSTRIAL", etc.)
 const CANAL_OPTIONS = [
-  { value: "industrial",      label: "Industrial"      },
   { value: "comercializador", label: "Comercializador" },
+  { value: "industrial",      label: "Industrial"      },
   { value: "vtd",             label: "VTD"             },
 ]
 
@@ -49,9 +58,9 @@ const CANAL_OPTIONS = [
 function endOfMonthYYYYMMDD(monthName: string, year: string): string {
   const monthIndex = monthOptions.findIndex((m) => m.value === monthName)
   if (monthIndex === -1) return ""
-  const d   = new Date(Number(year), monthIndex + 1, 0)
-  const y   = d.getFullYear()
-  const m   = String(d.getMonth() + 1).padStart(2, "0")
+  const d = new Date(Number(year), monthIndex + 1, 0)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, "0")
   const day = String(d.getDate()).padStart(2, "0")
   return `${y}${m}${day}`
 }
@@ -60,11 +69,25 @@ function formatMonthLabel(month: string) {
   return monthOptions.find((o) => o.value === month)?.label ?? month
 }
 
+// ── Helper label del multi-select de canal ────────────────────────────────────
+function CanalTriggerLabel({ selected }: { selected: string[] }) {
+  if (selected.length === 0) return <span className="text-muted-foreground">Todos</span>
+  if (selected.length === 1) {
+    return <span>{CANAL_OPTIONS.find(o => o.value === selected[0])?.label ?? selected[0]}</span>
+  }
+  return (
+    <span>
+      {CANAL_OPTIONS.find(o => o.value === selected[0])?.label ?? selected[0]}
+      {" "}<span className="text-muted-foreground">+{selected.length - 1}</span>
+    </span>
+  )
+}
+
 // ── Valores iniciales (mes anterior al actual) ────────────────────────────────
 
-const mesAnterior    = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)
-const initialMonth   = monthOptions[mesAnterior.getMonth()].value
-const initialYear    = String(mesAnterior.getFullYear())
+const mesAnterior  = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)
+const initialMonth = monthOptions[mesAnterior.getMonth()].value
+const initialYear  = String(mesAnterior.getFullYear())
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -81,8 +104,8 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false }: F
   const [isExpanded, setIsExpanded] = useState(true)
 
   // Periodo
-  const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth)
-  const [selectedYear,  setSelectedYear]  = useState<string>(initialYear)
+  const [selectedMonth,   setSelectedMonth]   = useState<string>(initialMonth)
+  const [selectedYear,    setSelectedYear]    = useState<string>(initialYear)
 
   // Filtros
   const [selectedCanales, setSelectedCanales] = useState<string[]>([])
@@ -90,13 +113,6 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false }: F
   const [clientName,      setClientName]      = useState<string>("")
 
   const periodLabel = `${formatMonthLabel(selectedMonth)} ${selectedYear}`
-
-  // ── Toggle canal (selección múltiple) ────────────────────────────────────
-  const toggleCanal = (value: string) => {
-    setSelectedCanales((prev) =>
-      prev.includes(value) ? prev.filter((c) => c !== value) : [...prev, value]
-    )
-  }
 
   // ── Aplicar filtros ───────────────────────────────────────────────────────
   const handleApplyFilters = () => {
@@ -108,12 +124,13 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false }: F
 
     const filtros: RotacionFiltros = {
       canal:       selectedCanales,
+      // "Credito" / "Anticipado" con mayúscula — coincide exactamente con f1_cond_pago_tipo
       condPago:    clientType && clientType !== "all" ? [clientType] : [],
-      razonSocial: clientName,
+      razonSocial: clientName.trim(),
     }
 
     onConsultar(fechaRef, filtros)
-    toast({ title: "Filtros aplicados", description: `Corte: ${periodLabel} (ref: ${fechaRef})` })
+    toast({ title: "Filtros aplicados", description: `Corte: ${periodLabel}` })
   }
 
   // ── Limpiar filtros ───────────────────────────────────────────────────────
@@ -147,9 +164,7 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false }: F
           onClick={() => setIsExpanded((v) => !v)}
           className={cn("gap-2", isExpanded ? "h-9 px-3" : "h-8 px-2 text-xs")}
         >
-          {isExpanded
-            ? <ChevronUp className="h-4 w-4" />
-            : <ChevronDown className="h-3.5 w-3.5" />}
+          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-3.5 w-3.5" />}
           {isExpanded ? "Minimizar" : "Desplegar"}
         </Button>
       </div>
@@ -212,42 +227,49 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false }: F
             {/* Separador visual */}
             <div className="h-9 w-px self-end bg-border" />
 
-            {/* ── Canal (selección múltiple con badges) ──────────────────── */}
-            <div className="space-y-1.5">
+            {/* ── Canal (multi-select) ───────────────────────────────────── */}
+            <div className="min-w-[170px] space-y-1.5">
               <Label className="text-xs text-muted-foreground">Canal</Label>
-              <div className="flex items-center gap-1.5">
-                {CANAL_OPTIONS.map(({ value, label }) => {
-                  const isSelected = selectedCanales.includes(value)
-                  return (
-                    <Badge
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="h-9 w-full justify-between font-normal">
+                    <CanalTriggerLabel selected={selectedCanales} />
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-48" align="start">
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">Canal</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {CANAL_OPTIONS.map(({ value, label }) => (
+                    <DropdownMenuCheckboxItem
                       key={value}
-                      variant={isSelected ? "default" : "outline"}
-                      onClick={() => toggleCanal(value)}
-                      className={cn(
-                        "h-9 cursor-pointer select-none px-3 text-xs transition-colors",
-                        isSelected
-                          ? "bg-[#ff6600] text-white hover:bg-[#e65c00] border-transparent"
-                          : "hover:bg-muted"
-                      )}
+                      checked={selectedCanales.includes(value)}
+                      onCheckedChange={(checked) =>
+                        setSelectedCanales((prev) =>
+                          checked ? [...prev, value] : prev.filter((c) => c !== value)
+                        )
+                      }
+                      onSelect={(e) => e.preventDefault()}
                     >
                       {label}
-                    </Badge>
-                  )
-                })}
-              </div>
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
-            {/* ── Tipo de cliente ────────────────────────────────────────── */}
+            {/* ── Condición de pago ──────────────────────────────────────── */}
             <div className="min-w-[160px] space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Tipo de cliente</Label>
+              <Label className="text-xs text-muted-foreground">Condición de pago</Label>
               <Select value={clientType} onValueChange={setClientType}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="credito">Crédito</SelectItem>
-                  <SelectItem value="anticipado">Anticipado</SelectItem>
+                  {/* Mayúscula inicial — coincide exactamente con f1_cond_pago_tipo */}
+                  <SelectItem value="Credito">Crédito</SelectItem>
+                  <SelectItem value="Anticipado">Anticipado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -259,6 +281,7 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false }: F
                 placeholder="Buscar cliente..."
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleApplyFilters()}
                 className="h-9"
               />
             </div>

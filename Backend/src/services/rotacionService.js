@@ -3,9 +3,9 @@ import { getUltimosCierres, getInicioVentanaMeses } from '../utils/fechaUtils.js
 import logger from '../config/logger.js';
 
 const REFERENCIAS_REBATE = ['0022530', '0022529'];
-const N_VISIBLES = 12;
+const N_VISIBLES      = 12;
 const N_CALENTAMIENTO = 11;
-const N_TOTAL = N_VISIBLES + N_CALENTAMIENTO; // 23
+const N_TOTAL         = N_VISIBLES + N_CALENTAMIENTO; // 23
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Paso 1 — universo de clientes con sus metadatos (canal, condPago, saldo)
@@ -151,7 +151,7 @@ const calcularSerie = (ventasMap, carteraMap, periodos) => {
 
   for (let i = N_CALENTAMIENTO; i < serie.length; i++) {
     serie[i].promedioVentas3m =
-      (serie[i].ventaNeta + serie[i - 1].ventaNeta + serie[i - 2].ventaNeta) / 3;
+      (serie[i].ventaNeta + serie[i-1].ventaNeta + serie[i-2].ventaNeta) / 3;
 
     let sum12 = 0;
     for (let k = i - 11; k <= i; k++) sum12 += serie[k].ventaNeta;
