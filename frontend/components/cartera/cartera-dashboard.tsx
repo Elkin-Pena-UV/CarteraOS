@@ -20,12 +20,18 @@ import {
   adaptClientsToAging,
 } from "@/lib/adapters/carteraAdapter"
 import { applyClientFilters } from "@/lib/filters/cartera-filters"
+import { useExportPDF } from '@/hooks/use-export-pdf'
+import { FileDown, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export default function CarteraDashboard() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [draftFilters, setDraftFilters] = useState<ClientFilters>(initialClientFilters)
   const [fechaCorte, setFechaCorte] = useState<FechaCorteState>(initialFechaCorte)
+  const [sortedClients, setSortedClients] = useState<Client[]>([])
+
+  const { exportarGeneral, exporting } = useExportPDF()
 
   // El hook recibe modo y fecha — react-query cachea cada combinación por separado
   const { data, loading, error } = useCartera(fechaCorte.modo, fechaCorte.fecha)
@@ -64,6 +70,16 @@ export default function CarteraDashboard() {
     </AppShell>
   )
 
+  const handleExportarPDF = () => {
+  exportarGeneral({
+    fechaCorte,
+    filtros:  draftFilters,
+    clientes: sortedClients.length > 0 ? sortedClients : filteredClients,
+    aging:    agingData,
+  })
+}
+
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -73,6 +89,18 @@ export default function CarteraDashboard() {
             Gestión y seguimiento de cartera de clientes
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportarPDF}
+          disabled={exporting}
+        >
+          {exporting
+            ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            : <FileDown className="mr-2 h-4 w-4" />
+          }
+          {exporting ? 'Generando...' : 'Exportar PDF'}
+        </Button>
 
         <FiltersBar
           value={draftFilters}
@@ -90,6 +118,7 @@ export default function CarteraDashboard() {
         <ClientsTable
           data={filteredClients}
           onViewClient={handleViewClient}
+          onSortedRowsChange={setSortedClients}
         />
 
         <ClientDrawer

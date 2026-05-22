@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import {
   DndContext,
   closestCenter,
@@ -103,6 +103,7 @@ const DEFAULT_COLUMN_ORDER = [
 interface ClientsTableProps {
   data: Client[]
   onViewClient: (client: Client) => void
+  onSortedRowsChange?: (rows: Client[]) => void
 }
 
 // ── DraggableHeader ───────────────────────────────────────────────────────────
@@ -248,7 +249,7 @@ function DragOverlayContent({ columnId, columns }: { columnId: string; columns: 
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
-export function ClientsTable({ data, onViewClient }: ClientsTableProps) {
+export function ClientsTable({ data, onViewClient, onSortedRowsChange }: ClientsTableProps) {
 
   // ── Estado de tabla (hook compartido) ─────────────────────────────────────
   const {
@@ -488,7 +489,14 @@ export function ClientsTable({ data, onViewClient }: ClientsTableProps) {
         // left: ['nit', 'razonSocial'],  // variation-table
       },
     },
+
+
   })
+
+  useEffect(() => {
+    const sortedRows = table.getSortedRowModel().rows.map(r => r.original)
+    onSortedRowsChange?.(sortedRows)
+  }, [sorting, data])
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
