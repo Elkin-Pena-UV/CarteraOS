@@ -9,7 +9,7 @@ const dbConfig = {
   password: process.env.DB_PASSWORD,
   server: process.env.DB_HOST,
   database: process.env.DB_NAME,
-  port: parseInt(process.env.DB_PORT, 10),
+  port: parseInt(process.env.DB_PORT, 10) || 1433,
   options: {
     encrypt: false, // true para Azure
     trustServerCertificate: true, // necesario para entornos locales
@@ -26,7 +26,7 @@ const dbConfig = {
 const poolPromise = new sql.ConnectionPool(dbConfig)
   .connect()
   .then(pool => {
-    console.log('✅ Conectado a SQL Server (RadicApp)');
+    console.log('✅ Conectado a SQL Server (CarteraOS)');
     return pool;
   })
   .catch(err => {

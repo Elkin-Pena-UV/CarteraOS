@@ -10,6 +10,8 @@ import schedulerService from './services/schedulerService.js';
 import adminRoutes from './routes/adminRoutes.js';
 import variacionRoutes from './routes/variacionRoutes.js';
 import rotacionRoutes from './routes/rotacionRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import requireAuth from './middleware/auth.js';
 // import carteraAux from './routes/carteraAuxRoutes.js';
 // import rotRoutes from './routes/rotRoutes.js';
 
@@ -50,13 +52,16 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-app.use('/api/cartera', carteraRoutes);
-app.use('/api/facturas', facturasRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/variacion', variacionRoutes);
-app.use('/api/rotacion', rotacionRoutes);
+app.use('/api/auth', authRoutes);
+
+app.use('/api/cartera', requireAuth , carteraRoutes);
+app.use('/api/facturas', requireAuth , facturasRoutes);
+app.use('/api/admin', requireAuth , adminRoutes);
+app.use('/api/variacion', requireAuth , variacionRoutes);
+app.use('/api/rotacion', requireAuth , rotacionRoutes);
 // app.use('/api/cartera-aux', carteraAux);
 // app.use('/api/rot', rotRoutes);
+
 // Middleware para manejo de rutas no encontradas
 app.use((req, res) => {
     res.status(404).json({ message: 'Ruta no encontrada' });
