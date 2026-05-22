@@ -20,6 +20,7 @@
     "ext": "js,json"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.5.1",
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
@@ -34,6 +35,7 @@
     "node-cache": "^5.1.2",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.5",
+    "react": "^19.2.6",
     "sequelize": "^6.37.7",
     "winston": "^3.19.0"
   },
