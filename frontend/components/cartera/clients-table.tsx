@@ -118,9 +118,11 @@ interface DraggableHeaderProps {
   onResizeStart: (e: React.MouseEvent | React.TouchEvent) => void
   column?: {
     toggleSorting: (desc: boolean) => void
+    toggleSortingWithEvent: (e: React.MouseEvent) => void
     getIsSorted: () => false | "desc" | "asc"
     getCanSort: () => boolean
     clearSorting: () => void
+    getSortIndex: () => number
   }
 }
 
@@ -177,6 +179,7 @@ function DraggableHeader({
               onClick={(e) => {
                 e.stopPropagation()
                 const sorted = column.getIsSorted()
+                column.toggleSortingWithEvent(e)
                 if (sorted === false) column.toggleSorting(true)
                 else if (sorted === "desc") column.toggleSorting(false)
                 else column.clearSorting()
@@ -195,6 +198,11 @@ function DraggableHeader({
                 <ArrowUp className="h-3.5 w-3.5" />
               ) : (
                 <ArrowUpDown className="h-3.5 w-3.5" />
+              )}
+              {column.getIsSorted() && (
+                <span className="text-[10px] font-bold leading-none">
+                  {column.getSortIndex() + 1}
+                </span>
               )}
             </button>
           )}
@@ -481,6 +489,8 @@ export function ClientsTable({ data, onViewClient, onSortedRowsChange }: Clients
     onColumnVisibilityChange: setColumnVisibility,
     enableSortingRemoval: true,
     sortDescFirst: true,
+    isMultiSortEvent: () => true, 
+    maxMultiSortColCount: 3,
     state: { sorting, columnOrder, columnSizing, columnVisibility },
     enableColumnPinning: true,
     initialState: {
@@ -603,9 +613,11 @@ export function ClientsTable({ data, onViewClient, onSortedRowsChange }: Clients
                               header.column.getCanSort()
                                 ? {
                                   toggleSorting: (desc) => header.column.toggleSorting(desc),
+                                  toggleSortingWithEvent: (e) => header.column.getToggleSortingHandler()?.(e),
                                   getIsSorted: () => header.column.getIsSorted(),
                                   getCanSort: () => header.column.getCanSort(),
                                   clearSorting: () => header.column.clearSorting(),
+                                  getSortIndex: () => header.column.getSortIndex()
                                 }
                                 : undefined
                             }

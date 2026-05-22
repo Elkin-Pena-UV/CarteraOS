@@ -45,11 +45,11 @@ const formatCOP = (value: number): string => {
   if (value === 0) return "$0"
   if (Math.abs(value) >= 1_000_000) {
     const millions = value / 1_000_000
-    return `$${millions.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 1 })}M`
+    return `$${millions.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}M`
   }
   if (Math.abs(value) >= 1_000) {
     const thousands = value / 1_000
-    return `$${thousands.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 1 })}K`
+    return `$${thousands.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}K`
   }
   return `$${value.toLocaleString("es-CO")}`
 }
