@@ -1,19 +1,33 @@
-import axios, { AxiosInstance, InternalAxiosRequestConfig } from "axios"
+import axios, { AxiosInstance } from 'axios'
 
 const api: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   timeout: 10000,
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
 })
 
-// El interceptor extrae response.data, así que efectivamente
-// las llamadas devuelven el body, no el AxiosResponse completo.
+// Adjunta el token JWT en cada request
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// Extrae response.data y maneja errores
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    console.error("Error en la petición:", error.response?.data || error.message)
+    // Sesión expirada o token inválido → redirige al login
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      window.location.href = '/login'
+    }
+    console.error('Error en la petición:', error.response?.data || error.message)
     return Promise.reject(error.response?.data || error.message)
   }
 )
