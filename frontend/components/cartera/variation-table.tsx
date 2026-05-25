@@ -273,10 +273,11 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
   const currentMonth = useMemo(() => {
     const year = Number(fecha.slice(0, 4))
     const month = Number(fecha.slice(4, 6)) - 1
-    return new Date(year, month, 1).toLocaleDateString("es-CO", {
+    const formatted = new Date(year, month, 1).toLocaleDateString("es-CO", {
       month: "long",
       year: "numeric",
     })
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1)
   }, [fecha])
 
   // ── Columnas ──────────────────────────────────────────────────────────────
@@ -332,7 +333,9 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
       {
         id: "carteraMesActual",
         accessorKey: "carteraMesActual",
-        header: "Cartera Mes",
+        header: () => (
+          <span className="capitalize">{currentMonth}</span>
+        ),
         size: 180,
         cell: ({ row }) => (
           <span className="font-medium text-[#ff6600]">{formatCurrency(row.getValue("carteraMesActual"))}</span>
@@ -404,7 +407,7 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
         },
       },
     ],
-    []
+    [currentMonth]
   )
 
   // ── TanStack Table ────────────────────────────────────────────────────────
@@ -464,9 +467,11 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
                     .filter((col) => !NON_HIDEABLE.includes(col.id) && col.getCanHide())
                     .map((col) => {
                       const label =
-                        typeof col.columnDef.header === 'string'
-                          ? col.columnDef.header
-                          : col.id
+                        col.id === 'carteraMesActual'
+                          ? currentMonth
+                          : typeof col.columnDef.header === 'string'
+                            ? col.columnDef.header
+                            : col.id
                       return (
                         <DropdownMenuCheckboxItem
                           key={col.id}
@@ -518,9 +523,11 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
                             if (isSticky) stickyOffset += header.getSize()
 
                             const label =
-                              typeof header.column.columnDef.header === "string"
-                                ? header.column.columnDef.header
-                                : header.id
+                              header.id === 'carteraMesActual'
+                                ? currentMonth
+                                : typeof header.column.columnDef.header === "string"
+                                  ? header.column.columnDef.header
+                                  : header.id
 
                             return (
                               <DraggableHeader
