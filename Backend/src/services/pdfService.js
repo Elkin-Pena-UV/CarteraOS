@@ -1,5 +1,6 @@
 import { renderToBuffer } from '@react-pdf/renderer';
-import { ReporteGeneral } from '../templates/reporteGeneral.js';
+import { ReporteGeneral  } from '../templates/reporteGeneral.js';
+import { ReporteCliente  } from '../templates/reporteCliente.js';
 import logger from '../config/logger.js';
 import React from 'react';
 
@@ -16,6 +17,24 @@ export async function generateReporteGeneral(payload) {
 
   logger.debug(
     `[PDF] Reporte general generado en ${Date.now() - inicio}ms · ${buffer.length} bytes`
+  );
+
+  return buffer;
+}
+
+// ─────────────────────────────────────────────
+// Generador del Reporte por Cliente
+// ─────────────────────────────────────────────
+
+export async function generateReporteCliente(payload) {
+  const inicio = Date.now();
+
+  const buffer = await renderToBuffer(
+    React.createElement(ReporteCliente, payload)
+  );
+
+  logger.debug(
+    `[PDF] Reporte cliente "${payload.cliente?.name ?? '?'}" generado en ${Date.now() - inicio}ms · ${buffer.length} bytes`
   );
 
   return buffer;
