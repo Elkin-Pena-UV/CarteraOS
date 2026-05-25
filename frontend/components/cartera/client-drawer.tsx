@@ -17,6 +17,8 @@ import { useFacturas } from "@/hooks/use-facturas"
 import { PaginationControls } from "@/components/ui/pagination-controls"
 import { useEffect, useMemo, useState } from "react"
 import { formatCurrency } from "@/lib/formatters"
+import { useExportPDF } from "@/hooks/use-export-pdf"
+import type { FechaCorteState } from "@/components/cartera/filters-bar"
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 type SortField =
@@ -51,18 +53,20 @@ function SortIcon({ field, sorting }: { field: SortField; sorting: SortState }) 
 // ── Props ──────────────────────────────────────────────────────────────────
 
 interface ClientDrawerProps {
-  client: Client | null
-  open: boolean
-  onClose: () => void
+  client:     Client | null
+  open:       boolean
+  onClose:    () => void
+  fechaCorte: FechaCorteState
 }
 
-export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
+export function ClientDrawer({ client, open, onClose, fechaCorte }: ClientDrawerProps) {
   // 🆕 Estado para paginación
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(50)
 
   // 🆕 Estado de ordenamiento
   const [sorting, setSorting] = useState<SortState>({ field: null, direction: null })
+  const { exportarCliente, exportingCliente } = useExportPDF()
 
   // 🆕 Reiniciar página cuando cambia el cliente o se abre el drawer
   useEffect(() => {
@@ -72,11 +76,16 @@ export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
     }
   }, [open, client?.nit])
 
-  // 🔄 MODIFICADO: ahora pasa page y limit al hook
+  const fechaEfectiva = fechaCorte?.modo === 'fecha' && fechaCorte.fecha
+    ? fechaCorte.fecha
+    : null
+
+  // 🔄 MODIFICADO: ahora pasa page, limit y fechaEfectiva al hook
   const { data: facturas, pagination, loading, isFetching, error } = useFacturas(
     open ? client?.nit ?? null : null,
     page,
-    limit
+    limit,
+    fechaEfectiva
   )
 
   // 🆕 Facturas ordenadas
@@ -98,6 +107,15 @@ export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
         : (bVal as number) - (aVal as number)
     })
   }, [facturas, sorting])
+
+  const handleExportarCliente = () => {
+    if (!client) return
+    exportarCliente({
+      cliente:    client,
+      facturas:   sortedFacturas,
+      fechaCorte,
+    })
+  }
 
   // 🆕 Toggle de columna
   const toggleSort = (field: SortField) => {
@@ -192,9 +210,17 @@ export function ClientDrawer({ client, open, onClose }: ClientDrawerProps) {
               <Phone className="mr-2 h-4 w-4" />
               Llamar
             </Button>
-            <Button variant="outline" className="flex-1">
-              <Mail className="mr-2 h-4 w-4" />
-              Email
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={handleExportarCliente}
+              disabled={exportingCliente || loading}
+            >
+              {exportingCliente
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <Mail className="mr-2 h-4 w-4" />
+              }
+              {exportingCliente ? 'Generando...' : `Enviar reporte (${sortedFacturas.length} facturas)`}
             </Button>
           </div>
 

@@ -91,7 +91,7 @@ export function KPICards({ data }: KPIVariationCardsProps) {
       value: `$${kpis.carteraTotalMesActual.toLocaleString("es-CO")}`,
       trend: {
         value: `${kpis.variacionTotalPct >= 0 ? "+" : ""}${kpis.variacionTotalPct.toFixed(2)}%`,
-        positive: kpis.variacionTotalPct >= 0,
+        positive: kpis.variacionTotalPct <= 0,
       },
       accentColor: "#050b12",
     },

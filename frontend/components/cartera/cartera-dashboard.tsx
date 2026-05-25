@@ -129,6 +129,7 @@ export default function CarteraDashboard() {
           client={selectedClient}
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
+          fechaCorte={fechaCorte}
         />
       </div>
     </AppShell>

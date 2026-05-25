@@ -33,13 +33,14 @@ export const facturasKeys = {
     [...facturasKeys.all, "cliente", nit, page, limit] as const,
 }
 
-export function useFacturas(nit: string | null, page: number = 1, limit: number = 50) {
+export function useFacturas(nit: string | null, page: number = 1, limit: number = 50, fechaCorte?: string | null | undefined) {
   const query = useQuery({
-    queryKey: facturasKeys.porCliente(nit ?? "", page, limit),
+    queryKey: [...facturasKeys.porCliente(nit ?? "", page, limit), fechaCorte ?? "hoy"],
     queryFn: async () => {
+      const fecha: string | null = fechaCorte ?? null
       // El interceptor de axios ya devuelve response.data,
       // pero TS infiere AxiosResponse. Casteamos vía unknown.
-      const response = (await getFacturasCliente(nit!, page, limit)) as unknown as {
+      const response = (await getFacturasCliente(nit!, page, limit, fecha)) as unknown as {
         ok: boolean
         data: FacturaItem[]
         pagination: PaginationMeta
