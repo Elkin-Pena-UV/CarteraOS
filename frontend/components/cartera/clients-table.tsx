@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo } from "react"
+import { forwardRef, useEffect, useImperativeHandle, useMemo } from "react"
 import {
   DndContext,
   closestCenter,
@@ -20,6 +20,7 @@ import {
   getSortedRowModel,
   flexRender,
   type ColumnDef,
+  type Table as TanstackTable,
 } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -104,6 +105,10 @@ interface ClientsTableProps {
   data: Client[]
   onViewClient: (client: Client) => void
   onSortedRowsChange?: (rows: Client[]) => void
+}
+
+export interface ClientsTableRef {
+  table: TanstackTable<Client>
 }
 
 // ── DraggableHeader ───────────────────────────────────────────────────────────
@@ -257,7 +262,8 @@ function DragOverlayContent({ columnId, columns }: { columnId: string; columns: 
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
-export function ClientsTable({ data, onViewClient, onSortedRowsChange }: ClientsTableProps) {
+const ClientsTable = forwardRef<ClientsTableRef, ClientsTableProps>(
+  ({ data, onViewClient, onSortedRowsChange }, ref) => {
 
   // ── Estado de tabla (hook compartido) ─────────────────────────────────────
   const {
@@ -508,6 +514,8 @@ export function ClientsTable({ data, onViewClient, onSortedRowsChange }: Clients
     onSortedRowsChange?.(sortedRows)
   }, [sorting, data])
 
+  useImperativeHandle(ref, () => ({ table }), [table])
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <Card>
@@ -690,4 +698,7 @@ export function ClientsTable({ data, onViewClient, onSortedRowsChange }: Clients
       </CardContent>
     </Card>
   )
-}
+  }
+)
+ClientsTable.displayName = 'ClientsTable'
+export { ClientsTable }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { type Table as TanstackTable } from '@tanstack/react-table'
 import api from '@/lib/axios'
 import type { ClientFilters, FechaCorteState } from '@/components/cartera/filters-bar'
 import type { Client } from '@/components/cartera/clients-table'
@@ -9,14 +10,32 @@ interface ExportPayload {
   filtros:    ClientFilters
   clientes:   Client[]
   aging:      AgingData
+  table:      TanstackTable<Client>
 }
 
 export function useExportPDF() {
   const [exporting, setExporting] = useState(false)
 
-  const exportarGeneral = async ({ fechaCorte, filtros, clientes, aging }: ExportPayload) => {
+  const exportarGeneral = async ({ fechaCorte, filtros, clientes, aging, table }: ExportPayload) => {
     setExporting(true)
     try {
+      // ── Columnas visibles en el orden actual ──
+      const COLS_EXCLUIDAS = ['actions', 'select']
+      const COL_KEY_MAP: Record<string, string> = {
+        nit: 'nit', name: 'name', channel: 'channel',
+        paymentCondition: 'paymentCondition', quota: 'quota',
+        current: 'current', overdue: 'overdue', totalBalance: 'totalBalance',
+        totalCop: 'totalCop', overcapacity: 'overcapacity',
+      }
+      const columnas = table
+        .getVisibleLeafColumns()
+        .filter(col => !COLS_EXCLUIDAS.includes(col.id))
+        .map(col => ({
+          id:    col.id,
+          label: typeof col.columnDef.header === 'string' ? col.columnDef.header : col.id,
+          key:   COL_KEY_MAP[col.id] ?? col.id,
+        }))
+
       // ── KPIs calculados desde números crudos de clientes ──
       const totalCorriente   = clientes.reduce((s, c) => s + (c.current || 0), 0)
       const totalVencida     = clientes.reduce((s, c) => s + (c.overdue  || 0), 0)
@@ -50,6 +69,7 @@ export function useExportPDF() {
           totalCopByChannel: aging.totalCopByChannel,
           totalVencida:      aging.totalVencida,
         },
+        columnas,
         clientes,
       }
 

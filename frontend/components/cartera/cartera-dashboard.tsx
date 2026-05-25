@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { KPICards } from "@/components/cartera/kpi-cards"
 import { AgingCharts } from "@/components/cartera/aging-charts"
 import {
@@ -10,7 +10,7 @@ import {
   type ClientFilters,
   type FechaCorteState,
 } from "@/components/cartera/filters-bar"
-import { ClientsTable, type Client } from "@/components/cartera/clients-table"
+import { ClientsTable, type Client, type ClientsTableRef } from "@/components/cartera/clients-table"
 import { ClientDrawer } from "@/components/cartera/client-drawer"
 import { AppShell } from "@/components/layout/app-shell"
 import { useCartera } from "@/hooks/use-cartera"
@@ -30,6 +30,7 @@ export default function CarteraDashboard() {
   const [draftFilters, setDraftFilters] = useState<ClientFilters>(initialClientFilters)
   const [fechaCorte, setFechaCorte] = useState<FechaCorteState>(initialFechaCorte)
   const [sortedClients, setSortedClients] = useState<Client[]>([])
+  const tableRef = useRef<ClientsTableRef>(null)
 
   const { exportarGeneral, exporting } = useExportPDF()
 
@@ -71,13 +72,15 @@ export default function CarteraDashboard() {
   )
 
   const handleExportarPDF = () => {
-  exportarGeneral({
-    fechaCorte,
-    filtros:  draftFilters,
-    clientes: sortedClients.length > 0 ? sortedClients : filteredClients,
-    aging:    agingData,
-  })
-}
+    if (!tableRef.current) return
+    exportarGeneral({
+      fechaCorte,
+      filtros:  draftFilters,
+      clientes: sortedClients.length > 0 ? sortedClients : filteredClients,
+      aging:    agingData,
+      table:    tableRef.current.table,
+    })
+  }
 
 
   return (
@@ -116,6 +119,7 @@ export default function CarteraDashboard() {
 
         {/* ClientsTable recibe los datos ya filtrados */}
         <ClientsTable
+          ref={tableRef}
           data={filteredClients}
           onViewClient={handleViewClient}
           onSortedRowsChange={setSortedClients}

@@ -139,8 +139,8 @@ const s = StyleSheet.create({
   tableTotRow:  { flexDirection: 'row', backgroundColor: BLUE },
   thCell:       { fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: '#fff', paddingHorizontal: 5, paddingVertical: 4 },
   tdCell:       { fontSize: 6.5, paddingHorizontal: 5, paddingVertical: 3.5, borderBottomWidth: 0.5, borderBottomColor: '#f3f4f6' },
-  tagCom:       { backgroundColor: '#eff6ff', color: '#1e40af', borderRadius: 2, paddingHorizontal: 3, paddingVertical: 1, fontSize: 6 },
-  tagInd:       { backgroundColor: '#fff7ed', color: '#c2410c', borderRadius: 2, paddingHorizontal: 3, paddingVertical: 1, fontSize: 6 },
+  tagCom:       { backgroundColor: '#eff6ff', color: '#1e40af', borderRadius: 2, paddingHorizontal: 3, paddingVertical: 1, fontSize: 5.5 },
+  tagInd:       { backgroundColor: '#fff7ed', color: '#c2410c', borderRadius: 2, paddingHorizontal: 3, paddingVertical: 1, fontSize: 5.5 },
 
   // Footer
   footer:       { backgroundColor: '#f9fafb', borderTopWidth: 0.5, borderTopColor: BORDER, paddingHorizontal: 20, paddingVertical: 5, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -151,19 +151,34 @@ const s = StyleSheet.create({
 // Columnas de la tabla
 // ─────────────────────────────────────────────
 
-// flex: número relativo de espacio — las columnas se reparten todo el ancho disponible
-const COLS = [
-  { label: 'NIT',             key: 'nit',              flex: 1.1, align: 'left'   },
-  { label: 'Nombre cliente',  key: 'name',             flex: 2.2, align: 'left'   },
-  { label: 'Canal',           key: 'channel',          flex: 1.4, align: 'left'   },
-  { label: 'C.Pago',         key: 'paymentCondition',  flex: 0.7, align: 'center' },
-  { label: 'Cupo',            key: 'quota',            flex: 1.3, align: 'right',  format: formatCOP, color: ORANGE },
-  { label: 'Saldo corriente', key: 'current',          flex: 1.3, align: 'right',  format: formatCOP },
-  { label: 'Total vencido',   key: 'overdue',          flex: 1.3, align: 'right',  format: formatCOP },
-  { label: 'Saldo total',     key: 'totalBalance',     flex: 1.2, align: 'right',  format: formatCOP },
-  { label: 'Total COP',       key: 'totalCop',         flex: 1.3, align: 'right',  format: formatCOP, colorFn: v => v > 1_000_000_000 ? '#1d4ed8' : ORANGE },
-  { label: 'Sobrecupo',       key: 'overcapacity',     flex: 1.2, align: 'right',  format: formatCOP, colorFn: v => v > 0 ? RED : '#374151' },
-];
+const COL_CONFIG = {
+  nit:              { flex: 1.1, align: 'left'   },
+  name:             { flex: 2.2, align: 'left'   },
+  channel:          { flex: 1.35, align: 'center'   },
+  paymentCondition: { flex: 0.7, align: 'center' },
+  overdue1:         { flex: 1.5, align: 'right', format: formatCOP },
+  overdue2:         { flex: 1.5, align: 'right', format: formatCOP },
+  overdue3:         { flex: 1.5, align: 'right', format: formatCOP },
+  overdue4:         { flex: 1.5, align: 'right', format: formatCOP },
+  quota:            { flex: 1.5, align: 'right', format: formatCOP, color: ORANGE },
+  current:          { flex: 1.5, align: 'right', format: formatCOP },
+  overdue:          { flex: 1.5, align: 'right', format: formatCOP },
+  totalBalance:     { flex: 1.4, align: 'right', format: formatCOP },
+  totalCop:         { flex: 1.5, align: 'right', format: formatCOP, colorFn: v => v > 1_000_000_000 ? '#1d4ed8' : ORANGE },
+  overcapacity:     { flex: 1.4, align: 'right', format: formatCOP, colorFn: v => v > 0 ? RED : '#374151' },
+  remittanceValue:  { flex: 1.3, align: 'right', format: formatCOP },
+};
+
+function buildCols(columnas) {
+  if (!columnas || columnas.length === 0) {
+    return Object.entries(COL_CONFIG).map(([key, cfg]) => ({ key, label: key, ...cfg }));
+  }
+  return columnas.map(col => ({
+    key:   col.key ?? col.id,
+    label: col.label ?? col.id,
+    ...(COL_CONFIG[col.key ?? col.id] ?? { flex: 1, align: 'left' }),
+  }));
+}
 
 // ─────────────────────────────────────────────
 // Componentes como funciones puras
@@ -317,7 +332,8 @@ function DonutAging({ distribution, totalVencida }) {
   );
 }
 
-function TablaClientes({ clientes }) {
+function TablaClientes({ clientes, columnas }) {
+  const COLS = buildCols(columnas);
   const sum = key => clientes.reduce((s, c) => s + (Number(c[key]) || 0), 0);
 
   const totals = {
@@ -348,8 +364,9 @@ function TablaClientes({ clientes }) {
 
       if (c.key === 'channel' && !isTotals) {
         const isCom = String(val).includes('01');
+        const label = String(val).replace(/^\d+\s*-\s*/i, '').trim();
         return ce(View, { key: ci, style: [s.tdCell, { flex: c.flex, justifyContent: 'center' }] },
-          ce(Text, { style: isCom ? s.tagCom : s.tagInd }, val),
+          ce(Text, { style: isCom ? s.tagCom : s.tagInd }, label),
         );
       }
 
@@ -389,7 +406,7 @@ function Footer({ meta }) {
 // Componente raíz — export nombrado
 // ─────────────────────────────────────────────
 
-export function ReporteGeneral({ meta = {}, kpis = {}, aging = {}, clientes = [] }) {
+export function ReporteGeneral({ meta = {}, kpis = {}, aging = {}, clientes = [], columnas = [] }) {
   return ce(Document, null,
     ce(Page, { size: 'A4', orientation: 'landscape', style: s.page },
       ce(Header, { meta }),
@@ -401,7 +418,7 @@ export function ReporteGeneral({ meta = {}, kpis = {}, aging = {}, clientes = []
           ce(DonutAging, { distribution: aging.distribution ?? [], totalVencida: aging.totalVencida }),
         ),
         ce(Text, { style: s.sectionHdr }, 'TABLA DE CLIENTES'),
-        ce(TablaClientes, { clientes }),
+        ce(TablaClientes, { clientes, columnas }),
       ),
       ce(Footer, { meta }),
     ),
