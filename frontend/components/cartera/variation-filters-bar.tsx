@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ChevronUp, ChevronDown, X, Mail } from "lucide-react"
+import { ChevronUp, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
@@ -51,18 +51,18 @@ export const initialVariationPeriod: VariationPeriod = {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const MESES = [
-  { value: 1, label: "Enero" },
-  { value: 2, label: "Febrero" },
-  { value: 3, label: "Marzo" },
-  { value: 4, label: "Abril" },
-  { value: 5, label: "Mayo" },
-  { value: 6, label: "Junio" },
-  { value: 7, label: "Julio" },
-  { value: 8, label: "Agosto" },
-  { value: 9, label: "Septiembre" },
-  { value: 10, label: "Octubre" },
-  { value: 11, label: "Noviembre" },
-  { value: 12, label: "Diciembre" },
+  { value: 1,  label: "Enero"      },
+  { value: 2,  label: "Febrero"    },
+  { value: 3,  label: "Marzo"      },
+  { value: 4,  label: "Abril"      },
+  { value: 5,  label: "Mayo"       },
+  { value: 6,  label: "Junio"      },
+  { value: 7,  label: "Julio"      },
+  { value: 8,  label: "Agosto"     },
+  { value: 9,  label: "Septiembre" },
+  { value: 10, label: "Octubre"    },
+  { value: 11, label: "Noviembre"  },
+  { value: 12, label: "Diciembre"  },
 ]
 
 /** Retorna el último día del mes como string YYYYMMDD */
@@ -127,10 +127,6 @@ export function VariationFiltersBar({
     toast({ title: "Filtros limpiados", description: "Se han removido todos los filtros." })
   }
 
-  const handleExport = () => {
-    toast({ title: "Enviando reporte", description: "El reporte se enviará en unos segundos..." })
-  }
-
   return (
     <div className="sticky top-16 z-20 rounded-lg border bg-card/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/80">
       {/* Header */}
@@ -157,8 +153,9 @@ export function VariationFiltersBar({
       {isExpanded && (
         <div className="p-4">
           <div className="flex flex-wrap items-end gap-3">
+
+            {/* ── Mes + Año + Consultar ─────────────────────────────────── */}
             <div className="flex items-end gap-1">
-              {/* ── Mes ──────────────────────────────────────────────────────── */}
               <div className="min-w-[130px] space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Mes</Label>
                 <Select
@@ -178,7 +175,6 @@ export function VariationFiltersBar({
                 </Select>
               </div>
 
-              {/* ── Año ──────────────────────────────────────────────────────── */}
               <div className="min-w-[90px] space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Año</Label>
                 <Select
@@ -198,7 +194,8 @@ export function VariationFiltersBar({
                 </Select>
               </div>
             </div>
-            {/* ── Botón Consultar ──────────────────────────────────────────────── */}
+
+            {/* ── Botón Consultar ──────────────────────────────────────── */}
             <div className="space-y-1.5">
               <Label className="text-xs text-transparent select-none">‎</Label>
               <Button
@@ -208,10 +205,11 @@ export function VariationFiltersBar({
                 Consultar
               </Button>
             </div>
+
             {/* Separador visual */}
             <div className="h-9 w-px self-end bg-border" />
 
-            {/* ── NIT / Razón social ───────────────────────────────────────── */}
+            {/* ── NIT / Razón social ───────────────────────────────────── */}
             <div className="min-w-[180px] space-y-1.5">
               <Label className="text-xs text-muted-foreground">NIT o Razón Social</Label>
               <Input
@@ -222,7 +220,7 @@ export function VariationFiltersBar({
               />
             </div>
 
-            {/* ── Tipo de cliente ──────────────────────────────────────────── */}
+            {/* ── Tipo de cliente ──────────────────────────────────────── */}
             <div className="min-w-[180px] space-y-1.5">
               <Label className="text-xs text-muted-foreground">Tipo de cliente</Label>
               <DropdownMenu>
@@ -268,7 +266,8 @@ export function VariationFiltersBar({
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            {/* ── Canal ───────────────────────────────────────────────────── */}
+
+            {/* ── Canal ───────────────────────────────────────────────── */}
             <div className="min-w-[160px] space-y-1.5">
               <Label className="text-xs text-muted-foreground">Canal</Label>
               <DropdownMenu>
@@ -300,15 +299,11 @@ export function VariationFiltersBar({
               </DropdownMenu>
             </div>
 
-            {/* ── Acciones ─────────────────────────────────────────────────── */}
+            {/* ── Limpiar ──────────────────────────────────────────────── */}
             <div className="ml-auto flex items-center gap-2">
               <Button variant="ghost" onClick={handleClear} className="h-9">
                 <X className="mr-2 h-4 w-4" />
                 Limpiar
-              </Button>
-              <Button variant="outline" onClick={handleExport} className="h-9">
-                <Mail className="mr-2 h-4 w-4" />
-                Enviar reporte
               </Button>
             </div>
 

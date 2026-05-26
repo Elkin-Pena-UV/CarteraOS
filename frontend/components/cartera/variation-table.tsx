@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, forwardRef, useImperativeHandle } from "react"
 import {
   DndContext,
   closestCenter,
@@ -18,6 +18,7 @@ import {
   getSortedRowModel,
   flexRender,
   type ColumnDef,
+  type Table as TanstackTable,
 } from "@tanstack/react-table"
 import {
   Table,
@@ -45,8 +46,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import {
-  TrendingUp,
-  TrendingDown,
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
@@ -72,6 +71,11 @@ export interface VariationClient {
   variacionCop: number
   variacionPct: number
   sobrecupoCop: number
+}
+
+// ── Ref expuesta al padre ─────────────────────────────────────────────────────
+export interface VariationTableRef {
+  table: TanstackTable<VariationClient>
 }
 
 // ── Constantes ────────────────────────────────────────────────────────────────
@@ -141,7 +145,6 @@ function DraggableHeader({
     transform: CSS.Transform.toString(transform),
     transition,
     width: size,
-    // sticky si aplica:
     ...(isPinned && stickyLeft !== undefined
       ? { position: "sticky", left: stickyLeft, zIndex: 3 }
       : { position: "relative" }),
@@ -250,9 +253,10 @@ function DragOverlayContent({
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
-export function VariationTable({ data, fecha }: VariationTableProps) {
+export const VariationTable = forwardRef<VariationTableRef, VariationTableProps>(
+  function VariationTable({ data, fecha }, ref) {
 
-  // ── Estado de tabla (hook compartido) ─────────────────────────────────────
+  // ── Estado de tabla ───────────────────────────────────────────────────────
   const {
     sorting, setSorting,
     columnOrder, setColumnOrder,
@@ -333,9 +337,7 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
       {
         id: "carteraMesActual",
         accessorKey: "carteraMesActual",
-        header: () => (
-          <span className="capitalize">{currentMonth}</span>
-        ),
+        header: currentMonth,
         size: 180,
         cell: ({ row }) => (
           <span className="font-medium text-[#ff6600]">{formatCurrency(row.getValue("carteraMesActual"))}</span>
@@ -344,10 +346,12 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
       {
         id: "carteraUltimoMes",
         accessorKey: "carteraUltimoMes",
-        header: "Cartera Mes Anterior",
-        size: 195,
+        header: "Cartera Anterior",
+        size: 160,
         cell: ({ row }) => (
-          <span className="font-medium text-[#ff6600]">{formatCurrency(row.getValue("carteraUltimoMes"))}</span>
+          <span className="text-muted-foreground">
+            {formatCurrency(row.getValue("carteraUltimoMes"))}
+          </span>
         ),
       },
       {
@@ -357,13 +361,16 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
         size: 160,
         cell: ({ row }) => {
           const value = row.getValue("variacionCop") as number
-          const isPositive = value > 0
-          const isNeutral = value === 0
           return (
             <span className={cn(
-              "font-medium",
-              isNeutral ? "text-muted-foreground" : isPositive ? "text-red-600" : "text-green-600"
+              "font-medium flex items-center gap-1",
+              value > 0 ? "text-red-600" : value < 0 ? "text-green-600" : "text-muted-foreground"
             )}>
+              {value > 0
+                ? <ArrowUp className="h-3 w-3" />
+                : value < 0
+                  ? <ArrowDown className="h-3 w-3" />
+                  : null}
               {formatCurrency(value)}
             </span>
           )
@@ -372,21 +379,15 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
       {
         id: "variacionPct",
         accessorKey: "variacionPct",
-        header: "Variación (%)",
+        header: "Variación %",
         size: 150,
         cell: ({ row }) => {
           const value = row.getValue("variacionPct") as number
-          const isPositive = value > 0
-          const isNeutral = value === 0
           return (
             <span className={cn(
-              "flex items-center gap-1 font-medium",
-              isNeutral ? "text-muted-foreground" : isPositive ? "text-red-600" : "text-green-600"
+              "font-medium",
+              value > 0 ? "text-red-600" : value < 0 ? "text-green-600" : "text-muted-foreground"
             )}>
-              {!isNeutral && (isPositive
-                ? <TrendingUp className="h-4 w-4" />
-                : <TrendingDown className="h-4 w-4" />
-              )}
               {formatPercent(value)}
             </span>
           )
@@ -425,11 +426,13 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
     enableColumnPinning: true,
     initialState: {
       columnPinning: {
-        left: ['nit', 'name'],   // clients-table
-        // left: ['nit', 'razonSocial'],  // variation-table
+        left: ['nit', 'razonSocial'],
       },
     },
   })
+
+  // ── Exponer instancia al padre ────────────────────────────────────────────
+  useImperativeHandle(ref, () => ({ table }), [table])
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -615,4 +618,4 @@ export function VariationTable({ data, fecha }: VariationTableProps) {
       </Card>
     </div>
   )
-}
+})

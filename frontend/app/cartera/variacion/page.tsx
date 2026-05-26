@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef } from "react"
 import { AppShell } from "@/components/layout/app-shell"
-import { VariationTable } from "@/components/cartera/variation-table"
+import { VariationTable, type VariationTableRef } from "@/components/cartera/variation-table"
 import { KPICards } from "@/components/cartera/kpi-variation-cards"
 import {
   VariationFiltersBar,
@@ -15,29 +15,50 @@ import {
 import { useVariacion } from "@/hooks/use-variacion"
 import { adaptVariacionToClients } from "@/lib/adapters/variacionAdapter"
 import { applyVariationFilters } from "@/lib/filters/variation-filters"
+import { useExportPDF } from "@/hooks/use-export-pdf"
+import { FileDown, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function VariacionPage() {
   const [filters, setFilters] = useState<VariationFilters>(initialVariationFilters)
 
-  // Ahora: draft (UI) + committed (fetch)
-  const [draftPeriod, setDraftPeriod] = useState<VariationPeriod>(initialVariationPeriod)
+  const [draftPeriod, setDraftPeriod]         = useState<VariationPeriod>(initialVariationPeriod)
   const [committedPeriod, setCommittedPeriod] = useState<VariationPeriod>(initialVariationPeriod)
 
-  // Fecha = último día del mes seleccionado → formato YYYYMMDD para el hook
+  const tableRef = useRef<VariationTableRef>(null)
+
+  const { exportarVariacion, exportingVariacion } = useExportPDF()
+
   const fecha = useMemo(
     () => lastDayOfMonthYYYYMMDD(committedPeriod.year, committedPeriod.month),
     [committedPeriod.year, committedPeriod.month]
   )
 
-  // Al limpiar, resetea ambos
   const handleClearPeriod = () => {
     setDraftPeriod(initialVariationPeriod)
     setCommittedPeriod(initialVariationPeriod)
   }
 
   const { data: rawData, loading, error } = useVariacion(fecha)
-  const allData = useMemo(() => adaptVariacionToClients(rawData), [rawData])
+  const allData      = useMemo(() => adaptVariacionToClients(rawData), [rawData])
   const filteredData = useMemo(() => applyVariationFilters(allData, filters), [allData, filters])
+  
+
+  const handleExportarPDF = () => {
+    if (!tableRef.current?.table) return
+
+     // Filas en el orden que muestra la tabla (respeta sorting activo)
+  const clientesOrdenados = tableRef.current.table
+    .getSortedRowModel()
+    .rows.map(row => row.original)
+
+    exportarVariacion({
+      fecha,
+      filtros:  filters,
+      clientes: clientesOrdenados,
+      table:    tableRef.current.table,
+    })
+  }
 
   if (loading) return (
     <AppShell>
@@ -56,13 +77,30 @@ export default function VariacionPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">Variación de Cartera</h1>
-          <p className="text-muted-foreground">
-            Comparativo de cartera entre el mes actual y el anterior
-          </p>
+
+        {/* ── Cabecera ─────────────────────────────────────────────────── */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Variación de Cartera</h1>
+            <p className="text-muted-foreground">
+              Comparativo de cartera entre el mes actual y el anterior
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportarPDF}
+            disabled={exportingVariacion || filteredData.length === 0}
+          >
+            {exportingVariacion
+              ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              : <FileDown className="mr-2 h-4 w-4" />
+            }
+            {exportingVariacion ? "Generando..." : "Exportar PDF"}
+          </Button>
         </div>
 
+        {/* ── Filtros ───────────────────────────────────────────────────── */}
         <VariationFiltersBar
           filters={filters}
           onFiltersChange={setFilters}
@@ -72,9 +110,12 @@ export default function VariacionPage() {
           onClearPeriod={handleClearPeriod}
         />
 
+        {/* ── KPIs ─────────────────────────────────────────────────────── */}
         <KPICards data={allData} />
 
-        <VariationTable data={filteredData} fecha={fecha} />
+        {/* ── Tabla ────────────────────────────────────────────────────── */}
+        <VariationTable ref={tableRef} data={filteredData} fecha={fecha} />
+
       </div>
     </AppShell>
   )
