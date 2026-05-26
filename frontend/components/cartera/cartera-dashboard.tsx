@@ -75,10 +75,10 @@ export default function CarteraDashboard() {
     if (!tableRef.current) return
     exportarGeneral({
       fechaCorte,
-      filtros:  draftFilters,
+      filtros: draftFilters,
       clientes: sortedClients.length > 0 ? sortedClients : filteredClients,
-      aging:    agingData,
-      table:    tableRef.current.table,
+      aging: agingData,
+      table: tableRef.current.table,
     })
   }
 
@@ -86,24 +86,26 @@ export default function CarteraDashboard() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard de Cartera</h1>
-          <p className="text-muted-foreground">
-            Gestión y seguimiento de cartera de clientes
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Dashboard de Cartera</h1>
+            <p className="text-muted-foreground">
+              Gestión y seguimiento de cartera de clientes
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportarPDF}
+            disabled={exporting}
+          >
+            {exporting
+              ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              : <FileDown className="mr-2 h-4 w-4" />
+            }
+            {exporting ? 'Generando...' : 'Exportar PDF'}
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExportarPDF}
-          disabled={exporting}
-        >
-          {exporting
-            ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            : <FileDown className="mr-2 h-4 w-4" />
-          }
-          {exporting ? 'Generando...' : 'Exportar PDF'}
-        </Button>
 
         <FiltersBar
           value={draftFilters}
