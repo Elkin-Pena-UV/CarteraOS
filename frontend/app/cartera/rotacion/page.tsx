@@ -1,18 +1,28 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { RotationTable } from "@/components/cartera/rotation-table"
 import { FiltersBarCopy } from "@/components/cartera/filters-barcopy"
 import { useRotacion } from "@/hooks/use-rotacion"
+import type { RotacionCliente } from "@/hooks/use-rotacion" 
 import type { RotacionFiltros } from "@/lib/services/rotacionService"
 import { Loader2 } from "lucide-react"
 
 export default function RotacionPage() {
   const [fechaRef, setFechaRef] = useState<string | null>(null)
   const [filtros, setFiltros]   = useState<RotacionFiltros>({})
+  const [clientesCatalogo, setClientesCatalogo] = useState<RotacionCliente[]>([])
 
-  const { data, loading, error, isFetching } = useRotacion(fechaRef, filtros)
+  const { data, clientes, loading, error, isFetching } = useRotacion(fechaRef, filtros)
+
+  // Guarda el catálogo completo la primera vez que llegan clientes
+  // (o cuando llegan más que antes — sin filtro de cliente activo)
+  useEffect(() => {
+    if (clientes.length > 0 && clientes.length >= clientesCatalogo.length) {
+      setClientesCatalogo(clientes)
+    }
+  }, [clientes])
 
   const handleConsultar = (fecha: string, f: RotacionFiltros) => {
     setFechaRef(fecha)
@@ -38,6 +48,7 @@ export default function RotacionPage() {
           onConsultar={handleConsultar}
           onLimpiar={handleLimpiar}
           isFetching={isFetching}
+          clienteOptions={clientesCatalogo} 
         />
 
         {loading && (

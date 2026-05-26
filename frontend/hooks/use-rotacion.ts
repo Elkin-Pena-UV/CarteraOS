@@ -14,6 +14,11 @@ export type RotacionItem = {
   rotCxC: number
 }
 
+export type RotacionCliente = {
+  f1_tercero: string
+  f1_tercero_razon_social: string
+}
+
 export const rotacionKeys = {
   all: ["rotacion"] as const,
   byFecha: (fechaRef: string | null, filtros: RotacionFiltros) =>
@@ -30,13 +35,15 @@ export function useRotacion(
       const response = await getRotacion(fechaRef, filtros) as unknown as {
         ok: boolean
         data: RotacionItem[]
+        clientes: RotacionCliente[]
       }
-      return response.data ?? []
+      return { data: response.data ?? [], clientes: response.clientes ?? [] }
     },
   })
 
   return {
-    data: query.data ?? [],
+    data: query.data?.data ?? [],
+    clientes: query.data?.clientes ?? [],
     loading: query.isLoading,
     error: query.error ? "Error al cargar la rotación de cartera" : null,
     isFetching: query.isFetching,

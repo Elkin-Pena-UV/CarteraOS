@@ -12,6 +12,19 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -19,7 +32,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { ChevronDown, ChevronUp, Filter, Mail, X, Loader2 } from "lucide-react"
+import { ChevronDown, ChevronUp, Filter, Mail, X, Loader2, Check, ChevronsUpDown } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import type { RotacionFiltros } from "@/lib/services/rotacionService"
@@ -27,18 +40,18 @@ import type { RotacionFiltros } from "@/lib/services/rotacionService"
 // ── Helpers de fecha ──────────────────────────────────────────────────────────
 
 const monthOptions = [
-  { value: "enero",      label: "Enero",      num: 1  },
-  { value: "febrero",    label: "Febrero",    num: 2  },
-  { value: "marzo",      label: "Marzo",      num: 3  },
-  { value: "abril",      label: "Abril",      num: 4  },
-  { value: "mayo",       label: "Mayo",       num: 5  },
-  { value: "junio",      label: "Junio",      num: 6  },
-  { value: "julio",      label: "Julio",      num: 7  },
-  { value: "agosto",     label: "Agosto",     num: 8  },
-  { value: "septiembre", label: "Septiembre", num: 9  },
-  { value: "octubre",    label: "Octubre",    num: 10 },
-  { value: "noviembre",  label: "Noviembre",  num: 11 },
-  { value: "diciembre",  label: "Diciembre",  num: 12 },
+  { value: "enero", label: "Enero", num: 1 },
+  { value: "febrero", label: "Febrero", num: 2 },
+  { value: "marzo", label: "Marzo", num: 3 },
+  { value: "abril", label: "Abril", num: 4 },
+  { value: "mayo", label: "Mayo", num: 5 },
+  { value: "junio", label: "Junio", num: 6 },
+  { value: "julio", label: "Julio", num: 7 },
+  { value: "agosto", label: "Agosto", num: 8 },
+  { value: "septiembre", label: "Septiembre", num: 9 },
+  { value: "octubre", label: "Octubre", num: 10 },
+  { value: "noviembre", label: "Noviembre", num: 11 },
+  { value: "diciembre", label: "Diciembre", num: 12 },
 ]
 
 const currentYear = String(new Date().getFullYear())
@@ -50,8 +63,8 @@ const yearOptions = Array.from({ length: 8 }, (_, i) =>
 // sobre el campo f1_canal ("01 - COMERCIALIZADOR", "02 - INDUSTRIAL", etc.)
 const CANAL_OPTIONS = [
   { value: "comercializador", label: "Comercializador" },
-  { value: "industrial",      label: "Industrial"      },
-  { value: "vtd",             label: "VTD"             },
+  { value: "industrial", label: "Industrial" },
+  { value: "vtd", label: "VTD" },
 ]
 
 /** Último día del mes seleccionado → YYYYMMDD */
@@ -85,32 +98,37 @@ function CanalTriggerLabel({ selected }: { selected: string[] }) {
 
 // ── Valores iniciales (mes anterior al actual) ────────────────────────────────
 
-const mesAnterior  = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)
+const mesAnterior = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)
 const initialMonth = monthOptions[mesAnterior.getMonth()].value
-const initialYear  = String(mesAnterior.getFullYear())
+const initialYear = String(mesAnterior.getFullYear())
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 interface FiltersBarCopyProps {
   onConsultar: (fechaRef: string, filtros: RotacionFiltros) => void
-  onLimpiar:   () => void
+  onLimpiar: () => void
   isFetching?: boolean
+  clienteOptions?: { f1_tercero: string; f1_tercero_razon_social: string }[]
 }
+
 
 // ── Componente ────────────────────────────────────────────────────────────────
 
-export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false }: FiltersBarCopyProps) {
+export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false, clienteOptions }: FiltersBarCopyProps) {
   const { toast } = useToast()
   const [isExpanded, setIsExpanded] = useState(true)
 
   // Periodo
-  const [selectedMonth,   setSelectedMonth]   = useState<string>(initialMonth)
-  const [selectedYear,    setSelectedYear]    = useState<string>(initialYear)
+  const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth)
+  const [selectedYear, setSelectedYear] = useState<string>(initialYear)
 
   // Filtros
   const [selectedCanales, setSelectedCanales] = useState<string[]>([])
-  const [clientType,      setClientType]      = useState<string>("")
-  const [clientName,      setClientName]      = useState<string>("")
+  const [clientType, setClientType] = useState<string>("")
+  const [clientName, setClientName] = useState<string>("")
+
+  // Estado del combo de clientes
+  const [clientComboOpen, setClientComboOpen] = useState(false)
 
   const periodLabel = `${formatMonthLabel(selectedMonth)} ${selectedYear}`
 
@@ -123,9 +141,9 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false }: F
     }
 
     const filtros: RotacionFiltros = {
-      canal:       selectedCanales,
+      canal: selectedCanales,
       // "Credito" / "Anticipado" con mayúscula — coincide exactamente con f1_cond_pago_tipo
-      condPago:    clientType && clientType !== "all" ? [clientType] : [],
+      condPago: clientType && clientType !== "all" ? [clientType] : [],
       razonSocial: clientName.trim(),
     }
 
@@ -141,6 +159,7 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false }: F
     setClientType("")
     setClientName("")
     onLimpiar()
+    setClientComboOpen(false)
     toast({ title: "Filtros limpiados", description: "Se han removido todos los filtros." })
   }
 
@@ -274,16 +293,67 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false }: F
               </Select>
             </div>
 
-            {/* ── Cliente ────────────────────────────────────────────────── */}
-            <div className="min-w-[180px] space-y-1.5">
+            {/* ── Cliente ────────────────────────────────────────────── */}
+            <div className="min-w-[220px] space-y-1.5">
               <Label className="text-xs text-muted-foreground">Cliente</Label>
-              <Input
-                placeholder="Buscar cliente..."
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleApplyFilters()}
-                className="h-9"
-              />
+              <Popover open={clientComboOpen} onOpenChange={setClientComboOpen} modal={false}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={clientComboOpen}
+                    className="h-9 w-full justify-between font-normal"
+                  >
+                    <span className="truncate">
+                      {clientName
+                        ? clienteOptions?.find(c => c.f1_tercero_razon_social === clientName)
+                          ?.f1_tercero_razon_social ?? clientName
+                        : <span className="text-muted-foreground">Buscar cliente...</span>
+                      }
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[320px] p-0" align="start" side="bottom" sideOffset={4} avoidCollisions={false}>
+                  <Command>
+                    <CommandInput placeholder="Buscar por nombre o NIT..." />
+                    <CommandList className="max-h-[200px] overflow-y-auto">
+                      <CommandEmpty>Sin resultados.</CommandEmpty>
+                      <CommandGroup>
+                        {/* Opción vacía para limpiar */}
+                        <CommandItem
+                          value="__todos__"
+                          onSelect={() => { setClientName(""); setClientComboOpen(false) }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", clientName === "" ? "opacity-100" : "opacity-0")} />
+                          Todos los clientes
+                        </CommandItem>
+                        {(clienteOptions ?? []).map((c, i) => (
+                          <CommandItem
+                            key={`${c.f1_tercero}-${i}`}
+                            value={`${c.f1_tercero_razon_social} ${c.f1_tercero}`}
+                            onSelect={() => {
+                              setClientName(c.f1_tercero_razon_social)
+                              setClientComboOpen(false)
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                clientName === c.f1_tercero_razon_social ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="flex flex-col">
+                              <span className="text-sm">{c.f1_tercero_razon_social}</span>
+                              <span className="text-xs text-muted-foreground">{c.f1_tercero}</span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* ── Acciones ───────────────────────────────────────────────── */}

@@ -47,9 +47,20 @@ const fetchClientesFiltrados = async (pool, fechaCorte, filtros) => {
     )
   }
 
-  const listaRazonSocial = filas.map(r => r.f1_tercero_razon_social?.trim()).filter(Boolean)
+  // Deduplicar clientes por f1_tercero (NIT)
+  const vistos = new Set()
+  const clientesUnicos = filas.filter(r => {
+    if (vistos.has(r.f1_tercero)) return false
+    vistos.add(r.f1_tercero)
+    return true
+  })
 
-  return { clientes: filas, listaRazonSocial }
+  // Deduplicar razones sociales
+  const listaRazonSocial = [...new Set(
+    clientesUnicos.map(r => r.f1_tercero_razon_social?.trim()).filter(Boolean)
+  )]
+
+  return { clientes: clientesUnicos, listaRazonSocial }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -189,17 +200,22 @@ const getRotacion = async (fechaCorte, filtros = {}) => {
     const periodos = cierresTotales.map(c => c.substring(0, 6));
     const fechaIniVentas = getInicioVentanaMeses(fechaCorte, N_TOTAL);
 
-    // Paso 1 — universo de clientes (solo si hay filtros activos)
+    // Paso 1 — universo de clientes
     let clientes = [];
-    let listaRazonSocial = null; // null = sin filtro (todos)
+    let listaRazonSocial = null;
 
+    const t1 = Date.now();
     if (hayFiltros) {
-      const t1 = Date.now();
       const resultado = await fetchClientesFiltrados(pool, fechaCorte, { canal, condPago, razonSocial });
       clientes = resultado.clientes;
       listaRazonSocial = resultado.listaRazonSocial;
-      tiempos.filtrado = Date.now() - t1;
+    } else {
+      // Sin filtros activos → igual traer lista completa de clientes para el combobox del frontend
+      const resultado = await fetchClientesFiltrados(pool, fechaCorte, { canal: [], condPago: [], razonSocial: '' });
+      clientes = resultado.clientes;
+      // listaRazonSocial queda null → las queries de ventas y cartera no se filtran
     }
+    tiempos.filtrado = Date.now() - t1;
 
     // Paso 2 — ventas + cartera en paralelo
     const t2 = Date.now();
