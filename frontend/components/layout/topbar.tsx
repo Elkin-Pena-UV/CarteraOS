@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useTheme } from "next-themes"
+import { useAuth } from "@/lib/contexts/AuthContext"
 
 interface TopbarProps {
   sidebarCollapsed: boolean
@@ -20,12 +21,15 @@ interface TopbarProps {
 
 export function Topbar({ sidebarCollapsed }: TopbarProps) {
   const { theme, setTheme } = useTheme()
+  const { user, logout } = useAuth()
+  const initials = user?.nombre
+    ? user.nombre.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+    : "?"
 
   return (
     <header
-      className={`fixed right-0 top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card px-6 transition-all duration-300 ${
-        sidebarCollapsed ? "left-16" : "left-64"
-      }`}
+      className={`fixed right-0 top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card px-6 transition-all duration-300 ${sidebarCollapsed ? "left-16" : "left-64"
+        }`}
     >
       {/* Breadcrumbs / Search */}
       <div className="flex items-center gap-4">
@@ -75,12 +79,12 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
             <Button variant="ghost" className="flex items-center gap-2 px-2">
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-[#00359a] text-white text-sm">
-                  JR
+                  {initials}
                 </AvatarFallback>
               </Avatar>
               <div className="hidden text-left md:block">
-                <p className="text-sm font-medium">Juan Rodríguez</p>
-                <p className="text-xs text-muted-foreground">Analista Cartera</p>
+                <p className="text-sm font-medium">{user?.nombre ?? user?.username}</p>
+                <p className="text-xs text-muted-foreground capitalize">{user?.rol}</p>
               </div>
             </Button>
           </DropdownMenuTrigger>
@@ -93,7 +97,7 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
             </DropdownMenuItem>
             <DropdownMenuItem>Configuración</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem className="text-destructive" onClick={logout}>
               Cerrar Sesión
             </DropdownMenuItem>
           </DropdownMenuContent>
