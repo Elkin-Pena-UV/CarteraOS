@@ -77,7 +77,6 @@ const fromYYYYMMDD = (s: string): Date =>
 
 const labelFechaCorte = (estado: FechaCorteState): string => {
   if (estado.modo === 'hoy') return 'Hoy'
-  if (estado.modo === 'corte') return 'Último cierre de mes'
   if (estado.fecha) {
     const d = fromYYYYMMDD(estado.fecha)
     return format(d, "dd/MM/yyyy", { locale: es })
@@ -175,15 +174,6 @@ export function FiltersBar({
                   onClick={() => onFechaCorteChange({ modo: 'hoy', fecha: undefined })}
                 >
                   Hoy
-                </Button>
-
-                {/* Botón Cierre */}
-                <Button
-                  variant={fechaCorte.modo === 'corte' ? 'default' : 'outline'}
-                  className="h-9 px-3 text-xs"
-                  onClick={() => onFechaCorteChange({ modo: 'corte', fecha: undefined })}
-                >
-                  Último cierre
                 </Button>
 
                 {/* DatePicker — fecha libre */}

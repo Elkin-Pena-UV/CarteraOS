@@ -25,7 +25,7 @@ export type CarteraItem = {
   f_rem_cantidad_documentos: number
 }
 
-export type ModoFechaCorte = 'hoy' | 'corte' | 'fecha'
+export type ModoFechaCorte = 'hoy' | 'fecha'
 
 // 🔑 Cache keys — incluyen modo y fechaCorte para que cada combinación tenga su propia entrada
 export const carteraKeys = {

@@ -16,7 +16,6 @@ export const getCartera = async (modo = 'hoy', fechaCorte = null, tercero = null
 
 // Aliases de conveniencia
 export const getCarteraHoy   = ()       => getCartera('hoy');
-export const getCarteraCorte = ()       => getCartera('corte');
 export const getCarteraFecha = (fecha)  => getCartera('fecha', fecha);
 
 export const getCarteraPorTercero = (tercero) => getCartera('hoy', null, tercero);
