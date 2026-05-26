@@ -309,32 +309,6 @@ export function RotationTable({ data, fechaRef, isFetching = false }: RotationTa
       ),
     },
     {
-      id: "promedioVentas3m",
-      accessorKey: "promedioVentas3m",
-      header: "Prom. Ventas (3m)",
-      cell: ({ row }) => (
-        <span className={cn(
-          "font-mono text-sm text-muted-foreground",
-          row.original.periodo === lastPeriodo && "font-bold text-foreground"
-        )}>
-          {formatCurrency(row.getValue("promedioVentas3m"))}
-        </span>
-      ),
-    },
-    {
-      id: "acumuladoVenta12m",
-      accessorKey: "acumuladoVenta12m",
-      header: "Acum. Venta (12m)",
-      cell: ({ row }) => (
-        <span className={cn(
-          "font-mono text-sm text-muted-foreground",
-          row.original.periodo === lastPeriodo && "font-bold text-foreground"
-        )}>
-          {formatCurrency(row.getValue("acumuladoVenta12m"))}
-        </span>
-      ),
-    },
-    {
       id: "rotCxC",
       accessorKey: "rotCxC",
       header: "Rot CxC (días)",
@@ -522,8 +496,6 @@ export function RotationTable({ data, fechaRef, isFetching = false }: RotationTa
                         <TableCell className="font-mono text-[#00359a]">
                           {formatCurrency(totals.ventaNeta)}
                         </TableCell>
-                        <TableCell className="font-mono text-muted-foreground">—</TableCell>
-                        <TableCell className="font-mono text-muted-foreground">—</TableCell>
                         <TableCell>
                           <span
                             className={cn(
