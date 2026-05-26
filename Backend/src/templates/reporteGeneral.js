@@ -332,8 +332,10 @@ function DonutAging({ distribution, totalVencida }) {
   );
 }
 
-function TablaClientes({ clientes, columnas }) {
+function TablaClientes({ clientes, columnas, sorting = [] }) {
   const COLS = buildCols(columnas);
+  const sortMap = Object.fromEntries(sorting.map(s => [s.id, s.desc ? '↓' : '↑']));
+  const labelConSort = (col) => { const dir = sortMap[col.key]; return dir ? `${col.label} ${dir}` : col.label; };
   const sum = key => clientes.reduce((s, c) => s + (Number(c[key]) || 0), 0);
 
   const totals = {
@@ -384,7 +386,7 @@ function TablaClientes({ clientes, columnas }) {
     // Header fijo
     ce(View, { style: s.tableHeader, fixed: true },
       ...COLS.map((c, i) =>
-        ce(Text, { key: i, style: [s.thCell, { flex: c.flex, textAlign: c.align }] }, c.label)
+        ce(Text, { key: i, style: [s.thCell, { flex: c.flex, textAlign: c.align }] }, labelConSort(c))
       ),
     ),
     // Filas de datos
@@ -406,7 +408,7 @@ function Footer({ meta }) {
 // Componente raíz — export nombrado
 // ─────────────────────────────────────────────
 
-export function ReporteGeneral({ meta = {}, kpis = {}, aging = {}, clientes = [], columnas = [] }) {
+export function ReporteGeneral({ meta = {}, kpis = {}, aging = {}, clientes = [], columnas = [], sorting = [] }) {
   return ce(Document, null,
     ce(Page, { size: 'A4', orientation: 'landscape', style: s.page },
       ce(Header, { meta }),
@@ -418,7 +420,7 @@ export function ReporteGeneral({ meta = {}, kpis = {}, aging = {}, clientes = []
           ce(DonutAging, { distribution: aging.distribution ?? [], totalVencida: aging.totalVencida }),
         ),
         ce(Text, { style: s.sectionHdr }, 'TABLA DE CLIENTES'),
-        ce(TablaClientes, { clientes, columnas }),
+        ce(TablaClientes, { clientes, columnas, sorting }),
       ),
       ce(Footer, { meta }),
     ),
