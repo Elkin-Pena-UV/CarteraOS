@@ -1,6 +1,7 @@
 import { renderToBuffer } from '@react-pdf/renderer';
 import { ReporteGeneral  } from '../templates/reporteGeneral.js';
 import { ReporteCliente  } from '../templates/reporteCliente.js';
+import { ReporteVariacion } from '../templates/reporteVariacion.js';
 import logger from '../config/logger.js';
 import React from 'react';
 
@@ -35,6 +36,24 @@ export async function generateReporteCliente(payload) {
 
   logger.debug(
     `[PDF] Reporte cliente "${payload.cliente?.name ?? '?'}" generado en ${Date.now() - inicio}ms · ${buffer.length} bytes`
+  );
+
+  return buffer;
+}
+
+// ─────────────────────────────────────────────
+// Generador del Reporte de Variación
+// ─────────────────────────────────────────────
+
+export async function generateReporteVariacion(payload) {
+  const inicio = Date.now();
+
+  const buffer = await renderToBuffer(
+    React.createElement(ReporteVariacion, payload)
+  );
+
+  logger.debug(
+    `[PDF] Reporte variación generado en ${Date.now() - inicio}ms · ${buffer.length} bytes`
   );
 
   return buffer;
