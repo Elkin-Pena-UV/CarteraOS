@@ -60,9 +60,10 @@ app.use('/api/facturas', requireAuth , facturasRoutes);
 app.use('/api/admin', requireAuth , adminRoutes);
 app.use('/api/variacion', requireAuth , variacionRoutes);
 app.use('/api/rotacion', requireAuth , rotacionRoutes);
+// app.use('/api/cartera-aux', requireAuth , carteraAux);
+// app.use('/api/rot', requireAuth , rotRoutes);
 app.use('/api/export',    exportRoutes); 
-// app.use('/api/cartera-aux', carteraAux);
-// app.use('/api/rot', rotRoutes);
+
 
 // Middleware para manejo de rutas no encontradas
 app.use((req, res) => {
