@@ -17,6 +17,8 @@ export type RotacionItem = {
 export type RotacionCliente = {
   f1_tercero: string
   f1_tercero_razon_social: string
+  f1_id_cond_pago: string
+  f1_canal: string
 }
 
 export const rotacionKeys = {

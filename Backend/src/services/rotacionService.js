@@ -23,6 +23,7 @@ const fetchClientesFiltrados = async (pool, fechaCorte, filtros) => {
       f1_tercero_razon_social,
       f1_canal,
       f1_cond_pago_tipo,
+      f1_id_cond_pago,
       f1_saldo_total
     FROM dbo.fn_ti_cartera_x_aux(@fecha)
   `);

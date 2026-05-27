@@ -49,6 +49,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { RotacionItem } from "@/hooks/use-rotacion"
+import { getRotationColor, getRotationBg } from "@/lib/utils/rotacionColor"
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 export type { RotacionItem as RotationData }
@@ -68,18 +69,6 @@ const formatCurrencyFull = (value: number) =>
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value)
-
-const getRotationColor = (days: number): string => {
-  if (days <= 30) return "#22C55E"
-  if (days <= 45) return "#F59E0B"
-  return "#EF4444"
-}
-
-const getRotationBgClass = (days: number): string => {
-  if (days <= 30) return "bg-green-100 dark:bg-green-950/50"
-  if (days <= 45) return "bg-yellow-100 dark:bg-yellow-950/50"
-  return "bg-red-100 dark:bg-red-950/50"
-}
 
 // ── Tooltips por columna ──────────────────────────────────────────────────────
 const columnTooltips: Record<string, string> = {
@@ -245,10 +234,11 @@ interface RotationTableProps {
   data: RotacionItem[]
   fechaRef: string | null
   isFetching?: boolean
+  condPagoDias?: number | null
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
-export function RotationTable({ data, fechaRef, isFetching = false }: RotationTableProps) {
+export function RotationTable({ data, fechaRef, isFetching = false, condPagoDias }: RotationTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "periodo", desc: false },
   ])
@@ -318,10 +308,10 @@ export function RotationTable({ data, fechaRef, isFetching = false }: RotationTa
           <span
             className={cn(
               "inline-flex items-center justify-center rounded-md px-2 py-1 font-mono text-sm font-semibold",
-              getRotationBgClass(days),
+              getRotationBg(days, condPagoDias),
               row.original.periodo === lastPeriodo && "ring-2 ring-offset-1"
             )}
-            style={{ color: getRotationColor(days) }}
+            style={{ color: getRotationColor(days, condPagoDias) }}
           >
             {days} días
           </span>
@@ -500,9 +490,9 @@ export function RotationTable({ data, fechaRef, isFetching = false }: RotationTa
                           <span
                             className={cn(
                               "inline-flex items-center justify-center rounded-md px-2 py-1 font-mono text-sm font-semibold",
-                              getRotationBgClass(totals.rotCxC)
+                              getRotationBg(totals.rotCxC, condPagoDias)
                             )}
-                            style={{ color: getRotationColor(totals.rotCxC) }}
+                            style={{ color: getRotationColor(totals.rotCxC, condPagoDias) }}
                           >
                             {totals.rotCxC} días
                           </span>
