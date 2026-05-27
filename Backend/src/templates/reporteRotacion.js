@@ -177,9 +177,13 @@ function Header({ meta }) {
     return ce(View, { style: s.header },
         ce(View, { style: s.headerLeft },
             ce(Text, { style: s.headerTitle }, titulo),
-            ce(Text, { style: s.headerSub }, `Corte: ${formatMes(meta.fechaCorte)} · Generado: ${formatDateTime(meta.generadoEn)}`),
+            ce(Text, { style: s.headerSub }, `Periodos: ${formatMes(meta.fechaCorte)} y 12 meses anteriores`),
         ),
         ce(View, { style: s.metaRow },
+            ce(View, { style: s.metaBox },
+                ce(Text, { style: s.metaLabel }, 'Periodo'),
+                ce(Text, { style: s.metaValue }, `${formatMes(meta.fechaCorte)}`),
+            ),
             ce(View, { style: s.metaBox },
                 ce(Text, { style: s.metaLabel }, 'Generado por'),
                 ce(Text, { style: s.metaValue }, meta.generadoPor ?? '—'),
@@ -187,6 +191,10 @@ function Header({ meta }) {
             ce(View, { style: s.metaBox },
                 ce(Text, { style: s.metaLabel }, 'Períodos'),
                 ce(Text, { style: s.metaValue }, String(meta.totalPeriodos ?? '—')),
+            ),
+            ce(View, { style: s.metaBox },
+                ce(Text, { style: s.metaLabel }, 'Generado en'),
+                ce(Text, { style: s.metaValue }, formatDateTime(meta.generadoEn)),
             ),
         ),
     );
@@ -330,11 +338,11 @@ function GraficaRotacion({ serie, condPagoDias }) {
 
 const TABLA_COLS = [
     { key: 'periodo', label: 'Período', flex: 1.0, align: 'left', format: (v) => formatPeriodo(v) },
-    { key: 'cartera', label: 'Cartera', flex: 1.4, align: 'right', format: formatCOP },
-    { key: 'ventaBruta', label: 'Venta Bruta', flex: 1.4, align: 'right', format: formatCOP },
-    { key: 'rebate', label: 'Rebate', flex: 1.2, align: 'right', format: formatCOP, color: ORANGE },
-    { key: 'ventaNeta', label: 'Venta Neta', flex: 1.4, align: 'right', format: formatCOP, color: BLUE },
-{ key: 'rotCxC', label: 'Rot CxC (días)', flex: 0.9, align: 'center', badge: true },
+    { key: 'cartera', label: 'Cartera', flex: 1.4, align: 'left', format: formatCOP },
+    { key: 'ventaBruta', label: 'Venta Bruta', flex: 1.4, align: 'left', format: formatCOP },
+    { key: 'rebate', label: 'Rebate', flex: 1.2, align: 'left', format: formatCOP, color: ORANGE },
+    { key: 'ventaNeta', label: 'Venta Neta', flex: 1.4, align: 'left', format: formatCOP, color: BLUE },
+{ key: 'rotCxC', label: 'Rot CxC (días)', flex: 0.9, align: 'right', badge: true },
 ];
 
 function TablaRotacion({ serie, condPagoDias }) {
