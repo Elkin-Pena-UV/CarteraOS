@@ -39,6 +39,7 @@ interface ExportRotacionPayload {
   filtros:      RotacionFiltros
   serie:        RotacionItem[]
   condPagoDias?: number | null
+  sorting?:     { id: string; desc: boolean }[]
 }
 
 interface RotacionItem {
@@ -260,9 +261,34 @@ export function useExportPDF() {
     }
   }
   
-  const exportarRotacion = async ({ fechaCorte, filtros, serie, condPagoDias }: ExportRotacionPayload) => {
+  const exportarRotacion = async ({ fechaCorte, filtros, serie, condPagoDias, sorting }: ExportRotacionPayload) => {
   setExportingRotacion(true)
   try {
+    const SORT_KEY_MAP: Record<string, keyof RotacionItem> = {
+      periodo:           'periodo',
+      cartera:           'cartera',
+      ventaBruta:        'ventaBruta',
+      rebate:            'rebate',
+      ventaNeta:         'ventaNeta',
+      promedioVentas3m:  'promedioVentas3m',
+      acumuladoVenta12m: 'acumuladoVenta12m',
+      rotCxC:            'rotCxC',
+    }
+
+    const serieSorted = sorting && sorting.length > 0
+      ? [...serie].sort((a, b) => {
+          for (const s of sorting) {
+            const key = SORT_KEY_MAP[s.id]
+            if (!key) continue
+            const av = a[key] as number | string
+            const bv = b[key] as number | string
+            const cmp = av < bv ? -1 : av > bv ? 1 : 0
+            if (cmp !== 0) return s.desc ? -cmp : cmp
+          }
+          return 0
+        })
+      : [...serie]
+
     // KPIs calculados desde la serie (último elemento = período más reciente)
     const ultimo = serie[serie.length - 1]
  
@@ -288,7 +314,7 @@ export function useExportPDF() {
         condPagoDias: kpis.condPagoDias ?? null,
       },
       kpis,
-      serie,
+      serie: serieSorted,
     }
  
     const blob = await (api.post('/export/rotacion', payload, {

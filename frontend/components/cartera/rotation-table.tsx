@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useImperativeHandle, forwardRef } from "react"
 import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
   type ColumnDef,
   type SortingState,
+  type Table as TanstackTable,
   flexRender,
 } from "@tanstack/react-table"
 import {
@@ -53,6 +54,10 @@ import { getRotationColor, getRotationBg } from "@/lib/utils/rotacionColor"
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 export type { RotacionItem as RotationData }
+
+export type RotationTableHandle = {
+  table: TanstackTable<RotacionItem>
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const formatCurrency = (value: number): string => {
@@ -235,10 +240,12 @@ interface RotationTableProps {
   fechaRef: string | null
   isFetching?: boolean
   condPagoDias?: number | null
+  onSortingChange?: (sorting: SortingState) => void
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
-export function RotationTable({ data, fechaRef, isFetching = false, condPagoDias }: RotationTableProps) {
+export const RotationTable = forwardRef<RotationTableHandle, RotationTableProps>(
+  function RotationTable({ data, fechaRef, isFetching = false, condPagoDias, onSortingChange }, ref) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "periodo", desc: false },
   ])
@@ -325,9 +332,13 @@ export function RotationTable({ data, fechaRef, isFetching = false, condPagoDias
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    onSortingChange: setSorting,
+    onSortingChange: (updater) => {
+      setSorting(updater)
+    },
     state: { sorting },
   })
+
+  useImperativeHandle(ref, () => ({ table }))
 
   const totals = {
     cartera: data.length > 0
@@ -514,4 +525,5 @@ export function RotationTable({ data, fechaRef, isFetching = false, condPagoDias
       </div>
     </TooltipProvider>
   )
-}
+  }
+)

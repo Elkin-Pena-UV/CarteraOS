@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { AppShell } from "@/components/layout/app-shell"
-import { RotationTable } from "@/components/cartera/rotation-table"
+import { RotationTable, type RotationTableHandle } from "@/components/cartera/rotation-table"
 import { FiltersBarCopy } from "@/components/cartera/filters-barcopy"
 import { useRotacion } from "@/hooks/use-rotacion"
 import type { RotacionCliente } from "@/hooks/use-rotacion"
@@ -26,6 +26,7 @@ export default function RotacionPage() {
   const [fechaRef, setFechaRef] = useState<string | null>(null)
   const [filtros, setFiltros]   = useState<RotacionFiltros>({})
   const [clientesCatalogo, setClientesCatalogo] = useState<RotacionCliente[]>([])
+  const tableRef = useRef<RotationTableHandle>(null)
 
   const { data, clientes, loading, error, isFetching } = useRotacion(fechaRef, filtros)
 
@@ -65,7 +66,8 @@ export default function RotacionPage() {
     const ultimo = data[data.length - 1]
     const fecha  = fechaRef ?? periodoToFechaCorte(ultimo.periodo)
 
-    exportarRotacion({ fechaCorte: fecha, filtros, serie: data, condPagoDias })
+    const sorting = tableRef.current?.table.getState().sorting ?? []
+    exportarRotacion({ fechaCorte: fecha, filtros, serie: data, condPagoDias, sorting })
   }
 
   return (
@@ -115,7 +117,7 @@ export default function RotacionPage() {
         )}
 
         {!loading && !error && (
-          <RotationTable data={data} fechaRef={fechaRef} isFetching={isFetching} condPagoDias={condPagoDias} />
+          <RotationTable ref={tableRef} data={data} fechaRef={fechaRef} isFetching={isFetching} condPagoDias={condPagoDias} />
         )}
       </div>
     </AppShell>

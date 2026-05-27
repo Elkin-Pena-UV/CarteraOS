@@ -334,20 +334,16 @@ const TABLA_COLS = [
     { key: 'ventaBruta', label: 'Venta Bruta', flex: 1.4, align: 'right', format: formatCOP },
     { key: 'rebate', label: 'Rebate', flex: 1.2, align: 'right', format: formatCOP, color: ORANGE },
     { key: 'ventaNeta', label: 'Venta Neta', flex: 1.4, align: 'right', format: formatCOP, color: BLUE },
-    { key: 'promedioVentas3m', label: 'Prom. Venta 3m', flex: 1.4, align: 'right', format: formatCOP },
-    { key: 'acumuladoVenta12m', label: 'Acum. Venta 12m', flex: 1.5, align: 'right', format: formatCOP },
-    { key: 'rotCxC', label: 'Rot CxC (días)', flex: 0.9, align: 'center', badge: true },
+{ key: 'rotCxC', label: 'Rot CxC (días)', flex: 0.9, align: 'center', badge: true },
 ];
 
-function TablaRotacion({ serie, lastPeriodo, condPagoDias }) {
-    const rows = [...serie].reverse(); // más reciente arriba
+function TablaRotacion({ serie, condPagoDias }) {
+    const rows = [...serie];
 
     function renderRow(row, ri, isTotals) {
         const rowStyle = isTotals
             ? s.tableTotRow
             : ri % 2 === 0 ? s.tableRow : s.tableRowAlt;
-
-        const isLast = row.periodo === lastPeriodo;
 
         const cells = TABLA_COLS.map((c, ci) => {
             const raw = row[c.key] ?? '—';
@@ -367,7 +363,7 @@ function TablaRotacion({ serie, lastPeriodo, condPagoDias }) {
             const color = isTotals ? '#fff' : (c.color ?? '#374151');
             const font = c.format && raw !== '—' ? 'Courier' : 'Helvetica';
 
-            return ce(Text, { key: ci, style: [isTotals ? s.thCell : s.tdCell, { flex: c.flex, textAlign: c.align, color, fontFamily: font, fontWeight: isLast && !isTotals ? 'bold' : 'normal' }] }, val);
+            return ce(Text, { key: ci, style: [isTotals ? s.thCell : s.tdCell, { flex: c.flex, textAlign: c.align, color, fontFamily: font, fontWeight: 'normal' }] }, val);
         });
 
         return ce(View, { key: isTotals ? 'tot' : ri, style: rowStyle, wrap: false }, ...cells);
@@ -404,7 +400,6 @@ function Footer({ meta }) {
 
 export function ReporteRotacion({ meta = {}, kpis = {}, serie = [] }) {
     const condPagoDias = meta.condPagoDias ?? null;
-    const lastPeriodo = serie.length > 0 ? serie[serie.length - 1].periodo : null;
     return ce(Document, null,
         ce(Page, { size: 'A4', orientation: 'landscape', style: s.page },
             ce(Header, { meta }),
@@ -414,7 +409,7 @@ export function ReporteRotacion({ meta = {}, kpis = {}, serie = [] }) {
                 ce(Text, { style: s.sectionHdr }, 'Evolución de Rotación CxC'),
                 ce(GraficaRotacion, { serie, condPagoDias }),
                 ce(Text, { style: s.sectionHdr }, 'Serie Mensual Detallada'),
-                ce(TablaRotacion, { serie, lastPeriodo, condPagoDias }),
+                ce(TablaRotacion, { serie, condPagoDias }),
             ),
             ce(Footer, { meta }),
         ),
