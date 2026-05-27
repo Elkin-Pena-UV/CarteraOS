@@ -239,4 +239,32 @@ router.get('/diagnostico/rotacion', async (req, res) => {
   }
 });
 
+// Diagnóstico condiciones de pago
+router.get('/diagnostico/cond-pago', async (req, res) => {
+  try {
+    const { sql, poolPromise } = await import('../config/db_sm_real.js')
+    const { getFechaCorte } = await import('../utils/fechaUtils.js')
+
+    const pool = await poolPromise
+    const fecha = getFechaCorte()
+
+    const request = pool.request()
+    request.input('fecha', sql.VarChar(8), fecha)
+
+    const result = await request.query(`
+      SELECT 
+        TRIM(f1_id_cond_pago)    AS id_cond_pago,
+        TRIM(f1_cond_pago_tipo)  AS cond_pago_tipo,
+        COUNT(*)                 AS cantidad
+      FROM dbo.fn_ti_cartera_x_aux(@fecha)
+      GROUP BY TRIM(f1_id_cond_pago), TRIM(f1_cond_pago_tipo)
+      ORDER BY TRIM(f1_id_cond_pago)
+    `)
+
+    res.json({ ok: true, fecha, total: result.recordset.length, data: result.recordset })
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message })
+  }
+})
+
 export default router;
