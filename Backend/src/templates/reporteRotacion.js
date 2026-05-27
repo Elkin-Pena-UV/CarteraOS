@@ -68,10 +68,15 @@ function formatDateTime(iso) {
 }
 
 // Semáforo de rotación (días CxC)
-function rotColor(dias) {
+function rotColor(dias, condPagoDias) {
     const d = Number(dias);
-    if (d <= 45) return GREEN;
-    if (d <= 90) return YELLOW;
+    if (condPagoDias != null) {
+        // Client mode: 2 colors only
+        return d <= condPagoDias ? GREEN : YELLOW;
+    }
+    // General mode: 3 colors
+    if (d <= 20) return GREEN;
+    if (d <= 25) return YELLOW;
     return RED;
 }
 
@@ -238,7 +243,7 @@ function KPICards({ kpis }) {
 // Componente: Gráfico de línea — Rot CxC
 // ─────────────────────────────────────────────
 
-function GraficaRotacion({ serie }) {
+function GraficaRotacion({ serie, condPagoDias }) {
     if (!serie || serie.length < 2) return null;
 
     const W = 760, H = 110, PADL = 40, PADR = 10, PADT = 10, PADB = 22;
@@ -246,7 +251,7 @@ function GraficaRotacion({ serie }) {
     const innerH = H - PADT - PADB;
 
     const valores = serie.map(d => Number(d.rotCxC) || 0);
-    const maxVal = Math.max(...valores, 90);
+    const maxVal = Math.max(...valores, condPagoDias != null ? condPagoDias : 25);
     const minVal = 0;
     const range = maxVal - minVal || 1;
 
@@ -254,10 +259,12 @@ function GraficaRotacion({ serie }) {
     const yOf = (v) => PADT + innerH - ((v - minVal) / range) * innerH;
 
     // Líneas de referencia
-    const refs = [
-        { val: 45, color: GREEN, label: '45d' },
-        { val: 90, color: YELLOW, label: '90d' },
-    ].filter(r => r.val <= maxVal);
+    const refs = condPagoDias != null
+        ? [{ val: condPagoDias, color: GREEN, label: `${condPagoDias}d` }]
+        : [
+            { val: 20, color: GREEN, label: '20d' },
+            { val: 25, color: YELLOW, label: '25d' },
+          ].filter(r => r.val <= maxVal);
 
     // Puntos de la línea
     const points = serie.map((d, i) => `${xOf(i).toFixed(1)},${yOf(Number(d.rotCxC) || 0).toFixed(1)}`).join(' ');
@@ -284,7 +291,7 @@ function GraficaRotacion({ serie }) {
                 const dias = Number(d.rotCxC) || 0;
                 const cx = xOf(i).toFixed(1);
                 const cy = yOf(dias).toFixed(1);
-                return ce(Circle, { key: `p${i}`, cx, cy, r: '2.5', fill: rotColor(dias), stroke: '#fff', strokeWidth: '0.5' });
+                return ce(Circle, { key: `p${i}`, cx, cy, r: '2.5', fill: rotColor(dias, condPagoDias), stroke: '#fff', strokeWidth: '0.5' });
             }),
 
             // Etiquetas eje X
@@ -302,9 +309,17 @@ function GraficaRotacion({ serie }) {
 
         // Leyenda semáforo
         ce(View, { style: { flexDirection: 'row', gap: 12, marginTop: 4 } },
-            ce(View, { style: s.legendRow }, ce(View, { style: [s.legendDot, { backgroundColor: GREEN }] }), ce(Text, { style: s.legendLabel }, '≤ 45 días — Óptimo')),
-            ce(View, { style: s.legendRow }, ce(View, { style: [s.legendDot, { backgroundColor: YELLOW }] }), ce(Text, { style: s.legendLabel }, '46–90 días — Alerta')),
-            ce(View, { style: s.legendRow }, ce(View, { style: [s.legendDot, { backgroundColor: RED }] }), ce(Text, { style: s.legendLabel }, '> 90 días — Crítico')),
+            ...(condPagoDias != null
+                ? [
+                    ce(View, { style: s.legendRow }, ce(View, { style: [s.legendDot, { backgroundColor: GREEN }] }), ce(Text, { style: s.legendLabel }, `≤ ${condPagoDias} días — Dentro del plazo`)),
+                    ce(View, { style: s.legendRow }, ce(View, { style: [s.legendDot, { backgroundColor: YELLOW }] }), ce(Text, { style: s.legendLabel }, `> ${condPagoDias} días — Fuera del plazo`)),
+                  ]
+                : [
+                    ce(View, { style: s.legendRow }, ce(View, { style: [s.legendDot, { backgroundColor: GREEN }] }), ce(Text, { style: s.legendLabel }, '≤ 20 días — Óptimo')),
+                    ce(View, { style: s.legendRow }, ce(View, { style: [s.legendDot, { backgroundColor: YELLOW }] }), ce(Text, { style: s.legendLabel }, '21–25 días — Alerta')),
+                    ce(View, { style: s.legendRow }, ce(View, { style: [s.legendDot, { backgroundColor: RED }] }), ce(Text, { style: s.legendLabel }, '> 25 días — Crítico')),
+                  ]
+            ),
         ),
     );
 }
@@ -324,7 +339,7 @@ const TABLA_COLS = [
     { key: 'rotCxC', label: 'Rot CxC (días)', flex: 0.9, align: 'center', badge: true },
 ];
 
-function TablaRotacion({ serie, lastPeriodo }) {
+function TablaRotacion({ serie, lastPeriodo, condPagoDias }) {
     const rows = [...serie].reverse(); // más reciente arriba
 
     function renderRow(row, ri, isTotals) {
@@ -339,8 +354,8 @@ function TablaRotacion({ serie, lastPeriodo }) {
 
             if (c.badge) {
                 const dias = Number(raw) || 0;
-                const bg = rotColor(dias) + '22'; // color con transparencia
-                const fg = rotColor(dias);
+                const bg = rotColor(dias, condPagoDias) + '22';
+                const fg = rotColor(dias, condPagoDias);
                 return ce(View, { key: ci, style: [{ flex: c.flex, paddingHorizontal: 5, paddingVertical: 2, justifyContent: 'center', alignItems: 'center' }] },
                     ce(View, { style: [s.badge, { backgroundColor: bg }] },
                         ce(Text, { style: [s.badgeText, { color: fg }] }, `${dias}d`),
@@ -388,6 +403,7 @@ function Footer({ meta }) {
 // ─────────────────────────────────────────────
 
 export function ReporteRotacion({ meta = {}, kpis = {}, serie = [] }) {
+    const condPagoDias = meta.condPagoDias ?? null;
     const lastPeriodo = serie.length > 0 ? serie[serie.length - 1].periodo : null;
     return ce(Document, null,
         ce(Page, { size: 'A4', orientation: 'landscape', style: s.page },
@@ -396,9 +412,9 @@ export function ReporteRotacion({ meta = {}, kpis = {}, serie = [] }) {
             ce(KPICards, { kpis }),
             ce(View, { style: s.body },
                 ce(Text, { style: s.sectionHdr }, 'Evolución de Rotación CxC'),
-                ce(GraficaRotacion, { serie }),
+                ce(GraficaRotacion, { serie, condPagoDias }),
                 ce(Text, { style: s.sectionHdr }, 'Serie Mensual Detallada'),
-                ce(TablaRotacion, { serie, lastPeriodo }),
+                ce(TablaRotacion, { serie, lastPeriodo, condPagoDias }),
             ),
             ce(Footer, { meta }),
         ),

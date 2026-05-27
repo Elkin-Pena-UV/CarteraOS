@@ -35,9 +35,10 @@ interface ExportVariacionPayload {
 }
 
 interface ExportRotacionPayload {
-  fechaCorte: string          // YYYYMMDD ej: "20260430"
-  filtros:    RotacionFiltros
-  serie:      RotacionItem[]
+  fechaCorte:   string          // YYYYMMDD ej: "20260430"
+  filtros:      RotacionFiltros
+  serie:        RotacionItem[]
+  condPagoDias?: number | null
 }
 
 interface RotacionItem {
@@ -259,7 +260,7 @@ export function useExportPDF() {
     }
   }
   
-  const exportarRotacion = async ({ fechaCorte, filtros, serie }: ExportRotacionPayload) => {
+  const exportarRotacion = async ({ fechaCorte, filtros, serie, condPagoDias }: ExportRotacionPayload) => {
   setExportingRotacion(true)
   try {
     // KPIs calculados desde la serie (último elemento = período más reciente)
@@ -271,6 +272,7 @@ export function useExportPDF() {
       promedioVentas3m:  ultimo?.promedioVentas3m   ?? 0,
       acumuladoVenta12m: ultimo?.acumuladoVenta12m  ?? 0,
       totalPeriodos:     serie.length,
+      condPagoDias:      condPagoDias               ?? null,
     }
  
     const payload = {
@@ -283,6 +285,7 @@ export function useExportPDF() {
           condPago:    filtros.condPago?.length     ? filtros.condPago    : null,
           razonSocial: filtros.razonSocial?.trim()  || null,
         },
+        condPagoDias: kpis.condPagoDias ?? null,
       },
       kpis,
       serie,

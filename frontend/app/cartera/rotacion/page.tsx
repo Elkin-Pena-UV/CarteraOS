@@ -65,7 +65,7 @@ export default function RotacionPage() {
     const ultimo = data[data.length - 1]
     const fecha  = fechaRef ?? periodoToFechaCorte(ultimo.periodo)
 
-    exportarRotacion({ fechaCorte: fecha, filtros, serie: data })
+    exportarRotacion({ fechaCorte: fecha, filtros, serie: data, condPagoDias })
   }
 
   return (
