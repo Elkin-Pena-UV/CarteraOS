@@ -289,6 +289,7 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false, cli
                   {/* Mayúscula inicial — coincide exactamente con f1_cond_pago_tipo */}
                   <SelectItem value="Credito">Crédito</SelectItem>
                   <SelectItem value="Anticipado">Anticipado</SelectItem>
+                  <SelectItem value="999">999</SelectItem>
                 </SelectContent>
               </Select>
             </div>
