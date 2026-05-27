@@ -7,6 +7,7 @@ import type { AgingData } from '@/lib/adapters/carteraAdapter'
 import type { FacturaItem } from '@/hooks/use-facturas'
 import type { VariationClient } from '@/components/cartera/variation-table'
 import type { VariationFilters } from '@/components/cartera/variation-filters-bar'
+import type { RotacionFiltros } from '@/lib/services/rotacionService'
 
 // ─────────────────────────────────────────────
 // Tipos
@@ -33,6 +34,23 @@ interface ExportVariacionPayload {
   table: TanstackTable<VariationClient>
 }
 
+interface ExportRotacionPayload {
+  fechaCorte: string          // YYYYMMDD ej: "20260430"
+  filtros:    RotacionFiltros
+  serie:      RotacionItem[]
+}
+
+interface RotacionItem {
+  periodo:           string | number
+  cartera:           number
+  ventaBruta:        number
+  rebate:            number
+  ventaNeta:         number
+  promedioVentas3m:  number
+  acumuladoVenta12m: number
+  rotCxC:            number
+}
+
 // Columnas que nunca van al PDF aunque sean visibles
 const COLS_EXCLUIDAS_VARIACION = ['actions', 'select']
 
@@ -50,6 +68,7 @@ const COL_KEY_MAP_VARIACION: Record<string, string> = {
   sobrecupoCop:     'sobrecupoCop',
 }
 
+
 // ─────────────────────────────────────────────
 // Hook
 // ─────────────────────────────────────────────
@@ -58,7 +77,7 @@ export function useExportPDF() {
   const [exporting,          setExporting         ] = useState(false)
   const [exportingCliente,   setExportingCliente  ] = useState(false)
   const [exportingVariacion, setExportingVariacion] = useState(false)
-
+  const [exportingRotacion,  setExportingRotacion ] = useState(false)
   // ── Reporte General ──────────────────────────────────────────────────────
 
   const exportarGeneral = async ({ fechaCorte, filtros, clientes, aging, table }: ExportGeneralPayload) => {
@@ -239,11 +258,60 @@ export function useExportPDF() {
       setExportingVariacion(false)
     }
   }
+  
+  const exportarRotacion = async ({ fechaCorte, filtros, serie }: ExportRotacionPayload) => {
+  setExportingRotacion(true)
+  try {
+    // KPIs calculados desde la serie (último elemento = período más reciente)
+    const ultimo = serie[serie.length - 1]
+ 
+    const kpis = {
+      rotCxCActual:      ultimo?.rotCxC            ?? 0,
+      carteraActual:     ultimo?.cartera            ?? 0,
+      promedioVentas3m:  ultimo?.promedioVentas3m   ?? 0,
+      acumuladoVenta12m: ultimo?.acumuladoVenta12m  ?? 0,
+      totalPeriodos:     serie.length,
+    }
+ 
+    const payload = {
+      meta: {
+        fechaCorte,
+        generadoEn: new Date().toISOString(),
+        totalPeriodos: serie.length,
+        filtrosActivos: {
+          canal:       filtros.canal?.length       ? filtros.canal       : null,
+          condPago:    filtros.condPago?.length     ? filtros.condPago    : null,
+          razonSocial: filtros.razonSocial?.trim()  || null,
+        },
+      },
+      kpis,
+      serie,
+    }
+ 
+    const blob = await (api.post('/export/rotacion', payload, {
+      responseType: 'blob',
+    }) as unknown as Promise<Blob>)
+ 
+    // Nombre descriptivo igual que el backend
+    const f = filtros
+    let sufijo = 'general'
+    if (f.razonSocial?.trim())  sufijo = f.razonSocial.trim().replace(/\s+/g, '_').toLowerCase().slice(0, 30)
+    else if (f.canal?.length)   sufijo = f.canal.join('-')
+    else if (f.condPago?.length) sufijo = f.condPago.join('-').toLowerCase()
+ 
+    const nombre = `reporte_rotacion_${sufijo}_${fechaCorte}.pdf`
+    descargarBlob(blob, nombre)
+ 
+  } finally {
+    setExportingRotacion(false)
+  }
+}
 
   return {
     exportarGeneral,   exporting,
     exportarCliente,   exportingCliente,
     exportarVariacion, exportingVariacion,
+    exportarRotacion,  exportingRotacion,
   }
 }
 
