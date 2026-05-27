@@ -405,9 +405,9 @@ function GraficaVariacion({ clientes }) {
                 ? ((v.carteraActual - v.carteraAnterior) / Math.abs(v.carteraAnterior)) * 100
                 : 0,
         }))
-        .sort((a, b) => Math.abs(b.variacion) - Math.abs(a.variacion));
+        .sort((a, b) => Math.abs(b.variacionPct) - Math.abs(a.variacionPct));
 
-    const maxAbsCanal = Math.max(...canales.map(c => Math.abs(c.variacion)), 1);
+    const maxAbsCanal = Math.max(...canales.map(c => Math.abs(c.variacionPct)), 1);
 
     // Helper para truncar labels
     const truncar = (s, n) => s.length > n ? s.slice(0, n - 1) + '…' : s;
@@ -533,8 +533,8 @@ function GraficaVariacion({ clientes }) {
             ...canales.map((c, i) => {
                 const label = c.canal.replace(/^\d+\s*-\s*/i, '').trim();
                 const color = variacionColor(c.variacion);
-                const pctBar = (Math.abs(c.variacion) / maxAbsCanal) * 50;
-                const bajo = c.variacion < 0;
+                const pctBar = (Math.abs(c.variacionPct) / maxAbsCanal) * 50;
+                const bajo = c.variacionPct < 0;
 
                 return ce(View, { key: i, style: { flexDirection: 'row', alignItems: 'center', marginBottom: 7 } },
                     ce(Text, { style: { width: '28%', fontSize: 6, color: '#374151', textAlign: 'right', paddingRight: 4 } }, truncar(label, 18)),
