@@ -124,12 +124,14 @@ const s = StyleSheet.create({
   axisLabel:    { fontSize: 6.5, color: LGRAY },
 
   // Donut
-  donutWrap:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 0 },
+  donutWrap:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 0 },
+  legendWrap:   { minWidth: 170 },
   legendRow:    { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 5 },
   legendDot:    { width: 8, height: 8, borderRadius: 4 },
-  legendLabel:  { fontSize: 7, color: '#374151', width: 44 },
+  legendLabel:  { fontSize: 7, color: '#374151', width: 50 },
+  legendAmt:    { fontSize: 7, fontFamily: 'Helvetica-Bold', width: 55, textAlign: 'right' },
+  legendPct:    { fontSize: 7, color: '#6b7280', width: 28, textAlign: 'right' },
   legendVal:    { fontSize: 7, fontFamily: 'Helvetica-Bold' },
-  legendPct:    { fontSize: 7, color: '#6b7280', marginLeft: 3 },
 
   // Tabla
   tableWrap:    { borderWidth: 0.5, borderColor: BORDER, borderRadius: 6, overflow: 'hidden' },
@@ -319,13 +321,27 @@ function DonutAging({ distribution, totalVencida }) {
           ),
         ),
       ),
-      ce(View, null,
-        ...items.map(d =>
-          ce(View, { key: `l${d.i}`, style: s.legendRow },
-            ce(View, { style: [s.legendDot, { backgroundColor: d.color }] }),
-            ce(Text, { style: s.legendLabel }, d.label),
-            ce(Text, { style: [s.legendVal, { color: d.color }] }, `${(d.frac * 100).toFixed(1)}%`),
-          )
+      // Leyenda con indicador, monto y % — ordenada por label (1-30, 31-60, 61-90, >90)
+      ce(View, { style: s.legendWrap },
+        ...items
+          .slice()
+          .sort((a, b) => a.i - b.i)
+          .map(d =>
+            ce(View, { key: `l${d.i}`, style: s.legendRow },
+              ce(View, { style: [s.legendDot, { backgroundColor: d.color }] }),
+              ce(Text, { style: s.legendLabel }, d.label),
+              ce(Text, { style: [s.legendAmt, { color: d.color }] }, formatCOPCompact(d.monto)),
+              ce(Text, { style: s.legendPct },
+                d.monto > 0 ? `${(d.frac * 100).toFixed(0)}%` : '—',
+              ),
+            )
+          ),
+        // Fila de Total
+        ce(View, { style: [s.legendRow, { marginTop: 5, borderTopWidth: 0.5, borderTopColor: BORDER, paddingTop: 4 }] },
+          ce(View, { style: [s.legendDot, { backgroundColor: 'transparent' }] }),
+          ce(Text, { style: [s.legendLabel, { fontFamily: 'Helvetica-Bold', color: '#1a1a1a' }] }, 'Total'),
+          ce(Text, { style: [s.legendAmt, { color: RED }] }, formatCOPCompact(totalVencida)),
+          ce(Text, { style: s.legendPct }, ''),
         ),
       ),
     ),
