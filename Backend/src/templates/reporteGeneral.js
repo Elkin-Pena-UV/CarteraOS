@@ -1,8 +1,9 @@
 import React from 'react';
 import {
-  Document, Page, View, Text, Svg, Circle, G,
+  Document, Page, View, Text, Image, Svg, Circle, G,
   StyleSheet,
 } from '@react-pdf/renderer';
+import { EMPRESA, LOGO_DATA_URI } from './brand.js';
 
 const ce = React.createElement;
 
@@ -93,6 +94,9 @@ const s = StyleSheet.create({
   metaBox:      { backgroundColor: 'rgba(255,255,255,0.13)', borderRadius: 4, padding: 5, alignItems: 'flex-end', marginLeft: 6 },
   metaLabel:    { color: '#90aee0', fontSize: 7 },
   metaValue:    { color: '#fff', fontSize: 8, fontFamily: 'Helvetica-Bold' },
+  brandRow:      { flexDirection: 'row', alignItems: 'center' },
+  logo:          { width: 34, height: 34, marginRight: 10 },
+  headerCompany: { color: '#fff', fontSize: 8.5, fontFamily: 'Helvetica-Bold', marginTop: 2 },
 
   // KPIs
   kpiRow:       { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: BORDER },
@@ -195,9 +199,13 @@ function Header({ meta }) {
   if (partes.length === 0) partes.push('Todos los filtros');
 
   return ce(View, { style: s.header },
-    ce(View, null,
-      ce(Text, { style: s.headerTitle }, 'Dashboard de Cartera — Resumen General'),
-      ce(Text, { style: s.headerSub },   'CarteraOS · Gestión y seguimiento de cartera de clientes'),
+    ce(View, { style: s.brandRow },
+      ce(Image, { src: LOGO_DATA_URI, style: s.logo }),
+      ce(View, null,
+        ce(Text, { style: s.headerTitle },   'Dashboard de Cartera — Resumen General'),
+        ce(Text, { style: s.headerCompany }, EMPRESA),
+        ce(Text, { style: s.headerSub },     'CarteraOS · Gestión y seguimiento de cartera de clientes'),
+      ),
     ),
     ce(View, { style: s.metaRow },
       ce(View, { style: s.metaBox },

@@ -1,7 +1,8 @@
 import {
-  Document, Page, View, Text, StyleSheet, Svg, Circle, G,
+  Document, Page, View, Text, Image, StyleSheet, Svg, Circle, G,
 } from '@react-pdf/renderer';
 import React from 'react';
+import { EMPRESA, LOGO_DATA_URI } from './brand.js';
 
 const ce = React.createElement;
 
@@ -114,6 +115,9 @@ const s = StyleSheet.create({
   },
   metaLabel: { color: '#90aee0', fontSize: 6.5 },
   metaValue: { color: '#fff', fontSize: 7.5, fontFamily: 'Helvetica-Bold', marginTop: 1 },
+  brandBox:      { alignItems: 'flex-end' },
+  logo:          { width: 36, height: 36, marginBottom: 3 },
+  headerCompany: { color: '#fff', fontSize: 8, fontFamily: 'Helvetica-Bold' },
 
   // ── KPIs ──
   kpiRow: {
@@ -216,6 +220,10 @@ function Header({ meta, cliente }) {
         ce(Text, { style: s.headerTitle }, cliente.name ?? '—'),
         ce(Text, { style: s.headerNit   }, `NIT: ${cliente.nit ?? '—'}`),
         ce(Text, { style: s.headerSub   }, 'CarteraOS · Reporte Individual de Cliente'),
+      ),
+      ce(View, { style: s.brandBox },
+        ce(Image, { src: LOGO_DATA_URI, style: s.logo }),
+        ce(Text, { style: s.headerCompany }, EMPRESA),
       ),
     ),
     ce(View, { style: s.metaRow },

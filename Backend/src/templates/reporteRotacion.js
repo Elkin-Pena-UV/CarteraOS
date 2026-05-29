@@ -1,7 +1,8 @@
 import {
-    Document, Page, View, Text, StyleSheet, Svg, Polyline, Circle, Line, G,
+    Document, Page, View, Text, Image, StyleSheet, Svg, Polyline, Circle, Line, G,
 } from '@react-pdf/renderer';
 import React from 'react';
+import { EMPRESA, LOGO_DATA_URI } from './brand.js';
 
 const ce = React.createElement;
 
@@ -111,6 +112,9 @@ const s = StyleSheet.create({
     metaBox: { backgroundColor: 'rgba(255,255,255,0.13)', borderRadius: 4, padding: 5, alignItems: 'flex-end', marginLeft: 6 },
     metaLabel: { color: '#90aee0', fontSize: 7 },
     metaValue: { color: '#fff', fontSize: 8, fontFamily: 'Helvetica-Bold' },
+    brandRow:      { flexDirection: 'row', alignItems: 'center' },
+    logo:          { width: 34, height: 34, marginRight: 10 },
+    headerCompany: { color: '#fff', fontSize: 8.5, fontFamily: 'Helvetica-Bold', marginTop: 2 },
 
     // ── Banner de filtros activos ──
     filterBanner: { backgroundColor: '#fffbeb', borderBottomWidth: 0.5, borderBottomColor: '#fde68a', paddingHorizontal: 20, paddingVertical: 5, flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
@@ -186,9 +190,13 @@ function tituloReporte(filtros = {}) {
 function Header({ meta }) {
     const titulo = tituloReporte(meta.filtrosActivos);
     return ce(View, { style: s.header },
-        ce(View, { style: s.headerLeft },
-            ce(Text, { style: s.headerTitle }, titulo),
-            ce(Text, { style: s.headerSub }, `Periodos: ${formatMes(meta.fechaCorte)} y 12 meses anteriores`),
+        ce(View, { style: s.brandRow },
+            ce(Image, { src: LOGO_DATA_URI, style: s.logo }),
+            ce(View, { style: s.headerLeft },
+                ce(Text, { style: s.headerTitle },   titulo),
+                ce(Text, { style: s.headerCompany }, EMPRESA),
+                ce(Text, { style: s.headerSub },      `Periodos: ${formatMes(meta.fechaCorte)} y 12 meses anteriores`),
+            ),
         ),
         ce(View, { style: s.metaRow },
             ce(View, { style: s.metaBox },
