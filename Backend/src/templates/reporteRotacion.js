@@ -80,6 +80,17 @@ function rotColor(dias, condPagoDias) {
     return RED;
 }
 
+// Versión oscura del semáforo para etiquetas de texto (mayor contraste sobre blanco)
+function rotColorLabel(dias, condPagoDias) {
+    const d = Number(dias);
+    if (condPagoDias != null) {
+        return d <= condPagoDias ? '#166534' : '#854d0e';
+    }
+    if (d <= 20) return '#166534';
+    if (d <= 25) return '#854d0e';
+    return '#991b1b';
+}
+
 // ─────────────────────────────────────────────
 // Estilos
 // ─────────────────────────────────────────────
@@ -124,8 +135,8 @@ const s = StyleSheet.create({
     // ── Gráfico de línea ──
     chartCard: { borderWidth: 0.5, borderColor: BORDER, borderRadius: 6, padding: 10, marginBottom: 2 },
     chartTitle: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: GRAY, marginBottom: 6 },
-    legendRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 3 },
-    legendDot: { width: 6, height: 6, borderRadius: 3, marginRight: 4 },
+    legendRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 3, marginRight: 16 },
+    legendDot: { width: 7, height: 7, borderRadius: 3.5, marginRight: 6, flexShrink: 0 },
     legendLabel: { fontSize: 6.5, color: GRAY },
 
     // ── Tabla ──
@@ -255,7 +266,7 @@ function KPICards({ kpis, meta }) {
 function GraficaRotacion({ serie, condPagoDias, modoRot }) {
     if (!serie || serie.length < 2) return null;
 
-    const W = 760, H = 110, PADL = 40, PADR = 10, PADT = 10, PADB = 22;
+    const W = 760, H = 110, PADL = 48, PADR = 16, PADT = 14, PADB = 22;
     const innerW = W - PADL - PADR;
     const innerH = H - PADT - PADB;
 
@@ -295,20 +306,44 @@ function GraficaRotacion({ serie, condPagoDias, modoRot }) {
             // Línea principal
             ce(Polyline, { points, fill: 'none', stroke: BLUE, strokeWidth: '1.5', strokeLinejoin: 'round', strokeLinecap: 'round' }),
 
-            // Puntos coloreados por semáforo
+            // Puntos coloreados por semáforo + etiqueta de valor
             ...serie.map((d, i) => {
                 const dias = Number(modoRot === 'mensual' ? d.rotCxCMensual : d.rotCxC) || 0;
-                const cx = xOf(i).toFixed(1);
-                const cy = yOf(dias).toFixed(1);
-                return ce(Circle, { key: `p${i}`, cx, cy, r: '2.5', fill: rotColor(dias, condPagoDias), stroke: '#fff', strokeWidth: '0.5' });
+                const cx = xOf(i);
+                const cy = yOf(dias);
+                const labelY = cy < PADT + 10 ? cy + 10 : cy - 7;
+                const labelX = Math.min(Math.max(cx, PADL + 8), W - PADR - 8);
+                return ce(G, { key: `p${i}` },
+                    ce(Circle, {
+                        cx: cx.toFixed(1), cy: cy.toFixed(1),
+                        r: '2.5',
+                        fill: rotColor(dias, condPagoDias),
+                        stroke: '#fff', strokeWidth: '0.5',
+                    }),
+                    ce(Text, {
+                        x: labelX.toFixed(1),
+                        y: labelY.toFixed(1),
+                        textAnchor: 'middle',
+                        fontSize: '5',
+                        fontFamily: 'Courier',
+                        fill: rotColorLabel(dias, condPagoDias),
+                    }, `${dias}d`),
+                );
             }),
 
             // Etiquetas eje X
             ...xLabels.map((d, i) => {
                 const idx = serie.indexOf(d);
-                return ce(Text, { key: `xl${i}`, x: String(xOf(idx).toFixed(1)), y: String(H - 4), textAnchor: 'middle', fontSize: '5.5', fill: GRAY },
-                    formatPeriodo(d.periodo),
-                );
+                const rawX = xOf(idx);
+                const labelX = idx === 0 ? rawX + 10 : rawX;
+                return ce(Text, {
+                    key: `xl${i}`,
+                    x: String(labelX.toFixed(1)),
+                    y: String(H - 4),
+                    textAnchor: idx === 0 ? 'start' : 'middle',
+                    fontSize: '5.5',
+                    fill: GRAY,
+                }, formatPeriodo(d.periodo));
             }),
 
             // Eje Y — etiqueta máx y 0
@@ -317,14 +352,14 @@ function GraficaRotacion({ serie, condPagoDias, modoRot }) {
         ),
 
         // Leyenda semáforo
-        ce(View, { style: { flexDirection: 'row', gap: 12, marginTop: 4 } },
+        ce(View, { style: { flexDirection: 'row', gap: 12, marginTop: 4, paddingLeft: PADL } },
             ...(condPagoDias != null
                 ? [
-                    ce(View, { style: s.legendRow }, ce(View, { style: [s.legendDot, { backgroundColor: GREEN }] }), ce(Text, { style: s.legendLabel }, `≤ ${condPagoDias} días — Dentro del plazo`)),
+                    ce(View, { style: s.legendRow }, ce(View, { style: [s.legendDot, { backgroundColor: GREEN }] }), ce(Text, { style: s.legendLabel }, `<= ${condPagoDias} días — Dentro del plazo`)),
                     ce(View, { style: s.legendRow }, ce(View, { style: [s.legendDot, { backgroundColor: YELLOW }] }), ce(Text, { style: s.legendLabel }, `> ${condPagoDias} días — Fuera del plazo`)),
                   ]
                 : [
-                    ce(View, { style: s.legendRow }, ce(View, { style: [s.legendDot, { backgroundColor: GREEN }] }), ce(Text, { style: s.legendLabel }, '≤ 20 días — Óptimo')),
+                    ce(View, { style: s.legendRow }, ce(View, { style: [s.legendDot, { backgroundColor: GREEN }] }), ce(Text, { style: s.legendLabel }, '<= 20 días — Óptimo')),
                     ce(View, { style: s.legendRow }, ce(View, { style: [s.legendDot, { backgroundColor: YELLOW }] }), ce(Text, { style: s.legendLabel }, '21–25 días — Alerta')),
                     ce(View, { style: s.legendRow }, ce(View, { style: [s.legendDot, { backgroundColor: RED }] }), ce(Text, { style: s.legendLabel }, '> 25 días — Crítico')),
                   ]
