@@ -66,8 +66,9 @@ export default function RotacionPage() {
     const ultimo = data[data.length - 1]
     const fecha  = fechaRef ?? periodoToFechaCorte(ultimo.periodo)
 
-    const sorting = tableRef.current?.table.getState().sorting ?? []
-    exportarRotacion({ fechaCorte: fecha, filtros, serie: data, condPagoDias, sorting })
+    const sorting  = tableRef.current?.table.getState().sorting ?? []
+    const modoRot  = tableRef.current?.modoRot ?? "anual"
+    exportarRotacion({ fechaCorte: fecha, filtros, serie: data, condPagoDias, sorting, modoRot })
   }
 
   return (

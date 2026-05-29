@@ -222,12 +222,13 @@ function FilterBanner({ filtros }) {
 // Componente: KPI Cards
 // ─────────────────────────────────────────────
 
-function KPICards({ kpis }) {
+function KPICards({ kpis, meta }) {
     const rotActual = Number(kpis.rotCxCActual ?? 0);
     const rotColor_ = rotColor(rotActual);
+    const rotSub = meta.modoRot === 'mensual' ? 'Mes × 30' : 'Acum. 12m × 360';
 
     const cards = [
-        { label: 'Rot. CxC Actual', value: `${rotActual} días`, sub: 'Último período', accent: rotColor_, mono: false },
+        { label: 'Rot. CxC Actual', value: `${rotActual} días`, sub: rotSub, accent: rotColor_, mono: false },
         { label: 'Cartera Actual', value: formatCOPCompact(kpis.carteraActual), sub: 'Saldo último corte', accent: ORANGE, mono: true },
         { label: 'Promedio Venta 3m', value: formatCOPCompact(kpis.promedioVentas3m), sub: 'Últimos 3 meses', accent: VIOLET, mono: true },
         { label: 'Acum. Venta 12m', value: formatCOPCompact(kpis.acumuladoVenta12m), sub: 'Últimos 12 meses', accent: GREEN, mono: true },
@@ -251,14 +252,14 @@ function KPICards({ kpis }) {
 // Componente: Gráfico de línea — Rot CxC
 // ─────────────────────────────────────────────
 
-function GraficaRotacion({ serie, condPagoDias }) {
+function GraficaRotacion({ serie, condPagoDias, modoRot }) {
     if (!serie || serie.length < 2) return null;
 
     const W = 760, H = 110, PADL = 40, PADR = 10, PADT = 10, PADB = 22;
     const innerW = W - PADL - PADR;
     const innerH = H - PADT - PADB;
 
-    const valores = serie.map(d => Number(d.rotCxC) || 0);
+    const valores = serie.map(d => Number(modoRot === 'mensual' ? d.rotCxCMensual : d.rotCxC) || 0);
     const maxVal = Math.max(...valores, condPagoDias != null ? condPagoDias : 25);
     const minVal = 0;
     const range = maxVal - minVal || 1;
@@ -275,7 +276,7 @@ function GraficaRotacion({ serie, condPagoDias }) {
           ].filter(r => r.val <= maxVal);
 
     // Puntos de la línea
-    const points = serie.map((d, i) => `${xOf(i).toFixed(1)},${yOf(Number(d.rotCxC) || 0).toFixed(1)}`).join(' ');
+    const points = serie.map((d, i) => `${xOf(i).toFixed(1)},${yOf(Number(modoRot === 'mensual' ? d.rotCxCMensual : d.rotCxC) || 0).toFixed(1)}`).join(' ');
 
     // Etiquetas del eje X (máx 12 visibles)
     const step = Math.ceil(serie.length / 12);
@@ -296,7 +297,7 @@ function GraficaRotacion({ serie, condPagoDias }) {
 
             // Puntos coloreados por semáforo
             ...serie.map((d, i) => {
-                const dias = Number(d.rotCxC) || 0;
+                const dias = Number(modoRot === 'mensual' ? d.rotCxCMensual : d.rotCxC) || 0;
                 const cx = xOf(i).toFixed(1);
                 const cy = yOf(dias).toFixed(1);
                 return ce(Circle, { key: `p${i}`, cx, cy, r: '2.5', fill: rotColor(dias, condPagoDias), stroke: '#fff', strokeWidth: '0.5' });
@@ -336,17 +337,24 @@ function GraficaRotacion({ serie, condPagoDias }) {
 // Componente: Tabla de serie
 // ─────────────────────────────────────────────
 
-const TABLA_COLS = [
-    { key: 'periodo', label: 'Período', flex: 1.0, align: 'left', format: (v) => formatPeriodo(v) },
-    { key: 'cartera', label: 'Cartera', flex: 1.4, align: 'left', format: formatCOP },
-    { key: 'ventaBruta', label: 'Venta Bruta', flex: 1.4, align: 'left', format: formatCOP },
-    { key: 'rebate', label: 'Rebate', flex: 1.2, align: 'left', format: formatCOP, color: ORANGE },
-    { key: 'ventaNeta', label: 'Venta Neta', flex: 1.4, align: 'left', format: formatCOP, color: BLUE },
-{ key: 'rotCxC', label: 'Rot CxC (días)', flex: 0.9, align: 'right', badge: true },
-];
+function buildTablaCols(modoRot) {
+    return [
+        { key: 'periodo',    label: 'Período',      flex: 1.0, align: 'left',  format: (v) => formatPeriodo(v) },
+        { key: 'cartera',    label: 'Cartera',       flex: 1.4, align: 'left',  format: formatCOP },
+        { key: 'ventaBruta', label: 'Venta Bruta',   flex: 1.4, align: 'left',  format: formatCOP },
+        { key: 'rebate',     label: 'Rebate',        flex: 1.2, align: 'left',  format: formatCOP, color: ORANGE },
+        { key: 'ventaNeta',  label: 'Venta Neta',    flex: 1.4, align: 'left',  format: formatCOP, color: BLUE },
+        {
+            key:   modoRot === 'mensual' ? 'rotCxCMensual' : 'rotCxC',
+            label: modoRot === 'mensual' ? 'Rot CxC Mensual (días)' : 'Rot CxC (días)',
+            flex: 0.9, align: 'right', badge: true,
+        },
+    ];
+}
 
-function TablaRotacion({ serie, condPagoDias }) {
+function TablaRotacion({ serie, condPagoDias, modoRot }) {
     const rows = [...serie];
+    const TABLA_COLS = buildTablaCols(modoRot);
 
     function renderRow(row, ri, isTotals) {
         const rowStyle = isTotals
@@ -408,16 +416,20 @@ function Footer({ meta }) {
 
 export function ReporteRotacion({ meta = {}, kpis = {}, serie = [] }) {
     const condPagoDias = meta.condPagoDias ?? null;
+    const modoRot = meta.modoRot ?? 'anual';
+    const graficaHdr = modoRot === 'mensual'
+        ? 'Evolución de Rotación CxC — Mensual × 30'
+        : 'Evolución de Rotación CxC — Acum. 12m × 360';
     return ce(Document, null,
         ce(Page, { size: 'A4', orientation: 'landscape', style: s.page },
             ce(Header, { meta }),
             ce(FilterBanner, { filtros: meta.filtrosActivos ?? {} }),
-            ce(KPICards, { kpis }),
+            ce(KPICards, { kpis, meta }),
             ce(View, { style: s.body },
-                ce(Text, { style: s.sectionHdr }, 'Evolución de Rotación CxC'),
-                ce(GraficaRotacion, { serie, condPagoDias }),
+                ce(Text, { style: s.sectionHdr }, graficaHdr),
+                ce(GraficaRotacion, { serie, condPagoDias, modoRot }),
                 ce(Text, { style: s.sectionHdr }, 'Serie Mensual Detallada'),
-                ce(TablaRotacion, { serie, condPagoDias }),
+                ce(TablaRotacion, { serie, condPagoDias, modoRot }),
             ),
             ce(Footer, { meta }),
         ),

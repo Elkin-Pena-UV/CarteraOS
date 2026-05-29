@@ -40,6 +40,7 @@ interface ExportRotacionPayload {
   serie:        RotacionItem[]
   condPagoDias?: number | null
   sorting?:     { id: string; desc: boolean }[]
+  modoRot?:     "anual" | "mensual"
 }
 
 interface RotacionItem {
@@ -51,6 +52,7 @@ interface RotacionItem {
   promedioVentas3m:  number
   acumuladoVenta12m: number
   rotCxC:            number
+  rotCxCMensual?:    number
 }
 
 // Columnas que nunca van al PDF aunque sean visibles
@@ -261,7 +263,7 @@ export function useExportPDF() {
     }
   }
   
-  const exportarRotacion = async ({ fechaCorte, filtros, serie, condPagoDias, sorting }: ExportRotacionPayload) => {
+  const exportarRotacion = async ({ fechaCorte, filtros, serie, condPagoDias, sorting, modoRot }: ExportRotacionPayload) => {
   setExportingRotacion(true)
   try {
     const SORT_KEY_MAP: Record<string, keyof RotacionItem> = {
@@ -293,7 +295,10 @@ export function useExportPDF() {
     const ultimo = serie[serie.length - 1]
  
     const kpis = {
-      rotCxCActual:      ultimo?.rotCxC            ?? 0,
+      rotCxCActual: modoRot === "mensual"
+        ? (ultimo?.rotCxCMensual ?? 0)
+        : (ultimo?.rotCxC ?? 0),
+      rotCxCMensualActual: ultimo?.rotCxCMensual   ?? 0,
       carteraActual:     ultimo?.cartera            ?? 0,
       promedioVentas3m:  ultimo?.promedioVentas3m   ?? 0,
       acumuladoVenta12m: ultimo?.acumuladoVenta12m  ?? 0,
@@ -312,6 +317,7 @@ export function useExportPDF() {
           razonSocial: filtros.razonSocial?.trim()  || null,
         },
         condPagoDias: kpis.condPagoDias ?? null,
+        modoRot: modoRot ?? "anual",
       },
       kpis,
       serie: serieSorted,
