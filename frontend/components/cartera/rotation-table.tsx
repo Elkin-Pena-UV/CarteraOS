@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useImperativeHandle, forwardRef } from "react"
+import { useState, useMemo, useImperativeHandle, forwardRef } from "react"
 import {
   useReactTable,
   getCoreRowModel,
@@ -300,6 +300,14 @@ export const RotationTable = forwardRef<RotationTableHandle, RotationTableProps>
 
   useImperativeHandle(ref, () => ({ table, modoRot }))
 
+  const chartData = useMemo(() =>
+    data.map(d => ({
+      ...d,
+      rotCxCDisplay: modoRot === "mensual" ? (d.rotCxCMensual ?? 0) : d.rotCxC,
+    })),
+    [data, modoRot]
+  )
+
   const totals = {
     cartera: data.length > 0
       ? data.reduce((acc, d) => acc + d.cartera, 0) / data.length
@@ -322,11 +330,8 @@ export const RotationTable = forwardRef<RotationTableHandle, RotationTableProps>
         payload.find((p: { dataKey: string }) => p.dataKey === "cartera")?.value || 0
       const ventaNeta =
         payload.find((p: { dataKey: string }) => p.dataKey === "ventaNeta")?.value || 0
-      const rotRaw =
-        payload.find((p: { dataKey: string }) => p.dataKey === "rotCxC")?.value || 0
-      const rotValue = modoRot === "mensual"
-        ? (payload[0]?.payload?.rotCxCMensual ?? rotRaw)
-        : rotRaw
+      const rotDisplay =
+        payload.find((p: { dataKey: string }) => p.dataKey === "rotCxCDisplay")?.value || 0
 
       return (
         <div className="rounded-lg border bg-background p-3 shadow-lg">
@@ -349,11 +354,11 @@ export const RotationTable = forwardRef<RotationTableHandle, RotationTableProps>
             <p>
               <span
                 className="inline-block w-3 h-3 rounded-full border-2 mr-2"
-                style={{ borderColor: getRotationColor(rotValue) }}
+                style={{ borderColor: getRotationColor(rotDisplay, condPagoDias) }}
               />
               Rot CxC:{" "}
-              <span style={{ color: getRotationColor(rotValue), fontWeight: "bold" }}>
-                {rotValue} días
+              <span style={{ color: getRotationColor(rotDisplay, condPagoDias), fontWeight: "bold" }}>
+                {rotDisplay} días
               </span>
             </p>
           </div>
@@ -396,7 +401,7 @@ export const RotationTable = forwardRef<RotationTableHandle, RotationTableProps>
           <CardContent>
             <div className="h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={data}>
+                <ComposedChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis dataKey="periodo" tick={{ fontSize: 11 }} />
                   <YAxis
@@ -433,14 +438,14 @@ export const RotationTable = forwardRef<RotationTableHandle, RotationTableProps>
                   <Line
                     yAxisId="right"
                     type="monotone"
-                    dataKey="rotCxC"
+                    dataKey="rotCxCDisplay"
                     stroke="#6B7280"
                     strokeWidth={2.5}
                     dot={{ r: 4, fill: "#fff", stroke: "#6B7280", strokeWidth: 2 }}
                     activeDot={{ r: 6 }}
                   >
                     <LabelList
-                      dataKey="rotCxC"
+                      dataKey="rotCxCDisplay"
                       position="top"
                       formatter={(value: number) => `${value}d`}
                       style={{ fontSize: 10, fill: "#6B7280" }}
