@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   Tooltip,
   TooltipContent,
@@ -57,6 +58,7 @@ export type { RotacionItem as RotationData }
 
 export type RotationTableHandle = {
   table: TanstackTable<RotacionItem>
+  modoRot: "anual" | "mensual"
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -188,51 +190,6 @@ function DraggableHeader({
   )
 }
 
-// ── Custom tooltip del gráfico ────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    const cartera =
-      payload.find((p: { dataKey: string }) => p.dataKey === "cartera")?.value || 0
-    const ventaNeta =
-      payload.find((p: { dataKey: string }) => p.dataKey === "ventaNeta")?.value || 0
-    const rotCxC =
-      payload.find((p: { dataKey: string }) => p.dataKey === "rotCxC")?.value || 0
-
-    return (
-      <div className="rounded-lg border bg-background p-3 shadow-lg">
-        <p className="mb-2 font-semibold">Período: {label}</p>
-        <div className="space-y-1 text-sm">
-          <p>
-            <span
-              className="inline-block w-3 h-3 rounded mr-2"
-              style={{ backgroundColor: "#ff6600" }}
-            />
-            Cartera: {formatCurrencyFull(cartera)}
-          </p>
-          <p>
-            <span
-              className="inline-block w-3 h-3 rounded mr-2"
-              style={{ backgroundColor: "#00359a" }}
-            />
-            Venta Neta: {formatCurrencyFull(ventaNeta)}
-          </p>
-          <p>
-            <span
-              className="inline-block w-3 h-3 rounded-full border-2 mr-2"
-              style={{ borderColor: getRotationColor(rotCxC) }}
-            />
-            Rot CxC:{" "}
-            <span style={{ color: getRotationColor(rotCxC), fontWeight: "bold" }}>
-              {rotCxC} días
-            </span>
-          </p>
-        </div>
-      </div>
-    )
-  }
-  return null
-}
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface RotationTableProps {
@@ -249,6 +206,7 @@ export const RotationTable = forwardRef<RotationTableHandle, RotationTableProps>
   const [sorting, setSorting] = useState<SortingState>([
     { id: "periodo", desc: false },
   ])
+  const [modoRot, setModoRot] = useState<"anual" | "mensual">("anual")
 
   // Periodo más reciente de la serie (para destacar la fila)
   const lastPeriodo = data.length > 0 ? data[data.length - 1].periodo : null
@@ -310,7 +268,9 @@ export const RotationTable = forwardRef<RotationTableHandle, RotationTableProps>
       accessorKey: "rotCxC",
       header: "Rot CxC (días)",
       cell: ({ row }) => {
-        const days = row.getValue("rotCxC") as number
+        const days = modoRot === "mensual"
+          ? (row.original.rotCxCMensual ?? 0)
+          : (row.getValue("rotCxC") as number)
         return (
           <span
             className={cn(
@@ -338,7 +298,7 @@ export const RotationTable = forwardRef<RotationTableHandle, RotationTableProps>
     state: { sorting },
   })
 
-  useImperativeHandle(ref, () => ({ table }))
+  useImperativeHandle(ref, () => ({ table, modoRot }))
 
   const totals = {
     cartera: data.length > 0
@@ -348,8 +308,59 @@ export const RotationTable = forwardRef<RotationTableHandle, RotationTableProps>
     rebate:         data.reduce((acc, d) => acc + d.rebate, 0),
     ventaNeta:      data.reduce((acc, d) => acc + d.ventaNeta, 0),
     rotCxC: data.length > 0
-      ? Math.round(data.reduce((acc, d) => acc + d.rotCxC, 0) / data.length)
+      ? Math.round(data.reduce((acc, d) => {
+          const v = modoRot === "mensual" ? (d.rotCxCMensual ?? 0) : d.rotCxC
+          return acc + v
+        }, 0) / data.length)
       : 0,
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const cartera =
+        payload.find((p: { dataKey: string }) => p.dataKey === "cartera")?.value || 0
+      const ventaNeta =
+        payload.find((p: { dataKey: string }) => p.dataKey === "ventaNeta")?.value || 0
+      const rotRaw =
+        payload.find((p: { dataKey: string }) => p.dataKey === "rotCxC")?.value || 0
+      const rotValue = modoRot === "mensual"
+        ? (payload[0]?.payload?.rotCxCMensual ?? rotRaw)
+        : rotRaw
+
+      return (
+        <div className="rounded-lg border bg-background p-3 shadow-lg">
+          <p className="mb-2 font-semibold">Período: {label}</p>
+          <div className="space-y-1 text-sm">
+            <p>
+              <span
+                className="inline-block w-3 h-3 rounded mr-2"
+                style={{ backgroundColor: "#ff6600" }}
+              />
+              Cartera: {formatCurrencyFull(cartera)}
+            </p>
+            <p>
+              <span
+                className="inline-block w-3 h-3 rounded mr-2"
+                style={{ backgroundColor: "#00359a" }}
+              />
+              Venta Neta: {formatCurrencyFull(ventaNeta)}
+            </p>
+            <p>
+              <span
+                className="inline-block w-3 h-3 rounded-full border-2 mr-2"
+                style={{ borderColor: getRotationColor(rotValue) }}
+              />
+              Rot CxC:{" "}
+              <span style={{ color: getRotationColor(rotValue), fontWeight: "bold" }}>
+                {rotValue} días
+              </span>
+            </p>
+          </div>
+        </div>
+      )
+    }
+    return null
   }
 
   return (
@@ -357,7 +368,7 @@ export const RotationTable = forwardRef<RotationTableHandle, RotationTableProps>
       <div className="space-y-6">
         {/* ── Gráfico ────────────────────────────────────────────────────── */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">
               Evolución Cartera - Venta Neta - Rotación CxC — últimos 12 períodos
               {fechaRef && (
@@ -366,6 +377,21 @@ export const RotationTable = forwardRef<RotationTableHandle, RotationTableProps>
                 </span>
               )}
             </CardTitle>
+            <ToggleGroup
+              type="single"
+              value={modoRot}
+              onValueChange={(v) => { if (v) setModoRot(v as "anual" | "mensual") }}
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+            >
+              <ToggleGroupItem value="anual" className="text-xs px-3">
+                Acum. 12m × 360
+              </ToggleGroupItem>
+              <ToggleGroupItem value="mensual" className="text-xs px-3">
+                Mensual × 30
+              </ToggleGroupItem>
+            </ToggleGroup>
           </CardHeader>
           <CardContent>
             <div className="h-[400px] w-full">

@@ -158,6 +158,7 @@ const calcularSerie = (ventasMap, carteraMap, periodos) => {
       promedioVentas3m: 0,
       acumuladoVenta12m: 0,
       rotCxC: 0,
+      rotCxCMensual: 0,
     };
   });
 
@@ -171,6 +172,10 @@ const calcularSerie = (ventasMap, carteraMap, periodos) => {
 
     serie[i].rotCxC = serie[i].acumuladoVenta12m > 0
       ? Math.round((serie[i].cartera / serie[i].acumuladoVenta12m) * 360)
+      : 0;
+
+    serie[i].rotCxCMensual = serie[i].ventaNeta > 0
+      ? Math.round((serie[i].cartera / serie[i].ventaNeta) * 30)
       : 0;
   }
 

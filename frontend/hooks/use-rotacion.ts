@@ -12,6 +12,7 @@ export type RotacionItem = {
   promedioVentas3m: number
   acumuladoVenta12m: number
   rotCxC: number
+  rotCxCMensual: number
 }
 
 export type RotacionCliente = {
