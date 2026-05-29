@@ -315,12 +315,22 @@ export const RotationTable = forwardRef<RotationTableHandle, RotationTableProps>
     ventaBruta:     data.reduce((acc, d) => acc + d.ventaBruta, 0),
     rebate:         data.reduce((acc, d) => acc + d.rebate, 0),
     ventaNeta:      data.reduce((acc, d) => acc + d.ventaNeta, 0),
-    rotCxC: data.length > 0
-      ? Math.round(data.reduce((acc, d) => {
-          const v = modoRot === "mensual" ? (d.rotCxCMensual ?? 0) : d.rotCxC
-          return acc + v
-        }, 0) / data.length)
-      : 0,
+    rotCxC: (() => {
+    // Solo períodos con actividad real, según el modo
+    const activos = data.filter((d) =>
+      modoRot === "mensual"
+        ? (d.ventaNeta ?? 0) > 0
+        : (d.acumuladoVenta12m ?? 0) > 0
+    )
+    return activos.length > 0
+      ? Math.round(
+          activos.reduce((acc, d) => {
+            const v = modoRot === "mensual" ? (d.rotCxCMensual ?? 0) : d.rotCxC
+            return acc + v
+          }, 0) / activos.length
+        )
+      : 0
+})(),
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
