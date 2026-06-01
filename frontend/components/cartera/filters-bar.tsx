@@ -279,29 +279,6 @@ export function FiltersBar({
                 className="h-9"
               />
             </div>
-
-            {/* ── Rango de valor ──────────────────────────────────────────── */}
-            <div className="min-w-[180px] space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Rango Valor (COP)</Label>
-              <div className="flex items-center gap-1">
-                <Input
-                  placeholder="Min"
-                  value={value.minValue}
-                  onChange={(e) => updateFilter("minValue", e.target.value)}
-                  className="h-9 w-20"
-                  type="number"
-                />
-                <span className="text-muted-foreground">-</span>
-                <Input
-                  placeholder="Max"
-                  value={value.maxValue}
-                  onChange={(e) => updateFilter("maxValue", e.target.value)}
-                  className="h-9 w-20"
-                  type="number"
-                />
-              </div>
-            </div>
-
             {/* ── Acciones ────────────────────────────────────────────────── */}
             <div className="ml-auto flex items-center gap-2">
               <Button variant="ghost" onClick={handleClearFilters} className="h-9">
