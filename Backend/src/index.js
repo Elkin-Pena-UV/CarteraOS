@@ -13,6 +13,7 @@ import rotacionRoutes from './routes/rotacionRoutes.js';
 import exportRoutes   from './routes/exportRoutes.js'
 import authRoutes from './routes/authRoutes.js';
 import requireAuth from './middleware/auth.js';
+import cruceAutRoutes from './routes/cruceAutRoutes.js';
 // import carteraAux from './routes/carteraAuxRoutes.js';
 // import rotRoutes from './routes/rotRoutes.js';
 
@@ -60,6 +61,7 @@ app.use('/api/facturas', requireAuth , facturasRoutes);
 app.use('/api/admin', requireAuth , adminRoutes);
 app.use('/api/variacion', requireAuth , variacionRoutes);
 app.use('/api/rotacion', requireAuth , rotacionRoutes);
+app.use('/api/cruce-aut', requireAuth, cruceAutRoutes); 
 // app.use('/api/cartera-aux', requireAuth , carteraAux);
 // app.use('/api/rot', requireAuth , rotRoutes);
 app.use('/api/export',    exportRoutes); 
