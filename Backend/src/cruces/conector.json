@@ -1,0 +1,1075 @@
+[
+  {
+    "nombre_hoja": "Documento contable V2",
+    "campos": [
+      {
+        "nombre": "NUMERO_DE_REGISTRO",
+        "label": "Numero de registro",
+        "tipo": "NUMÉRICO",
+        "longitud": 7,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Numero consecutivo",
+        "auto_valor": "0000001",
+        "es_numero_registro": true,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "TIPO_DE_REGISTRO",
+        "label": "Tipo de registro",
+        "tipo": "NUMÉRICO",
+        "longitud": 4,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valor fijo = 350",
+        "auto_valor": "0350",
+        "es_numero_registro": false,
+        "opciones": [
+          [
+            "fijo",
+            "350"
+          ]
+        ],
+        "decimal_info": null
+      },
+      {
+        "nombre": "SUBTIPO_DE_REGISTRO",
+        "label": "Subtipo de registro",
+        "tipo": "NUMÉRICO",
+        "longitud": 2,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valor fijo = 00",
+        "auto_valor": "00",
+        "es_numero_registro": false,
+        "opciones": [
+          [
+            "fijo",
+            "00"
+          ]
+        ],
+        "decimal_info": null
+      },
+      {
+        "nombre": "VERSION_DEL_TIPO_DE_REGISTRO",
+        "label": "Versión del tipo de registro",
+        "tipo": "NUMÉRICO",
+        "longitud": 2,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Versión = 02",
+        "auto_valor": "02",
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "COMPANIA",
+        "label": "Compañía",
+        "tipo": "NUMÉRICO",
+        "longitud": 3,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valida en maestro, código de la compañía a la cual pertenece la información del registro",
+        "auto_valor": "001",
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "INDICA_SI_EL_NUMERO_CONSECUTIVO_DE_DOCTO_ES_MANUAL_O_AUTOMATICO",
+        "label": "Indica si el numero consecutivo de docto es manual o automático",
+        "tipo": "NUMÉRICO",
+        "longitud": 1,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "0=Manual, significa que respecta el consecutivo asignado en el plano, 1=Automático, significa que el consecutivo es recalculado con base en la tabla de consecutivos de docto. 2 = indica que ese documento se va a manejar transacciones por movimiento para no generar bloqueos de mucho tiempo",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [
+          [
+            "0",
+            "Manual, significa que respecta el consecutivo asignado en el plano,"
+          ],
+          [
+            "1",
+            "Automático, significa que el consecutivo es recalculado con base en la tabla de consecutivos de docto."
+          ],
+          [
+            "2",
+            "indica que ese documento se va a manejar transacciones por movimiento para no generar bloqueos de mucho tiempo"
+          ]
+        ],
+        "decimal_info": null
+      },
+      {
+        "nombre": "CENTRO_DE_OPERACION_DEL_DOCUMENTO",
+        "label": "Centro de operación del documento",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 3,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valida en maestro, código de centro de operación del documento",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "TIPO_DE_DOCUMENTO",
+        "label": "Tipo de documento",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 3,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valida en maestro, código de tipo de documento",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "NUMERO_DE_DOCUMENTO",
+        "label": "Numero de documento",
+        "tipo": "NUMÉRICO",
+        "longitud": 8,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Numero de documento",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "FECHA_DEL_DOCUMENTO",
+        "label": "Fecha del documento",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 8,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "El formato debe ser AAAAMMDD",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "TERCERO_DEL_DOCUMENTO",
+        "label": "Tercero del documento",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 15,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valida en maestro, código de tercero",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "CLASE_INTERNA_DEL_DOCUMENTO",
+        "label": "Clase interna del documento",
+        "tipo": "NUMÉRICO",
+        "longitud": 5,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Debe ir siempre 30",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "ESTADO_DEL_DOCUMENTO",
+        "label": "Estado del documento",
+        "tipo": "NUMÉRICO",
+        "longitud": 1,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "0=Elaboración; 1=Aprobado, 2=Anulado",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [
+          [
+            "0",
+            "Elaboración;"
+          ],
+          [
+            "1",
+            "Aprobado,"
+          ],
+          [
+            "2",
+            "Anulado"
+          ]
+        ],
+        "decimal_info": null
+      },
+      {
+        "nombre": "ESTADO_DE_IMPRESION_DEL_DOCUMENTO",
+        "label": "Estado de impresión del documento",
+        "tipo": "NUMÉRICO",
+        "longitud": 1,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "0=No Impreso; 1=Impreso",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [
+          [
+            "0",
+            "No Impreso;"
+          ],
+          [
+            "1",
+            "Impreso"
+          ]
+        ],
+        "decimal_info": null
+      },
+      {
+        "nombre": "OBSERVACIONES_DEL_DOCUMENTO",
+        "label": "Observaciones del documento",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 255,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Observaciones",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "MANDATO",
+        "label": "Mandato",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 15,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Debe venir si el tipo de doccumento exige mandato",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      }
+    ],
+    "info_adicional": "INFORMACION DEL DOCUMENTO CONTABLE",
+    "notas_generales": "Los campos que no son requeridos deben dejarse en blanco o en ceros dependiendo de el tipo de dato, esto con el fin de conservar la estructura del archivo en cuanto a su posición inicial y final."
+  },
+  {
+    "nombre_hoja": "Movimiento CxC V2",
+    "campos": [
+      {
+        "nombre": "NUMERO_DE_REGISTRO",
+        "label": "Numero de registro",
+        "tipo": "NUMÉRICO",
+        "longitud": 7,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Numero consecutivo",
+        "auto_valor": "0000001",
+        "es_numero_registro": true,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "TIPO_DE_REGISTRO",
+        "label": "Tipo de registro",
+        "tipo": "NUMÉRICO",
+        "longitud": 4,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valor fijo = 351",
+        "auto_valor": "0351",
+        "es_numero_registro": false,
+        "opciones": [
+          [
+            "fijo",
+            "351"
+          ]
+        ],
+        "decimal_info": null
+      },
+      {
+        "nombre": "SUBTIPO_DE_REGISTRO",
+        "label": "Subtipo de registro",
+        "tipo": "NUMÉRICO",
+        "longitud": 2,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valor fijo = 01",
+        "auto_valor": "01",
+        "es_numero_registro": false,
+        "opciones": [
+          [
+            "fijo",
+            "01"
+          ]
+        ],
+        "decimal_info": null
+      },
+      {
+        "nombre": "VERSION_DEL_TIPO_DE_REGISTRO",
+        "label": "Versión del tipo de registro",
+        "tipo": "NUMÉRICO",
+        "longitud": 2,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Versión = 02",
+        "auto_valor": "02",
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "COMPANIA",
+        "label": "Compañía",
+        "tipo": "NUMÉRICO",
+        "longitud": 3,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valida en maestro, código de la compañía a la cual pertenece la información del registro",
+        "auto_valor": "001",
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "CENTRO_DE_OPERACION_DEL_DOCUMENTO",
+        "label": "Centro de operación del documento",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 3,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valida en maestro, código de centro de operación del documento",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "TIPO_DE_DOCUMENTO",
+        "label": "Tipo de documento",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 3,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valida en maestro, código de tipo de documento",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "NUMERO_DE_DOCUMENTO",
+        "label": "Numero de documento",
+        "tipo": "NUMÉRICO",
+        "longitud": 8,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Numero de documento",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "AUXILIAR_DE_CUENTA_CONTABLE",
+        "label": "Auxiliar de cuenta contable",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 20,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valida en maestro, código de cuenta contable",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "TERCERO",
+        "label": "Tercero",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 15,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valida en maestro, código de tercero, solo se requiere si la auxiliar contable maneja tercero",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "CENTRO_DE_OPERACION_DEL_MOVIMIENTO",
+        "label": "Centro de operación del movimiento",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 3,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valida en maestro, código de centro de operación del movimiento, es obligatorio si la auxiliar no tiene uno por defecto.",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "UNIDAD_DE_NEGOCIO",
+        "label": "Unidad de negocio",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 20,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valida en maestro, código de unidad de negocio, es obligatorio si la auxiliar no tiene uno por defecto.",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "AUXILIAR_DE_CENTRO_DE_COSTOS",
+        "label": "Auxiliar de centro de costos",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 15,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valida en maestro, código de centro de costos, solo se requiere si la auxiliar contable maneja centro de costos",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "VALOR_DEBITO",
+        "label": "Valor debito",
+        "tipo": "NUMÉRICO",
+        "longitud": 21,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valor debito del asiento, si el asiento es crédito este debe ir en cero, el formato debe ser (signo + 15 enteros + punto + 4 decimales) (+000000000000000.0000)",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": {
+          "enteros": 15,
+          "decimales": 4,
+          "usa_punto": true
+        }
+      },
+      {
+        "nombre": "VALOR_CREDITO",
+        "label": "Valor crédito",
+        "tipo": "NUMÉRICO",
+        "longitud": 21,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valor crédito del asiento, si el asiento es debito este debe ir en cero, el formato debe ser (signo + 15 enteros + punto + 4 decimales) (+000000000000000.0000)",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": {
+          "enteros": 15,
+          "decimales": 4,
+          "usa_punto": true
+        }
+      },
+      {
+        "nombre": "VALOR_DEBITO_ALTERNO",
+        "label": "Valor debito alterno",
+        "tipo": "NUMÉRICO",
+        "longitud": 21,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valor debito del asiento en moneda alterna, si el asiento es crédito o la auxiliar contable no maneja moneda alterna este debe ir en cero, el formato debe ser (signo + 15 enteros + punto + 4 decimales) (+000000000000000.0000)",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": {
+          "enteros": 15,
+          "decimales": 4,
+          "usa_punto": true
+        }
+      },
+      {
+        "nombre": "VALOR_CREDITO_ALTERNO",
+        "label": "Valor crédito alterno",
+        "tipo": "NUMÉRICO",
+        "longitud": 21,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valor crédito del asiento en moneda alterna, si el asiento es debito o la auxiliar contable no maneja moneda alterna este debe ir en cero, el formato debe ser (signo + 15 enteros + punto + 4 decimales) (+000000000000000.0000)",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": {
+          "enteros": 15,
+          "decimales": 4,
+          "usa_punto": true
+        }
+      },
+      {
+        "nombre": "OBSERVACIONES_DEL_MOVIMIENTO",
+        "label": "Observaciones del movimiento",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 255,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Observaciones",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "SUCURSAL_CLIENTE",
+        "label": "Sucursal cliente",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 3,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valida en maestro, código de sucursal del cliente.",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "TIPO_DE_DOCUMENTO_DE_CRUCE",
+        "label": "Tipo de documento de cruce",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 3,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valida en maestro, código de tipo de documento.",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "NUMERO_DE_DOCUMENTO_DE_CRUCE",
+        "label": "Numero de documento de cruce",
+        "tipo": "NUMÉRICO",
+        "longitud": 8,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Numero de documento de cruce,  es un numero entre 1 y 99999999.",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "NUMERO_DE_CUOTA_DE_DOCUMENTO_DE_CRUCE",
+        "label": "Numero de cuota de documento de cruce",
+        "tipo": "NUMÉRICO",
+        "longitud": 3,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Numero de cuota de documento de cruce, es un numero entre 0 y 999.",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "FECHA_DE_VENCIMIENTO_DEL_DOCUMENTO",
+        "label": "Fecha de vencimiento del documento",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 8,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Fecha de vencimiento del documento,  el formato debe ser AAAAMMDD.",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "FECHA_DE_PRONTO_PAGO_DEL_DOCUMENTO",
+        "label": "Fecha de pronto pago del documento",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 8,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Fecha de pronto pago del documento,  el formato debe ser AAAAMMDD.",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "VALOR_DESCUENTO_PRONTO_PAGO_OTORGADO",
+        "label": "Valor descuento pronto pago otorgado",
+        "tipo": "NUMÉRICO",
+        "longitud": 21,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valor descuento pronto pago otorgado, el formato debe ser (signo + 15 enteros + punto + 4 decimales) (+000000000000000.0000)",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": {
+          "enteros": 15,
+          "decimales": 4,
+          "usa_punto": true
+        }
+      },
+      {
+        "nombre": "VALOR_DESCUENTO_PRONTO_PAGO_APLICADO",
+        "label": "Valor descuento pronto pago aplicado",
+        "tipo": "NUMÉRICO",
+        "longitud": 21,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valor descuento pronto pago aplicado, el formato debe ser (signo + 15 enteros + punto + 4 decimales) (+000000000000000.0000)",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": {
+          "enteros": 15,
+          "decimales": 4,
+          "usa_punto": true
+        }
+      },
+      {
+        "nombre": "VALOR_DESCUENTO_PRONTO_PAGO_APLICADO_ALTERNO",
+        "label": "Valor descuento pronto pago aplicado alterno",
+        "tipo": "NUMÉRICO",
+        "longitud": 21,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valor descuento pronto pago aplicado alterno, el formato debe ser (signo + 15 enteros + punto + 4 decimales) (+000000000000000.0000)",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": {
+          "enteros": 15,
+          "decimales": 4,
+          "usa_punto": true
+        }
+      },
+      {
+        "nombre": "VALOR_AJUSTE_AL_SALDO",
+        "label": "Valor ajuste al saldo",
+        "tipo": "NUMÉRICO",
+        "longitud": 21,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valor ajuste al saldo, el formato debe ser (signo + 15 enteros + punto + 4 decimales) (+000000000000000.0000)",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": {
+          "enteros": 15,
+          "decimales": 4,
+          "usa_punto": true
+        }
+      },
+      {
+        "nombre": "VALOR_AJUSTE_AL_SALDO_ALTERNO",
+        "label": "Valor ajuste al saldo alterno",
+        "tipo": "NUMÉRICO",
+        "longitud": 21,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valor ajuste al saldo alterno, el formato debe ser (signo + 15 enteros + punto + 4 decimales) (+000000000000000.0000)",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": {
+          "enteros": 15,
+          "decimales": 4,
+          "usa_punto": true
+        }
+      },
+      {
+        "nombre": "VALOR_RETENCION",
+        "label": "Valor retención",
+        "tipo": "NUMÉRICO",
+        "longitud": 21,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valor retención, el formato debe ser (signo + 15 enteros + punto + 4 decimales) (+000000000000000.0000)",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": {
+          "enteros": 15,
+          "decimales": 4,
+          "usa_punto": true
+        }
+      },
+      {
+        "nombre": "VALOR_RETENCION_ALTERNO",
+        "label": "Valor retención alterno",
+        "tipo": "NUMÉRICO",
+        "longitud": 21,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valor retención alterno, el formato debe ser (signo + 15 enteros + punto + 4 decimales) (+000000000000000.0000)",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": {
+          "enteros": 15,
+          "decimales": 4,
+          "usa_punto": true
+        }
+      },
+      {
+        "nombre": "TERCERO_VENDEDOR",
+        "label": "Tercero vendedor",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 15,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valida en maestro, código de tercero del vendedor.",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "OBSERVACIONES_DEL_MOVIMIENTO_DE_SALDO_ABIERTO",
+        "label": "Observaciones del movimiento de saldo abierto",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 255,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Observaciones del movimiento de saldo abierto.",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      }
+    ],
+    "info_adicional": "INFORMACION DEL MOVIMIENTO DE CUENTAS POR COBRAR",
+    "notas_generales": "Los campos que no son requeridos deben dejarse en blanco o en ceros dependiendo de el tipo de dato, esto con el fin de conservar la estructura del archivo en cuanto a su posición inicial y final."
+  },
+  {
+    "nombre_hoja": "Movimiento contable V2",
+    "campos": [
+      {
+        "nombre": "NUMERO_DE_REGISTRO",
+        "label": "Numero de registro",
+        "tipo": "NUMÉRICO",
+        "longitud": 7,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Numero consecutivo",
+        "auto_valor": "0000001",
+        "es_numero_registro": true,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "TIPO_DE_REGISTRO",
+        "label": "Tipo de registro",
+        "tipo": "NUMÉRICO",
+        "longitud": 4,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valor fijo = 351",
+        "auto_valor": "0351",
+        "es_numero_registro": false,
+        "opciones": [
+          [
+            "fijo",
+            "351"
+          ]
+        ],
+        "decimal_info": null
+      },
+      {
+        "nombre": "SUBTIPO_DE_REGISTRO",
+        "label": "Subtipo de registro",
+        "tipo": "NUMÉRICO",
+        "longitud": 2,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valor fijo = 00",
+        "auto_valor": "00",
+        "es_numero_registro": false,
+        "opciones": [
+          [
+            "fijo",
+            "00"
+          ]
+        ],
+        "decimal_info": null
+      },
+      {
+        "nombre": "VERSION_DEL_TIPO_DE_REGISTRO",
+        "label": "Versión del tipo de registro",
+        "tipo": "NUMÉRICO",
+        "longitud": 2,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Versión = 02",
+        "auto_valor": "02",
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "COMPANIA",
+        "label": "Compañía",
+        "tipo": "NUMÉRICO",
+        "longitud": 3,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valida en maestro, código de la compañía a la cual pertenece la información del registro",
+        "auto_valor": "001",
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "CENTRO_DE_OPERACION_DEL_DOCUMENTO",
+        "label": "Centro de operación del documento",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 3,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valida en maestro, código de centro de operación del documento",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "TIPO_DE_DOCUMENTO",
+        "label": "Tipo de documento",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 3,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valida en maestro, código de tipo de documento",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "NUMERO_DE_DOCUMENTO",
+        "label": "Numero de documento",
+        "tipo": "NUMÉRICO",
+        "longitud": 8,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Numero de documento",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "AUXILIAR_DE_CUENTA_CONTABLE",
+        "label": "Auxiliar de cuenta contable",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 20,
+        "decimales": 0,
+        "obligatorio": true,
+        "observaciones": "Valida en maestro, código de cuenta contable",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "TERCERO",
+        "label": "Tercero",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 15,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valida en maestro, código de tercero, solo se requiere si la auxiliar contable maneja tercero",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "CENTRO_DE_OPERACION_DEL_MOVIMIENTO",
+        "label": "Centro de operación del movimiento",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 3,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valida en maestro, código de centro de operación del movimiento, es obligatorio si la auxiliar no tiene uno por defecto.",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "UNIDAD_DE_NEGOCIO",
+        "label": "Unidad de negocio",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 20,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valida en maestro, código de unidad de negocio, es obligatorio si la auxiliar no tiene uno por defecto.",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "AUXILIAR_DE_CENTRO_DE_COSTOS",
+        "label": "Auxiliar de centro de costos",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 15,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valida en maestro, código de centro de costos, solo se requiere si la auxiliar contable maneja centro de costos",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "AUXILIAR_DE_CONCEPTO_DE_FULJO_DE_EFECTIVO",
+        "label": "Auxiliar de concepto de fuljo de efectivo",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 10,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Solo si la cuenta es disponible, valida en maestro, código de concepto de flujo de efectivo.",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "VALOR_DEBITO",
+        "label": "Valor debito",
+        "tipo": "NUMÉRICO",
+        "longitud": 21,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valor debito del asiento, si el asiento es crédito este debe ir en cero, el formato debe ser (signo + 15 enteros + punto + 4 decimales) (+000000000000000.0000)",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": {
+          "enteros": 15,
+          "decimales": 4,
+          "usa_punto": true
+        }
+      },
+      {
+        "nombre": "VALOR_CREDITO",
+        "label": "Valor crédito",
+        "tipo": "NUMÉRICO",
+        "longitud": 21,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valor crédito del asiento, si el asiento es debito este debe ir en cero, el formato debe ser (signo + 15 enteros + punto + 4 decimales) (+000000000000000.0000)",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": {
+          "enteros": 15,
+          "decimales": 4,
+          "usa_punto": true
+        }
+      },
+      {
+        "nombre": "VALOR_DEBITO_ALTERNO",
+        "label": "Valor debito alterno",
+        "tipo": "NUMÉRICO",
+        "longitud": 21,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valor debito del asiento en moneda alterna, si el asiento es crédito o la auxiliar contable no maneja moneda alterna este debe ir en cero, el formato debe ser (signo + 15 enteros + punto + 4 decimales) (+000000000000000.0000)",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": {
+          "enteros": 15,
+          "decimales": 4,
+          "usa_punto": true
+        }
+      },
+      {
+        "nombre": "VALOR_CREDITO_ALTERNO",
+        "label": "Valor crédito alterno",
+        "tipo": "NUMÉRICO",
+        "longitud": 21,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Valor crédito del asiento en moneda alterna, si el asiento es debito o la auxiliar contable no maneja moneda alterna este debe ir en cero, el formato debe ser (signo + 15 enteros + punto + 4 decimales) (+000000000000000.0000)",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": {
+          "enteros": 15,
+          "decimales": 4,
+          "usa_punto": true
+        }
+      },
+      {
+        "nombre": "VALOR_BASE_GRAVABLE",
+        "label": "Valor base gravable",
+        "tipo": "NUMÉRICO",
+        "longitud": 21,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Solo si la cuenta maneja tasa, es el valor que da origen al impuesto o retención, el formato debe ser (signo + 15 enteros + punto + 4 decimales) (+000000000000000.0000)",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": {
+          "enteros": 15,
+          "decimales": 4,
+          "usa_punto": true
+        }
+      },
+      {
+        "nombre": "TIPO_DE_DOCUMENTO_DE_BANCO",
+        "label": "Tipo de documento de banco",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 2,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Solo si la cuenta es de bancos, en este campo debe ir 'CH' para cheques, 'CG' para consignaciones, 'ND' para notas debito y 'NC' para notas crédito.",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "NUMERO_DE_DOCUMENTO_DE_BANCO",
+        "label": "Numero de documento de banco",
+        "tipo": "NUMÉRICO",
+        "longitud": 8,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Solo si la cuenta es de bancos, corresponde al numero 'CH', 'CG', 'ND' o 'NC'.",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      },
+      {
+        "nombre": "OBSERVACIONES_DEL_MOVIMIENTO",
+        "label": "Observaciones del movimiento",
+        "tipo": "ALFANUMÉRICO",
+        "longitud": 255,
+        "decimales": 0,
+        "obligatorio": false,
+        "observaciones": "Observaciones",
+        "auto_valor": null,
+        "es_numero_registro": false,
+        "opciones": [],
+        "decimal_info": null
+      }
+    ],
+    "info_adicional": "INFORMACION DEL MOVIMIENTO CONTABLE",
+    "notas_generales": "Los campos que no son requeridos deben dejarse en blanco o en ceros dependiendo de el tipo de dato, esto con el fin de conservar la estructura del archivo en cuanto a su posición inicial y final."
+  }
+]

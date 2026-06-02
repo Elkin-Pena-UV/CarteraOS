@@ -1,9 +1,9 @@
-// Backend/src/services/cruces/matcher.js
+// 
 //
 // Agrupa los documentos normalizados en grupos cruzables. Un cruce solo ocurre
 // entre documentos del MISMO tercero que comparten una llave (PVC u OC).
 //
-// Estrategia (v1, conservadora):
+// Estrategia de emparejamiento (matching):
 //   1. Se ignoran NCE y cualquier tipo fuera de FVE/RC/RAC (fuera de alcance).
 //   2. Se agrupa por tercero.
 //   3. Dentro del tercero se indexan los documentos por VALOR de llave.

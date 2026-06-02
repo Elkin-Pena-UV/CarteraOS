@@ -1,4 +1,4 @@
-// Backend/src/services/cruces/clasificador.js
+// 
 //
 // El corazón del módulo: dado un grupo de documentos (FVE + RC/RAC) unidos por
 // la misma llave de cruce y el mismo tercero, el SIGNO y la MAGNITUD del saldo

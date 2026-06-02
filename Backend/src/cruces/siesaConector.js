@@ -1,4 +1,4 @@
-// Backend/src/services/cruces/siesaConector.js
+// 
 //
 // Convierte un DocumentoCruce en el payload de la API conectora de Siesa
 // (sección `datos` del Imp-UnoEE-Docto_contable_conector.json). Es la

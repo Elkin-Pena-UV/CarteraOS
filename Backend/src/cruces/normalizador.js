@@ -1,4 +1,4 @@
-// Backend/src/services/cruces/normalizador.js
+// 
 //
 // Convierte cada fila cruda de la consulta `cruceAut` en un documento
 // normalizado, y le extrae sus llaves de cruce candidatas (PVC u OC) con un
