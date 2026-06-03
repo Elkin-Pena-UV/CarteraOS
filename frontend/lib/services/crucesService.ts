@@ -82,6 +82,7 @@ export interface CruceAAutorizar {
   consecsFVE: string
   consecsRC: string
   observaciones?: string
+  docs?: DocNormalizado[] // Para mostrar detalles en el modal de revisión antes de autorizar
 }
 
 export async function autorizarCruces(

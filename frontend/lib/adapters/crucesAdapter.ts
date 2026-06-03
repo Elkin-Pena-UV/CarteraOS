@@ -4,6 +4,7 @@ import type {
   GrupoCruce,
   ItemRevision,
   CasoCruce,
+  DocNormalizado,
 } from '@/lib/services/crucesService'
 
 /* ─── Filas para la tabla de PROCESADOS ─── */
@@ -42,6 +43,7 @@ export interface FilaGrupoManual {
   consecsRC: string
   netEstimado: number
   motivoManual: string // "Baja confianza de llave"
+  docs: DocNormalizado[]   // Para mostrar detalles en el modal de revisión
 }
 
 /* ─── Filas para la tabla de REVISIÓN ─── */
@@ -118,6 +120,7 @@ export function adaptGruposManuales(grupos: GrupoCruce[]): FilaGrupoManual[] {
       consecsRC: rcs.map((d) => d.consecCruce).join(', '),
       netEstimado,
       motivoManual: `Confianza de llave ${(g.confianza * 100).toFixed(0)}% < umbral 80%`,
+      docs: g.docs,
     }
   })
 }

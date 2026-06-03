@@ -167,24 +167,46 @@ export default function CrucesPage() {
   async function handleAutorizarManual(fila: FilaGrupoManual) {
     setAutorizando(true)
     try {
-      await autorizarCruces([{
-        tercero: fila.tercero,
-        claveType: fila.claveType,
+      const resultado = await autorizarCruces([{
+        tercero:    fila.tercero,
+        claveType:  fila.claveType,
         claveValor: fila.claveValor,
-        tipoCruce: 'MANUAL' as const,
-        confianza: fila.confianza,
-        totalFVE: fila.totalFVE,
-        totalRC: fila.totalRC,
-        net: fila.netEstimado,
-        nroFVE: fila.nroFVE,
-        nroRC: fila.nroRC,
+        tipoCruce:  'MANUAL' as const,
+        confianza:  fila.confianza,
+        totalFVE:   fila.totalFVE,
+        totalRC:    fila.totalRC,
+        net:        fila.netEstimado,
+        nroFVE:     fila.nroFVE,
+        nroRC:      fila.nroRC,
         consecsFVE: fila.consecsFVE,
-        consecsRC: fila.consecsRC,
+        consecsRC:  fila.consecsRC,
+        docs:       fila.docs,   // ← pasar docs para que el backend arme el plano
       }])
+      if (resultado.fallidos?.length > 0) {
+      const f = resultado.fallidos[0]
+      const detalle = f.errores?.length > 0
+        ? f.errores.join(' | ')
+        : f.error ?? `HTTP ${f.status}`
+      toast({
+        title: 'No se pudo autorizar el cruce',
+        description: `• ${f.tercero}: ${detalle}`,
+        variant: 'destructive',
+        duration: 8000,
+      })
+    } else {
       setAutorizados(prev => new Set([...prev, fila.id]))
-      toast({ title: 'Cruce autorizado', description: `Grupo ${fila.claveValor} (${fila.tercero}) registrado correctamente.` })
+      toast({
+        title: 'Cruce autorizado',
+        description: `Grupo ${fila.claveValor} (${fila.tercero}) enviado a Siesa y registrado correctamente.`,
+        duration: 4000,
+      })
+    }
     } catch {
-      toast({ title: 'Error al autorizar', description: 'No se pudo autorizar el cruce.', variant: 'destructive' })
+      toast({
+        title: 'Error al autorizar',
+        description: 'No se pudo autorizar el cruce.',
+        variant: 'destructive',
+      })
     } finally {
       setAutorizando(false)
       setDialogManualFila(null)
