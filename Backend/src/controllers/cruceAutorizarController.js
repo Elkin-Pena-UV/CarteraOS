@@ -3,6 +3,7 @@ import {
   obtenerHistorialCruces,
 } from '../services/cruceAutorizarService.js'
 import { enviarAConector } from '../services/cruceProcesarService.js'
+import { procesarGrupo } from '../cruces/index.js'
 /**
  * POST /api/cruce-aut/autorizar
  * Body: { cruces: [...], tipoCruce: 'AUTOMATICO'|'MANUAL', observaciones? }
@@ -19,8 +20,23 @@ export async function autorizarCruces(req, res) {
     const usuario = req.user?.username ?? req.user?.nombre ?? req.user?.email ?? 'desconocido'
     const ip      = req.ip ?? req.headers['x-forwarded-for'] ?? null
 
+    // Para cruces manuales que traen docs pero no doc, generar el doc
+    const crucesConDoc = cruces.map(c => {
+      if (c.doc) return c   // automáticos ya tienen doc
+      if (c.docs?.length > 0) {
+        // Re-procesar el grupo para obtener el doc y plano
+        const clave = { tipo: c.claveType, valor: c.claveValor, confianza: c.confianza }
+        const fechaDoc = c.docs.reduce((maxFecha, d) => {
+            return d.fechaDocto > maxFecha ? d.fechaDocto : maxFecha
+        }, '')
+        const { caso, net, doc, plano } = procesarGrupo(c.docs, clave, fechaDoc)
+        return { ...c, caso: caso ?? c.caso, net: net ?? c.net, doc, plano }
+      }
+      return c   // sin doc, llamarConector lo ignorará
+    })
+
     // 1. Enviar a Siesa PRIMERO
-    const conDoc = cruces.filter(c => c.doc)
+    const conDoc = crucesConDoc.filter(c => c.doc)
     let resultadosSiesa = []
 
     if (conDoc.length > 0) {
@@ -35,18 +51,20 @@ export async function autorizarCruces(req, res) {
     let guardados = []
     if (exitosos.length > 0) {
       // Reconstruir solo los cruces que fueron exitosos en Siesa
-      const crucesExitosos = exitosos.map(r => {
-        const cruceOriginal = cruces.find(c =>
-          c.tercero === r.tercero &&
-          c.claveValor === r.clave?.valor
+        const idsFallidos = new Set(
+        fallidos.map(f => `${f.tercero}-${f.clave?.valor ?? ''}`)
         )
-        return {
-          ...cruceOriginal,
-          observaciones: cruceOriginal?.observaciones ?? observaciones ?? null,
-        }
-      }).filter(Boolean)
+        const crucesExitosos = crucesConDoc
+        .filter(c => !idsFallidos.has(`${c.tercero}-${c.claveValor}`))
+        .map(c => ({
+            ...c,
+        observaciones: c.observaciones ?? observaciones ?? null,
+        }))
 
-      guardados = await guardarCrucesAutorizados(crucesExitosos, usuario, ip)
+        let guardados = []
+        if (crucesExitosos.length > 0) {
+        guardados = await guardarCrucesAutorizados(crucesExitosos, usuario, ip)
+        }
     }
 
     // 4. Responder con detalle de exitosos y fallidos

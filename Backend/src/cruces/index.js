@@ -63,7 +63,9 @@ export function procesarLote(filas, opts = {}) {
   const fechaResolver =
     opts.fechaResolver ??
     ((docs) => {
-      const fechaFve = docs.find((d) => d.tipo === 'FVE')?.fechaDocto ?? '';
+      const fechaFve = docs
+        .filter(d => d.tipo === 'FVE')
+        .reduce((max, d) => d.fechaDocto > max ? d.fechaDocto : max, '');
       const fechaRc  = docs
         .filter((d) => d.tipo !== 'FVE')
         .reduce((max, d) => (d.fechaDocto > max ? d.fechaDocto : max), '');

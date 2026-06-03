@@ -68,7 +68,7 @@ export function mapearADocumento(grupo, caso, net, clave, fechaDoc, cfg) {
     lineas.push({
       auxiliar: cfg.cuentaAnticipo, tercero, debito: aplicado,
       notasMov: ref, sucursal: r.sucursal, tipoCruce: r.tipo,
-      consecCruce: r.consecCruce, fechaVcto: r.fechaVcto,
+      consecCruce: r.consecCruce, fechaVcto: r.fechaVcto >= fechaDoc ? r.fechaVcto : fechaDoc,
       terceroVend: r.terceroVend, notas354: obs,
     });
   }
