@@ -24,6 +24,7 @@ import {
   FileBarChart,
   UserCircle,
   Building,
+  GitMerge,
   type LucideIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -56,6 +57,11 @@ const menuItems: MenuItem[] = [
         title: "Rotación",
         href: "/cartera/rotacion",
         icon: RefreshCcw,
+      },
+      {
+        title: "Cruces de Pagos",
+        href: "/cartera/cruces",
+        icon: GitMerge,
       },
     ],
   },
@@ -143,7 +149,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     const activeGroups = menuItems
       .filter((item) => item.children?.some((child) => child.href === pathname))
       .map((item) => item.title)
-    
+
     setExpandedGroups((prev) => {
       const newExpanded = [...new Set([...prev, ...activeGroups])]
       return newExpanded
@@ -165,11 +171,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   const handleMouseEnter = (item: MenuItem, event: React.MouseEvent<HTMLElement>) => {
     if (!collapsed || !item.children) return
-    
+
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current)
     }
-    
+
     const rect = event.currentTarget.getBoundingClientRect()
     setPopover({
       item,
@@ -179,7 +185,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   const handleMouseLeave = () => {
     if (!collapsed) return
-    
+
     hoverTimeoutRef.current = setTimeout(() => {
       setPopover({ item: null, position: { top: 0, left: 0 } })
     }, 150)

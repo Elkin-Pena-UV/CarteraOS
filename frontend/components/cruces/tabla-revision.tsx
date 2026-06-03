@@ -1,0 +1,483 @@
+"use client"
+
+import { useMemo, forwardRef, useImperativeHandle } from "react"
+import {
+  DndContext,
+  closestCenter,
+  DragOverlay,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  horizontalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  flexRender,
+  type ColumnDef,
+  type Table as TanstackTable,
+} from "@tanstack/react-table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  GripVertical,
+  RotateCcw,
+  Columns,
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { useTableState } from "@/hooks/use-table-state"
+import { formatCurrency } from "@/lib/formatters"
+import type { FilaRevision } from "@/lib/adapters/crucesAdapter"
+
+// ── Constantes ────────────────────────────────────────────────────────────────
+const NON_HIDEABLE: string[] = []
+const VISIBILITY_STORAGE_KEY = 'cruces_revision_column_visibility'
+const STORAGE_KEY = 'cruces_revision_column_order'
+const PINNED_START = ['tercero', 'tipo']
+const STICKY_COLS: string[] = []
+const PINNED_END: string[] = []
+
+const DEFAULT_COLUMN_ORDER = [
+  'tercero', 'tipo', 'consecCruce', 'saldo',
+  'fechaDocto', 'fechaVcto', 'claves', 'motivo', 'notas',
+]
+
+export interface TablaRevisionRef {
+  table: TanstackTable<FilaRevision>
+}
+
+const TIPO_COLORS: Record<string, string> = {
+  FVE: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
+  RC:  'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  RAC: 'bg-violet-500/20 text-violet-400 border-violet-500/30',
+}
+
+function formatFecha(raw: string) {
+  if (!raw || raw.length !== 8) return raw || '—'
+  return `${raw.slice(6, 8)}/${raw.slice(4, 6)}/${raw.slice(0, 4)}`
+}
+
+// ── DraggableHeader ───────────────────────────────────────────────────────────
+interface DraggableHeaderProps {
+  id: string
+  isPinned?: boolean
+  isResizable?: boolean
+  stickyLeft?: number
+  label: string
+  size: number
+  isResizing: boolean
+  onResizeStart: (e: React.MouseEvent | React.TouchEvent) => void
+  column?: {
+    toggleSorting: (desc: boolean) => void
+    getIsSorted: () => false | "desc" | "asc"
+    getCanSort: () => boolean
+    clearSorting: () => void
+  }
+}
+
+function DraggableHeader({
+  id, isPinned = false, stickyLeft, label, size,
+  isResizing, isResizable = true, onResizeStart, column,
+}: DraggableHeaderProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id, disabled: isPinned })
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    width: size,
+    ...(isPinned && stickyLeft !== undefined
+      ? { position: "sticky", left: stickyLeft, zIndex: 3 }
+      : { position: "relative" }),
+  }
+
+  return (
+    <TableHead
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'group whitespace-nowrap overflow-hidden',
+        isDragging && 'bg-[repeating-linear-gradient(-45deg,transparent,transparent_5px,hsl(var(--border))_5px,hsl(var(--border))_6px)] opacity-50',
+        isPinned && "bg-background shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]"
+      )}
+    >
+      <div className="flex items-center justify-between gap-1">
+        <span className="text-sm font-medium text-foreground truncate">{label}</span>
+        <div className="flex shrink-0 items-center gap-0.5">
+          {column?.getCanSort() && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                const sorted = column.getIsSorted()
+                if (sorted === false) column.toggleSorting(true)
+                else if (sorted === "desc") column.toggleSorting(false)
+                else column.clearSorting()
+              }}
+              className={cn(
+                'flex h-6 w-6 items-center justify-center rounded transition-all duration-150',
+                'opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:bg-muted focus:outline-none',
+                column.getIsSorted() && '!opacity-100 text-[#ff6600]'
+              )}
+              title="Ordenar"
+            >
+              {column.getIsSorted() === "desc" ? <ArrowDown className="h-3.5 w-3.5" />
+                : column.getIsSorted() === "asc" ? <ArrowUp className="h-3.5 w-3.5" />
+                : <ArrowUpDown className="h-3.5 w-3.5" />}
+            </button>
+          )}
+          {!isPinned && (
+            <button
+              type="button"
+              {...attributes}
+              {...listeners}
+              aria-label="Arrastrar columna"
+              className={cn(
+                'flex h-6 w-5 items-center justify-center rounded transition-all duration-150',
+                'opacity-0 group-hover:opacity-40 hover:!opacity-100 hover:text-[#ff6600]',
+                'cursor-grab active:cursor-grabbing focus:outline-none'
+              )}
+              tabIndex={-1}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+      {isResizable && (
+        <div
+          onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e) }}
+          onTouchStart={(e) => { e.stopPropagation(); onResizeStart(e) }}
+          className={cn(
+            "absolute right-0 top-0 h-full w-1.5 cursor-col-resize select-none touch-none z-10",
+            "opacity-0 group-hover:opacity-100 transition-opacity",
+            "hover:bg-[#ff6600]/60 rounded-sm",
+            isResizing && "bg-[#ff6600] opacity-100"
+          )}
+        />
+      )}
+    </TableHead>
+  )
+}
+
+function DragOverlayContent({ columnId, columns }: { columnId: string; columns: ColumnDef<FilaRevision>[] }) {
+  const col = columns.find(c => c.id === columnId || (c as any).accessorKey === columnId)
+  const label = (typeof col?.header === 'string' ? col.header : null) ?? columnId
+  return (
+    <div className="flex items-center gap-2 rounded-md border border-[#ff6600] bg-[#ff6600]/20 px-3 py-2 font-semibold text-[#ff6600] shadow-md">
+      <GripVertical className="h-4 w-4" />{label}
+    </div>
+  )
+}
+
+// ── Componente principal ──────────────────────────────────────────────────────
+interface TablaRevisionProps {
+  data: FilaRevision[]
+  globalFilter: string
+}
+
+export const TablaRevision = forwardRef<TablaRevisionRef, TablaRevisionProps>(
+  function TablaRevision({ data, globalFilter }, ref) {
+
+  const {
+    sorting, setSorting,
+    columnOrder, setColumnOrder,
+    columnSizing, setColumnSizing,
+    columnVisibility, setColumnVisibility,
+    activeId, sensors, draggableOrder,
+    handleDragStart, handleDragEnd,
+    resetTableState,
+  } = useTableState({
+    orderStorageKey: STORAGE_KEY,
+    visibilityStorageKey: VISIBILITY_STORAGE_KEY,
+    defaultOrder: DEFAULT_COLUMN_ORDER,
+    pinnedStart: PINNED_START,
+    pinnedEnd: PINNED_END,
+  })
+
+  const columns: ColumnDef<FilaRevision>[] = useMemo(() => [
+    {
+      id: "tercero",
+      accessorKey: "tercero",
+      header: "Tercero",
+      size: 120,
+      cell: ({ row }) => <span className="font-mono text-sm">{row.getValue("tercero")}</span>,
+    },
+    {
+      id: "tipo",
+      accessorKey: "tipo",
+      header: "Tipo",
+      size: 80,
+      cell: ({ row }) => {
+        const tipo = row.getValue("tipo") as string
+        const cls = TIPO_COLORS[tipo] ?? 'bg-muted text-muted-foreground border-border'
+        return <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${cls}`}>{tipo}</span>
+      },
+    },
+    {
+      id: "consecCruce",
+      accessorKey: "consecCruce",
+      header: "Consecutivo",
+      size: 120,
+      cell: ({ row }) => <span className="font-mono text-sm">{row.getValue("consecCruce")}</span>,
+    },
+    {
+      id: "saldo",
+      accessorKey: "saldo",
+      header: "Saldo",
+      size: 130,
+      cell: ({ row }) => {
+        const v = row.getValue("saldo") as number
+        return (
+          <span className={cn("font-medium tabular-nums", v < 0 && "text-rose-500")}>
+            {formatCurrency(v)}
+          </span>
+        )
+      },
+    },
+    {
+      id: "fechaDocto",
+      accessorKey: "fechaDocto",
+      header: "Fecha doc.",
+      size: 110,
+      cell: ({ row }) => (
+        <span className="text-muted-foreground text-sm">{formatFecha(row.getValue("fechaDocto"))}</span>
+      ),
+    },
+    {
+      id: "fechaVcto",
+      accessorKey: "fechaVcto",
+      header: "Vencimiento",
+      size: 115,
+      cell: ({ row }) => (
+        <span className="text-muted-foreground text-sm">{formatFecha(row.getValue("fechaVcto"))}</span>
+      ),
+    },
+    {
+      id: "claves",
+      accessorKey: "claves",
+      header: "Llaves detectadas",
+      size: 210,
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">{row.getValue("claves")}</span>
+      ),
+    },
+    {
+      id: "motivo",
+      accessorKey: "motivo",
+      header: "Motivo de revisión",
+      size: 260,
+      cell: ({ row }) => (
+        <span className="text-sm text-rose-400">{row.getValue("motivo")}</span>
+      ),
+    },
+    {
+      id: "notas",
+      accessorKey: "notas",
+      header: "Notas",
+      size: 220,
+      cell: ({ row }) => {
+        const v = row.getValue("notas") as string
+        return (
+          <span className="text-sm text-muted-foreground truncate block" title={v}>
+            {v || "—"}
+          </span>
+        )
+      },
+    },
+  ], [])
+
+  const table = useReactTable({
+    data,
+    columns,
+    state: { sorting, columnOrder, columnSizing, columnVisibility, globalFilter },
+    onSortingChange: setSorting,
+    onColumnOrderChange: setColumnOrder,
+    onColumnSizingChange: setColumnSizing,
+    onColumnVisibilityChange: setColumnVisibility,
+    onGlobalFilterChange: () => {},
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    columnResizeMode: "onChange",
+    enableColumnPinning: true,
+    initialState: {
+      columnPinning: { left: ['tercero', 'tipo'] },
+    },
+  })
+
+  useImperativeHandle(ref, () => ({ table }), [table])
+
+  return (
+    <Card className="border-rose-500/20">
+      <CardHeader className="flex flex-row items-center justify-between border-b border-rose-500/20 py-2 px-4 bg-rose-500/5">
+        <CardTitle>Sin Emparejar — En Revisión</CardTitle>
+        <TooltipProvider>
+          <div className="flex items-center">
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm"><Columns className="h-4 w-4" /></Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent><p>Mostrar / ocultar columnas</p></TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Columnas visibles
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {table.getAllColumns()
+                  .filter(col => !NON_HIDEABLE.includes(col.id) && col.getCanHide())
+                  .map(col => (
+                    <DropdownMenuCheckboxItem
+                      key={col.id}
+                      checked={col.getIsVisible()}
+                      onCheckedChange={v => col.toggleVisibility(!!v)}
+                      onSelect={e => e.preventDefault()}
+                      className="capitalize"
+                    >
+                      {typeof col.columnDef.header === 'string' ? col.columnDef.header : col.id}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" onClick={resetTableState}>
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>Restablecer columnas</p></TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
+      </CardHeader>
+      <CardContent className="p-0">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="overflow-x-auto">
+            <Table style={{ tableLayout: "fixed", width: table.getTotalSize() }}>
+              <TableHeader>
+                {table.getHeaderGroups().map(headerGroup => (
+                  <TableRow key={headerGroup.id}>
+                    <SortableContext items={draggableOrder} strategy={horizontalListSortingStrategy}>
+                      {(() => {
+                        let stickyOffset = 0
+                        return headerGroup.headers.map(header => {
+                          const isPinned = PINNED_START.includes(header.id) || PINNED_END.includes(header.id)
+                          const isSticky = STICKY_COLS.includes(header.id)
+                          const currentOffset = isSticky ? stickyOffset : undefined
+                          if (isSticky) stickyOffset += header.getSize()
+                          const label = typeof header.column.columnDef.header === "string"
+                            ? header.column.columnDef.header : header.id
+                          return (
+                            <DraggableHeader
+                              key={header.id}
+                              id={header.id}
+                              isPinned={isPinned}
+                              isResizable={header.column.getCanResize()}
+                              stickyLeft={currentOffset}
+                              label={label}
+                              size={header.getSize()}
+                              isResizing={header.column.getIsResizing()}
+                              onResizeStart={header.getResizeHandler()}
+                              column={header.column.getCanSort() ? {
+                                toggleSorting: d => header.column.toggleSorting(d),
+                                getIsSorted: () => header.column.getIsSorted(),
+                                getCanSort: () => header.column.getCanSort(),
+                                clearSorting: () => header.column.clearSorting(),
+                              } : undefined}
+                            />
+                          )
+                        })
+                      })()}
+                    </SortableContext>
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map(row => (
+                    <TableRow key={row.id} className="hover:bg-rose-500/5">
+                      {(() => {
+                        let stickyOffset = 0
+                        return row.getVisibleCells().map(cell => {
+                          const isSticky = STICKY_COLS.includes(cell.column.id)
+                          const currentOffset = isSticky ? stickyOffset : undefined
+                          if (isSticky) stickyOffset += cell.column.getSize()
+                          return (
+                            <TableCell
+                              key={cell.id}
+                              style={{
+                                width: cell.column.getSize(),
+                                overflow: "hidden",
+                                ...(isSticky && currentOffset !== undefined
+                                  ? { position: "sticky", left: currentOffset, zIndex: 2 }
+                                  : {}),
+                              }}
+                              className={cn(isSticky && "bg-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.2)]")}
+                            >
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          )
+                        })
+                      })()}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                      Sin documentos en revisión.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <DragOverlay>
+            {activeId ? <DragOverlayContent columnId={activeId} columns={columns} /> : null}
+          </DragOverlay>
+        </DndContext>
+        <div className="px-4 py-2 border-t border-rose-500/20 text-xs text-muted-foreground">
+          {table.getFilteredRowModel().rows.length} de {data.length} documentos sin emparejar
+        </div>
+      </CardContent>
+    </Card>
+  )
+})
