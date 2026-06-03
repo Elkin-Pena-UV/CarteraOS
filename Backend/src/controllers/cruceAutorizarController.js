@@ -60,6 +60,7 @@ export async function autorizarCruces(req, res) {
         caso:      f.caso,
         status:    f.status,
         error:     f.error ?? JSON.stringify(f.respuesta),
+        errores:   f.respuesta?.errors ?? [],
       })),
     })
   } catch (err) {

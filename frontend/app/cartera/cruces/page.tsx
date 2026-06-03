@@ -135,7 +135,12 @@ export default function CrucesPage() {
       toast({
         title: `${resultado.guardados} de ${payload.length} cruces autorizados`,
         description: `⚠️ ${resultado.fallidos.length} no pudieron enviarse a Siesa:\n${
-          resultado.fallidos.map(f => `• ${f.tercero}: ${f.error ?? `HTTP ${f.status}`}`).join('\n')
+          resultado.fallidos.map(f => {
+            const detalle = f.errores?.length > 0
+              ? f.errores.join(' | ')       // ← mensajes exactos de Siesa
+              : f.error ?? `HTTP ${f.status}`
+            return `• ${f.tercero}: ${detalle}`
+          }).join('\n')
         }`,
         variant: 'destructive',
         duration: 8000,
