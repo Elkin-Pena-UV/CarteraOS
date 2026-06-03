@@ -47,16 +47,26 @@ export function clavesDesdeNotas(notas) {
   /** @type {Clave[]} */
   const out = [];
 
-  const pvc = txt.match(/PVC\s*0*(\d{4,})/i);
-  if (pvc) out.push({ tipo: 'PVC', valor: pvc[1], confianza: 0.95 });
+  // PVC — captura simple, doble sin prefijo ("379348-379349")
+  // y doble con prefijo ("PVC 379126-PVC 379234")
+  const pvcExplicitos = [...txt.matchAll(/PVC\s*0*(\d{4,})/gi)].map(m => m[1]);
+  const pvcTrailing   = [...txt.matchAll(/PVC\s*0*(\d{4,})[–\-]0*(\d{4,})(?!\d)/gi)].map(m => m[2]);
+  const todosPVC = [...new Set([...pvcExplicitos, ...pvcTrailing])];
+  if (todosPVC.length > 0) {
+    todosPVC.forEach(v => out.push({ tipo: 'PVC', valor: v, confianza: 0.95 }));
+    return out;
+  }
 
-  const oc = txt.match(/\bO\.?\s*C\.?\s*0*(\d{3,})/i); // "OC", "O.C", "Oc"
+  // OC — "OC", "O.C", "Oc"
+  const oc = txt.match(/\bO\.?\s*C\.?\s*0*(\d{3,})/i);
   if (oc) out.push({ tipo: 'OC', valor: oc[1], confianza: 0.9 });
 
+  // Fallback — número largo suelto
   if (out.length === 0) {
     const num = txt.match(/\b0*(\d{5,})\b/); // fallback: número largo
     if (num) out.push({ tipo: 'NUM', valor: num[1], confianza: 0.5 });
   }
+
   return out;
 }
 

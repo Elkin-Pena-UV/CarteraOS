@@ -98,13 +98,28 @@ export function emparejar(docs, { umbralConfianza = 0.8 } = {}) {
     for (const c of candidatos) {
       const fvesDisp = c.fves.filter((x) => !usados.has(x.doc)).map((x) => x.doc);
       const rcsDisp = c.rcs.filter((x) => !usados.has(x.doc)).map((x) => x.doc);
-      if (fvesDisp.length === 0 || rcsDisp.length === 0) continue;
+      
+      if (rcsDisp.length === 0) continue;
 
-      for (const d of [...fvesDisp, ...rcsDisp]) usados.add(d);
+      const fvesExtras = new Map();
+      for (const rc of rcsDisp) {
+        for (const cl of rc.claves) {
+          if (cl.valor === c.valor) continue;           // ya está en este grupo
+          const otra = porValor.get(cl.valor);
+          if (!otra) continue;
+          otra.fves
+            .filter(x => !usados.has(x.doc))
+            .forEach(x => fvesExtras.set(x.doc, x.doc));
+        }
+}      
+      const todasFVEs = [...fvesDisp, ...fvesExtras.values()];
+      if (todasFVEs.length === 0) continue;
+
+      for (const d of [...todasFVEs, ...rcsDisp]) usados.add(d);
       grupos.push({
         tercero,
         clave: { tipo: c.tipo, valor: c.valor, confianza: c.confianza },
-        docs: [...fvesDisp, ...rcsDisp],
+        docs: [...todasFVEs, ...rcsDisp],
         confianza: c.confianza,
         autoCruzable: c.confianza >= umbralConfianza,
       });

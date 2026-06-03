@@ -1,4 +1,4 @@
-// Backend/src/services/cruces/mapper.js
+// 
 //
 // Une clasificador y serializador: a partir de un grupo clasificado produce el
 // DocumentoCruce (cabecera + líneas de cartera + línea de ajuste opcional).
@@ -60,18 +60,17 @@ export function mapearADocumento(grupo, caso, net, clave, fechaDoc, cfg) {
   }
 
   // Anticipos (2805) al DÉBITO. En crédito a favor solo se aplica hasta el total facturado.
+  let pendiente = totFVE;
   for (const r of rcs) {
+    const aplicado = caso === 'CREDITO_A_FAVOR'
+      ? Math.min(-r.saldo, pendiente)
+      : -r.saldo;
+    if (caso === 'CREDITO_A_FAVOR') pendiente -= aplicado;
     lineas.push({
-      auxiliar: cfg.cuentaAnticipo,
-      tercero,
-      debito: caso === 'CREDITO_A_FAVOR' ? totFVE : -r.saldo,
-      notasMov: ref,
-      sucursal: r.sucursal,
-      tipoCruce: r.tipo, // "RC" | "RAC"
-      consecCruce: r.consecCruce,
-      fechaVcto: r.fechaVcto,
-      terceroVend: r.terceroVend,
-      notas354: obs,
+      auxiliar: cfg.cuentaAnticipo, tercero, debito: aplicado,
+      notasMov: ref, sucursal: r.sucursal, tipoCruce: r.tipo,
+      consecCruce: r.consecCruce, fechaVcto: r.fechaVcto,
+      terceroVend: r.terceroVend, notas354: obs,
     });
   }
 

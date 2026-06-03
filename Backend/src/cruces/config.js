@@ -1,4 +1,4 @@
-// Backend/src/services/cruces/config.js
+// 
 //
 // Parámetros del módulo de cruce automático. NADA de esto debe quedar
 // hardcodeado en la lógica: los informes exigen que el umbral y las cuentas
@@ -24,7 +24,7 @@ export const configCruceDefault = {
   cuentaCartera: '13050505',
   cuentaAnticipo: '28050505',
   cuentaIngreso: '42958102', // saldo a favor  -> crédito a ingreso
-  cuentaGasto: '5305951',    // saldo en contra -> débito a gasto
+  cuentaGasto: '53059510',    // saldo en contra -> débito a gasto
   ccosto: '204505',
   cia: '001',
   co: '001',
