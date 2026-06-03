@@ -87,10 +87,17 @@ export interface CruceAAutorizar {
 export async function autorizarCruces(
   cruces: CruceAAutorizar[],
   observaciones?: string
-): Promise<{ ok: boolean; guardados: number }> {
-  const res = await axios.post('/cruce-aut/autorizar', { cruces, observaciones })
-  return res as unknown as { ok: boolean; guardados: number }
-}
+  ): Promise<{
+    ok: boolean
+    enviadosSiesa: number
+    guardados: number
+    fallidos: { tercero: string; clave: any; caso: string; status: number; error: string }[]
+  }> {
+    const res = await axios.post('/cruce-aut/autorizar', { cruces, observaciones }, {
+      timeout: 120000,
+    })
+    return res as any
+  }
 
 export interface CruceHistorial {
   id: number

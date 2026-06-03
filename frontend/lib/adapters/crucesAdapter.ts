@@ -23,6 +23,7 @@ export interface FilaCruceAuto {
   consecsRC: string
   fechaDoctoFVE: string
   requiereAjuste: boolean
+  doc: Record<string, unknown>
 }
 
 /* ─── Filas para la tabla de MANUALES ─── */
@@ -89,6 +90,7 @@ export function adaptProcesados(procesados: CruceProcessado[]): FilaCruceAuto[] 
       consecsRC: rcs.map((l: any) => l.consecCruce).join(', '),
       fechaDoctoFVE: (p.doc as any)?.fechaDoc ?? '',
       requiereAjuste: CASOS_CON_AJUSTE.includes(p.caso),
+      doc: p.doc, // Incluir el documento completo para posibles ajustes posteriores
     }
   })
 }

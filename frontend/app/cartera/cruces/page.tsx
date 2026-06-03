@@ -97,36 +97,67 @@ export default function CrucesPage() {
   const isRunning = isLoading || isFetching
 
   async function handleAutorizarTodos() {
-    setAutorizando(true)
-    try {
-      const payload = procesados.map(p => ({
-        tercero: p.tercero,
-        claveType: p.claveType,
-        claveValor: p.claveValor,
-        tipoCruce: 'AUTOMATICO' as const,
-        caso: p.caso,
-        confianza: p.confianza,
-        totalFVE: p.totalFVE,
-        totalRC: p.totalRC,
-        net: p.net,
-        nroFVE: p.nroFVE,
-        nroRC: p.nroRC,
-        consecsFVE: p.consecsFVE,
-        consecsRC: p.consecsRC,
-      }))
-      await autorizarCruces(payload)
-      setAutorizados(prev => {
-        const next = new Set(prev)
-        procesados.forEach(p => next.add(p.id))
-        return next
+  setAutorizando(true)
+  try {
+    const payload = procesados.map(p => ({
+      tercero:    p.tercero,
+      claveType:  p.claveType,
+      claveValor: p.claveValor,
+      tipoCruce:  'AUTOMATICO' as const,
+      caso:       p.caso,
+      confianza:  p.confianza,
+      totalFVE:   p.totalFVE,
+      totalRC:    p.totalRC,
+      net:        p.net,
+      nroFVE:     p.nroFVE,
+      nroRC:      p.nroRC,
+      consecsFVE: p.consecsFVE,
+      consecsRC:  p.consecsRC,
+      doc:        p.doc,
+    }))
+
+    const resultado = await autorizarCruces(payload)
+
+    // Marcar como autorizados solo los que Siesa aceptó
+    const exitosos = payload.filter(p =>
+      !resultado.fallidos?.some(
+        f => f.tercero === p.tercero && f.clave?.valor === p.claveValor
+      )
+    )
+    setAutorizados(prev => {
+      const next = new Set(prev)
+      exitosos.forEach(p => next.add(`${p.tercero}-${p.claveType}${p.claveValor}`))
+      return next
+    })
+
+    // Toast según si hubo fallidos o no
+    if (resultado.fallidos?.length > 0) {
+      toast({
+        title: `${resultado.guardados} de ${payload.length} cruces autorizados`,
+        description: `⚠️ ${resultado.fallidos.length} no pudieron enviarse a Siesa:\n${
+          resultado.fallidos.map(f => `• ${f.tercero}: ${f.error ?? `HTTP ${f.status}`}`).join('\n')
+        }`,
+        variant: 'destructive',
+        duration: 8000,
       })
-      toast({ title: 'Cruces autorizados', description: `${procesados.length} cruces registrados correctamente.` })
-    } catch {
-      toast({ title: 'Error al autorizar', description: 'No se pudieron autorizar los cruces.', variant: 'destructive' })
-    } finally {
-      setAutorizando(false)
+    } else {
+      toast({
+        title: 'Cruces autorizados',
+        description: `${resultado.guardados} cruces enviados a Siesa y registrados correctamente.`,
+        duration: 4000,
+      })
     }
+
+  } catch {
+    toast({
+      title: 'Error al autorizar',
+      description: 'No se pudieron autorizar los cruces.',
+      variant: 'destructive',
+    })
+  } finally {
+    setAutorizando(false)
   }
+}
 
   async function handleAutorizarManual(fila: FilaGrupoManual) {
     setAutorizando(true)
