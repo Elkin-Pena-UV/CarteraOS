@@ -2,7 +2,7 @@ import {
   guardarCrucesAutorizados,
   obtenerHistorialCruces,
 } from '../services/cruceAutorizarService.js'
-
+import { enviarAConector } from '../services/cruceProcesarService.js'
 /**
  * POST /api/cruce-aut/autorizar
  * Body: { cruces: [...], tipoCruce: 'AUTOMATICO'|'MANUAL', observaciones? }
@@ -19,18 +19,48 @@ export async function autorizarCruces(req, res) {
     const usuario = req.user?.username ?? req.user?.nombre ?? req.user?.email ?? 'desconocido'
     const ip      = req.ip ?? req.headers['x-forwarded-for'] ?? null
 
-    // Inyectar observaciones si vienen globales
-    const crucesConObs = cruces.map(c => ({
-      ...c,
-      observaciones: c.observaciones ?? observaciones ?? null,
-    }))
+    // 1. Enviar a Siesa PRIMERO
+    const conDoc = cruces.filter(c => c.doc)
+    let resultadosSiesa = []
 
-    const guardados = await guardarCrucesAutorizados(crucesConObs, usuario, ip)
+    if (conDoc.length > 0) {
+      resultadosSiesa = await enviarAConector(conDoc)
+    }
 
+    // 2. Separar exitosos y fallidos
+    const exitosos = resultadosSiesa.filter(r => r.ok)
+    const fallidos = resultadosSiesa.filter(r => !r.ok)
+
+    // 3. Solo guardar en historial los que Siesa aceptó
+    let guardados = []
+    if (exitosos.length > 0) {
+      // Reconstruir solo los cruces que fueron exitosos en Siesa
+      const crucesExitosos = exitosos.map(r => {
+        const cruceOriginal = cruces.find(c =>
+          c.tercero === r.tercero &&
+          c.claveValor === r.clave?.valor
+        )
+        return {
+          ...cruceOriginal,
+          observaciones: cruceOriginal?.observaciones ?? observaciones ?? null,
+        }
+      }).filter(Boolean)
+
+      guardados = await guardarCrucesAutorizados(crucesExitosos, usuario, ip)
+    }
+
+    // 4. Responder con detalle de exitosos y fallidos
     return res.json({
-      ok:        true,
-      guardados: guardados.length,
-      cruces:    guardados,
+      ok:            true,
+      enviadosSiesa: exitosos.length,
+      guardados:     guardados.length,
+      fallidos:      fallidos.map(f => ({
+        tercero:   f.tercero,
+        clave:     f.clave,
+        caso:      f.caso,
+        status:    f.status,
+        error:     f.error ?? JSON.stringify(f.respuesta),
+      })),
     })
   } catch (err) {
     console.error('[autorizarCruces]', err)
