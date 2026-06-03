@@ -44,18 +44,17 @@ export function mapearADocumento(grupo, caso, net, clave, fechaDoc, cfg) {
   const lineas = [];
 
   // Facturas (1305) al CRÉDITO. En pago parcial solo se aplica lo recaudado.
+  let pendienteFVE = totRC;
   for (const f of fves) {
+    const aplicado = caso === 'PAGO_PARCIAL'
+      ? Math.min(f.saldo, pendienteFVE)
+      : f.saldo;
+    if (caso === 'PAGO_PARCIAL') pendienteFVE -= aplicado;
     lineas.push({
-      auxiliar: cfg.cuentaCartera,
-      tercero,
-      credito: caso === 'PAGO_PARCIAL' ? totRC : f.saldo,
-      notasMov: ref,
-      sucursal: f.sucursal,
-      tipoCruce: 'FVE',
-      consecCruce: f.consecCruce,
-      fechaVcto: f.fechaVcto,
-      terceroVend: f.terceroVend,
-      notas354: obs,
+      auxiliar: cfg.cuentaCartera, tercero, credito: aplicado,
+      notasMov: ref, sucursal: f.sucursal, tipoCruce: 'FVE',
+      consecCruce: f.consecCruce, fechaVcto: f.fechaVcto,
+      terceroVend: f.terceroVend, notas354: obs,
     });
   }
 
