@@ -52,29 +52,61 @@ import {
   GripVertical,
   RotateCcw,
   Columns,
-  ShieldCheck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTableState } from "@/hooks/use-table-state"
 import { formatCurrency } from "@/lib/formatters"
-import type { FilaGrupoManual } from "@/lib/adapters/crucesAdapter"
+import type { CruceHistorial } from "@/lib/services/crucesService"
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 const NON_HIDEABLE: string[] = []
-const VISIBILITY_STORAGE_KEY = 'cruces_manuales_column_visibility'
-const STORAGE_KEY = 'cruces_manuales_column_order'
-const PINNED_START = ['tercero', 'claveValor']
-const STICKY_COLS = ['claveValor']
-const PINNED_END: string[] = ['accion']
+const STORAGE_KEY             = 'cruces_historial_column_order'
+const VISIBILITY_STORAGE_KEY  = 'cruces_historial_column_visibility'
+const PINNED_START = ['fecha_autorizacion', 'tercero']
+const STICKY_COLS  = ['tercero']
+const PINNED_END: string[]   = []
 
 const DEFAULT_COLUMN_ORDER = [
-  'tercero', 'claveValor', 'confianza', 'nroDocs',
-  'totalFVE', 'totalRC', 'netEstimado',
-  'consecsFVE', 'consecsRC', 'motivoManual', 'accion',
+  'fecha_autorizacion', 'tercero', 'clave_tipo', 'clave_valor',
+  'tipo_cruce', 'caso', 'confianza', 'total_fve', 'total_rc',
+  'net_residual', 'consecs_fve', 'consecs_rc', 'autorizado_por', 'observaciones',
 ]
 
-export interface TablaManualesRef {
-  table: TanstackTable<FilaGrupoManual>
+// ── Ref ───────────────────────────────────────────────────────────────────────
+export interface TablaHistorialRef {
+  table: TanstackTable<CruceHistorial>
+}
+
+// ── Helpers visuales ──────────────────────────────────────────────────────────
+const CASO_META: Record<string, { label: string; cls: string }> = {
+  MATCH_PERFECTO:  { label: 'Match perfecto',  cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+  PAGO_PARCIAL:    { label: 'Pago parcial',     cls: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+  SALDO_A_FAVOR:   { label: 'Saldo a favor',    cls: 'bg-sky-500/20 text-sky-400 border-sky-500/30' },
+  SALDO_EN_CONTRA: { label: 'Saldo en contra',  cls: 'bg-rose-500/20 text-rose-400 border-rose-500/30' },
+  CREDITO_A_FAVOR: { label: 'Crédito a favor',  cls: 'bg-violet-500/20 text-violet-400 border-violet-500/30' },
+}
+
+function CasoBadge({ caso }: { caso: string | null }) {
+  if (!caso) return <span className="text-muted-foreground">—</span>
+  const m = CASO_META[caso] ?? { label: caso, cls: 'bg-muted text-muted-foreground border-border' }
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium border ${m.cls}`}>
+      {m.label}
+    </span>
+  )
+}
+
+function ConfianzaBar({ value }: { value: number }) {
+  const pct = Math.round(value * 100)
+  const color = pct >= 90 ? 'bg-emerald-500' : pct >= 80 ? 'bg-amber-400' : 'bg-rose-500'
+  return (
+    <div className="flex items-center gap-2 min-w-[80px]">
+      <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-xs tabular-nums text-muted-foreground w-8 text-right">{pct}%</span>
+    </div>
+  )
 }
 
 // ── DraggableHeader ───────────────────────────────────────────────────────────
@@ -181,7 +213,7 @@ function DraggableHeader({
   )
 }
 
-function DragOverlayContent({ columnId, columns }: { columnId: string; columns: ColumnDef<FilaGrupoManual>[] }) {
+function DragOverlayContent({ columnId, columns }: { columnId: string; columns: ColumnDef<CruceHistorial>[] }) {
   const col = columns.find(c => c.id === columnId || (c as any).accessorKey === columnId)
   const label = (typeof col?.header === 'string' ? col.header : null) ?? columnId
   return (
@@ -191,28 +223,14 @@ function DragOverlayContent({ columnId, columns }: { columnId: string; columns: 
   )
 }
 
-function ConfianzaBar({ value }: { value: number }) {
-  const pct = Math.round(value * 100)
-  return (
-    <div className="flex items-center gap-2 min-w-[80px]">
-      <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-        <div className="h-full rounded-full bg-amber-400" style={{ width: `${pct}%` }} />
-      </div>
-      <span className="text-xs tabular-nums text-amber-400 w-8 text-right">{pct}%</span>
-    </div>
-  )
-}
-
 // ── Componente principal ──────────────────────────────────────────────────────
-interface TablaManualesProps {
-  data: FilaGrupoManual[]
+interface TablaHistorialProps {
+  data: CruceHistorial[]
   globalFilter: string
-  onAutorizar?: (fila: FilaGrupoManual) => void
-  autorizados?: Set<string>
 }
 
-export const TablaManuales = forwardRef<TablaManualesRef, TablaManualesProps>(
-  function TablaManuales({ data, globalFilter, onAutorizar, autorizados }, ref) {
+export const TablaHistorial = forwardRef<TablaHistorialRef, TablaHistorialProps>(
+  function TablaHistorial({ data, globalFilter }, ref) {
 
   const {
     sorting, setSorting,
@@ -230,69 +248,99 @@ export const TablaManuales = forwardRef<TablaManualesRef, TablaManualesProps>(
     pinnedEnd: PINNED_END,
   })
 
-  const columns: ColumnDef<FilaGrupoManual>[] = useMemo(() => [
+  const columns: ColumnDef<CruceHistorial>[] = useMemo(() => [
+    {
+      id: "fecha_autorizacion",
+      accessorKey: "fecha_autorizacion",
+      header: "Fecha",
+      size: 170,
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          {new Date(row.getValue("fecha_autorizacion")).toLocaleString('es-CO')}
+        </span>
+      ),
+    },
     {
       id: "tercero",
       accessorKey: "tercero",
       header: "Tercero",
-      size: 120,
+      size: 130,
       cell: ({ row }) => <span className="font-mono text-sm">{row.getValue("tercero")}</span>,
     },
     {
-      id: "claveValor",
-      accessorKey: "claveValor",
-      header: "Llave",
-      size: 160,
+      id: "clave_tipo",
+      accessorKey: "clave_tipo",
+      header: "Tipo",
+      size: 80,
       cell: ({ row }) => (
-        <div className="flex items-center gap-1.5">
-          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
-            {row.original.claveType}
-          </span>
-          <span className="font-mono text-sm">{row.getValue("claveValor")}</span>
-        </div>
+        <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-[#ff6600]/20 text-[#ff6600] border border-[#ff6600]/30">
+          {row.getValue("clave_tipo")}
+        </span>
       ),
+    },
+    {
+      id: "clave_valor",
+      accessorKey: "clave_valor",
+      header: "Llave",
+      size: 140,
+      cell: ({ row }) => <span className="font-mono text-sm">{row.getValue("clave_valor")}</span>,
+    },
+    {
+      id: "tipo_cruce",
+      accessorKey: "tipo_cruce",
+      header: "Tipo cruce",
+      size: 120,
+      cell: ({ row }) => {
+        const v = row.getValue("tipo_cruce") as string
+        const cls = v === 'AUTOMATICO'
+          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+          : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+        return (
+          <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium border ${cls}`}>
+            {v === 'AUTOMATICO' ? 'Automático' : 'Manual'}
+          </span>
+        )
+      },
+    },
+    {
+      id: "caso",
+      accessorKey: "caso",
+      header: "Caso",
+      size: 150,
+      cell: ({ row }) => <CasoBadge caso={row.getValue("caso")} />,
     },
     {
       id: "confianza",
       accessorKey: "confianza",
       header: "Confianza",
-      size: 150,
+      size: 130,
       cell: ({ row }) => <ConfianzaBar value={row.getValue("confianza")} />,
     },
     {
-      id: "nroDocs",
-      accessorKey: "nroDocs",
-      header: "# Docs",
-      size: 80,
-      cell: ({ row }) => (
-        <span className="tabular-nums text-center block">{row.getValue("nroDocs")}</span>
-      ),
-    },
-    {
-      id: "totalFVE",
-      accessorKey: "totalFVE",
+      id: "total_fve",
+      accessorKey: "total_fve",
       header: "Total FVE",
       size: 140,
       cell: ({ row }) => (
-        <span className="font-medium tabular-nums">{formatCurrency(row.getValue("totalFVE"))}</span>
+        <span className="font-medium tabular-nums">{formatCurrency(row.getValue("total_fve"))}</span>
       ),
     },
     {
-      id: "totalRC",
-      accessorKey: "totalRC",
+      id: "total_rc",
+      accessorKey: "total_rc",
       header: "Total RC",
       size: 140,
       cell: ({ row }) => (
-        <span className="font-medium tabular-nums">{formatCurrency(Math.abs(row.getValue("totalRC")))}</span>
+        <span className="font-medium tabular-nums">{formatCurrency(Math.abs(row.getValue("total_rc")))}</span>
       ),
     },
     {
-      id: "netEstimado",
-      accessorKey: "netEstimado",
-      header: "Residual est.",
-      size: 140,
+      id: "net_residual",
+      accessorKey: "net_residual",
+      header: "Residual",
+      size: 130,
       cell: ({ row }) => {
-        const v = row.getValue("netEstimado") as number
+        const v = row.getValue("net_residual") as number
         return (
           <span className={cn(
             "font-medium tabular-nums",
@@ -304,64 +352,48 @@ export const TablaManuales = forwardRef<TablaManualesRef, TablaManualesProps>(
       },
     },
     {
-      id: "consecsFVE",
-      accessorKey: "consecsFVE",
+      id: "consecs_fve",
+      accessorKey: "consecs_fve",
       header: "Consecs. FVE",
       size: 160,
       cell: ({ row }) => (
-        <span className="font-mono text-xs text-muted-foreground">{row.getValue("consecsFVE") || "—"}</span>
+        <span className="font-mono text-xs text-muted-foreground">
+          {row.getValue("consecs_fve") || "—"}
+        </span>
       ),
     },
     {
-      id: "consecsRC",
-      accessorKey: "consecsRC",
+      id: "consecs_rc",
+      accessorKey: "consecs_rc",
       header: "Consecs. RC",
       size: 160,
       cell: ({ row }) => (
-        <span className="font-mono text-xs text-muted-foreground">{row.getValue("consecsRC") || "—"}</span>
+        <span className="font-mono text-xs text-muted-foreground">
+          {row.getValue("consecs_rc") || "—"}
+        </span>
       ),
     },
     {
-      id: "motivoManual",
-      accessorKey: "motivoManual",
-      header: "Motivo",
-      size: 240,
+      id: "autorizado_por",
+      accessorKey: "autorizado_por",
+      header: "Autorizado por",
+      size: 150,
       cell: ({ row }) => (
-        <span className="text-sm text-amber-500">{row.getValue("motivoManual")}</span>
+        <span className="font-medium">{row.getValue("autorizado_por")}</span>
       ),
     },
     {
-      id: "accion",
-      header: "Acción",
-      size: 130,
-      enableSorting: false,
-      enableResizing: false,
-      enableHiding: false,
-      cell: ({ row }) => {
-        const fila = row.original
-        if (autorizados?.has(fila.id)) {
-          return (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 whitespace-nowrap">
-              <ShieldCheck className="h-3 w-3" />
-              Autorizado ✓
-            </span>
-          )
-        }
-        if (!onAutorizar) return null
-        return (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onAutorizar(fila)}
-            className="h-7 text-xs gap-1"
-          >
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Autorizar
-          </Button>
-        )
-      },
+      id: "observaciones",
+      accessorKey: "observaciones",
+      header: "Observaciones",
+      size: 200,
+      cell: ({ row }) => (
+        <span className="text-muted-foreground truncate block">
+          {row.getValue("observaciones") || "—"}
+        </span>
+      ),
     },
-  ], [onAutorizar, autorizados])
+  ], [])
 
   const table = useReactTable({
     data,
@@ -378,16 +410,16 @@ export const TablaManuales = forwardRef<TablaManualesRef, TablaManualesProps>(
     columnResizeMode: "onChange",
     enableColumnPinning: true,
     initialState: {
-      columnPinning: { left: ['tercero', 'claveValor'] },
+      columnPinning: { left: ['fecha_autorizacion', 'tercero'] },
     },
   })
 
   useImperativeHandle(ref, () => ({ table }), [table])
 
   return (
-    <Card className="border-amber-500/20">
-      <CardHeader className="flex flex-row items-center justify-between border-b border-amber-500/20 py-2 px-4 bg-amber-500/5">
-        <CardTitle>Requieren Intervención Manual</CardTitle>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between border-b py-2 px-4">
+        <CardTitle>Historial de Cruces Autorizados</CardTitle>
         <TooltipProvider>
           <div className="flex items-center">
             <DropdownMenu>
@@ -425,7 +457,7 @@ export const TablaManuales = forwardRef<TablaManualesRef, TablaManualesProps>(
                   <RotateCcw className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent><p>Restablecer columnas</p></TooltipContent>
+              <TooltipContent><p>Restablecer orden, tamaño y visibilidad de columnas</p></TooltipContent>
             </Tooltip>
           </div>
         </TooltipProvider>
@@ -480,13 +512,7 @@ export const TablaManuales = forwardRef<TablaManualesRef, TablaManualesProps>(
               <TableBody>
                 {table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map(row => (
-                    <TableRow
-                      key={row.id}
-                      className={cn(
-                        "hover:bg-amber-500/5",
-                        autorizados?.has(row.original.id) && "opacity-50"
-                      )}
-                    >
+                    <TableRow key={row.id}>
                       {(() => {
                         let stickyOffset = 0
                         return row.getVisibleCells().map(cell => {
@@ -515,7 +541,7 @@ export const TablaManuales = forwardRef<TablaManualesRef, TablaManualesProps>(
                 ) : (
                   <TableRow>
                     <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                      Sin grupos que requieran intervención.
+                      Sin registros en el historial.
                     </TableCell>
                   </TableRow>
                 )}
@@ -526,8 +552,8 @@ export const TablaManuales = forwardRef<TablaManualesRef, TablaManualesProps>(
             {activeId ? <DragOverlayContent columnId={activeId} columns={columns} /> : null}
           </DragOverlay>
         </DndContext>
-        <div className="px-4 py-2 border-t border-amber-500/20 text-xs text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} de {data.length} grupos pendientes
+        <div className="px-4 py-2 border-t text-xs text-muted-foreground">
+          {table.getFilteredRowModel().rows.length} de {data.length} registros
         </div>
       </CardContent>
     </Card>

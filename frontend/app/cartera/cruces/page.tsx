@@ -2,25 +2,56 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Play, RefreshCw, Search, CheckCircle2, AlertTriangle, Clock } from 'lucide-react'
+import { Play, RefreshCw, Search, CheckCircle2, AlertTriangle, Clock, ShieldCheck, History } from 'lucide-react'
 import { useCruces } from '@/hooks/use-cruces'
 import {
   adaptProcesados,
   adaptGruposManuales,
   adaptRevision,
 } from '@/lib/adapters/crucesAdapter'
+import type { FilaGrupoManual } from '@/lib/adapters/crucesAdapter'
 import { KpiCrucesCards } from '@/components/cruces/kpi-cruces-cards'
 import { TablaProcesados } from '@/components/cruces/tabla-procesados'
 import { TablaManuales } from '@/components/cruces/tabla-manuales'
 import { TablaRevision } from '@/components/cruces/tabla-revision'
 import { AppShell } from '@/components/layout/app-shell'
+import { TablaHistorial } from '@/components/cruces/tabla-historial'
+import { HistorialFiltersBar } from '@/components/cruces/historial-filters-bar'
+import { useHistorialCruces } from '@/hooks/use-historial-cruces'
+import { autorizarCruces } from '@/lib/services/crucesService'
+import { useToast } from '@/hooks/use-toast'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
-type Tab = 'automaticos' | 'manuales' | 'revision'
+type Tab = 'automaticos' | 'manuales' | 'revision' | 'historial'
 
 export default function CrucesPage() {
   const { data, isLoading, isFetching, isError, error, ejecutar } = useCruces()
   const [activeTab, setActiveTab] = useState<Tab>('automaticos')
   const [globalFilter, setGlobalFilter] = useState('')
+  const [autorizados, setAutorizados] = useState<Set<string>>(new Set())
+  const [autorizando, setAutorizando] = useState(false)
+  const [dialogManualFila, setDialogManualFila] = useState<FilaGrupoManual | null>(null)
+  const { toast } = useToast()
+  const {
+    data: historialData,
+    isLoading: historialLoading,
+    isFetching: historialFetching,
+    draftTercero,
+    setDraftTercero,
+    draftUsuario,
+    setDraftUsuario,
+    consultar,
+  } = useHistorialCruces()
 
   // Limpiar filtro al cambiar de pestaña
   const handleTabChange = (tab: Tab) => {
@@ -54,9 +85,75 @@ export default function CrucesPage() {
       icon: Clock,
       color: 'text-rose-400 border-rose-500/40',
     },
+    {
+      id: 'historial',
+      label: 'Historial',
+      count: 0,
+      icon: History,
+      color: 'text-muted-foreground',
+    },
   ]
 
   const isRunning = isLoading || isFetching
+
+  async function handleAutorizarTodos() {
+    setAutorizando(true)
+    try {
+      const payload = procesados.map(p => ({
+        tercero: p.tercero,
+        claveType: p.claveType,
+        claveValor: p.claveValor,
+        tipoCruce: 'AUTOMATICO' as const,
+        caso: p.caso,
+        confianza: p.confianza,
+        totalFVE: p.totalFVE,
+        totalRC: p.totalRC,
+        net: p.net,
+        nroFVE: p.nroFVE,
+        nroRC: p.nroRC,
+        consecsFVE: p.consecsFVE,
+        consecsRC: p.consecsRC,
+      }))
+      await autorizarCruces(payload)
+      setAutorizados(prev => {
+        const next = new Set(prev)
+        procesados.forEach(p => next.add(p.id))
+        return next
+      })
+      toast({ title: 'Cruces autorizados', description: `${procesados.length} cruces registrados correctamente.` })
+    } catch {
+      toast({ title: 'Error al autorizar', description: 'No se pudieron autorizar los cruces.', variant: 'destructive' })
+    } finally {
+      setAutorizando(false)
+    }
+  }
+
+  async function handleAutorizarManual(fila: FilaGrupoManual) {
+    setAutorizando(true)
+    try {
+      await autorizarCruces([{
+        tercero: fila.tercero,
+        claveType: fila.claveType,
+        claveValor: fila.claveValor,
+        tipoCruce: 'MANUAL' as const,
+        confianza: fila.confianza,
+        totalFVE: fila.totalFVE,
+        totalRC: fila.totalRC,
+        net: fila.netEstimado,
+        nroFVE: fila.nroFVE,
+        nroRC: fila.nroRC,
+        consecsFVE: fila.consecsFVE,
+        consecsRC: fila.consecsRC,
+      }])
+      setAutorizados(prev => new Set([...prev, fila.id]))
+      toast({ title: 'Cruce autorizado', description: `Grupo ${fila.claveValor} (${fila.tercero}) registrado correctamente.` })
+    } catch {
+      toast({ title: 'Error al autorizar', description: 'No se pudo autorizar el cruce.', variant: 'destructive' })
+    } finally {
+      setAutorizando(false)
+      setDialogManualFila(null)
+    }
+  }
 
   return (
     <AppShell>
@@ -184,22 +281,100 @@ export default function CrucesPage() {
           {/* Tabla activa */}
           <div>
             {activeTab === 'automaticos' && (
-              <TablaProcesados
-                data={procesados}
-                globalFilter={globalFilter}
-              />
+              <div className="flex flex-col gap-3">
+                <div className="flex justify-end">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button
+                        disabled={autorizando || procesados.length === 0}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                          bg-emerald-600 hover:bg-emerald-700 text-white transition-colors
+                          disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        <ShieldCheck className="h-4 w-4" />
+                        Autorizar todos ({procesados.length})
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Autorizar cruces automáticos</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Se registrarán {procesados.length} cruces como autorizados. Esta acción queda registrada con tu usuario y la fecha actual.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleAutorizarTodos}>
+                          Confirmar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+                <TablaProcesados data={procesados} globalFilter={globalFilter} />
+              </div>
             )}
             {activeTab === 'manuales' && (
-              <TablaManuales
-                data={manuales}
-                globalFilter={globalFilter}
-              />
+              <>
+                <AlertDialog
+                  open={dialogManualFila !== null}
+                  onOpenChange={(open) => { if (!open) setDialogManualFila(null) }}
+                >
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Autorizar cruce manual</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Se registrará 1 cruce como autorizado para{' '}
+                        <strong>{dialogManualFila?.tercero}</strong> / {dialogManualFila?.claveValor}.
+                        {' '}Esta acción queda registrada con tu usuario y la fecha actual.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => dialogManualFila && handleAutorizarManual(dialogManualFila)}
+                      >
+                        Confirmar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <TablaManuales
+                  data={manuales}
+                  globalFilter={globalFilter}
+                  autorizados={autorizados}
+                  onAutorizar={(fila) => setDialogManualFila(fila)}
+                />
+              </>
             )}
             {activeTab === 'revision' && (
               <TablaRevision
                 data={enRevision}
                 globalFilter={globalFilter}
               />
+            )}
+            {activeTab === 'historial' && (
+              <div className="space-y-4">
+                <HistorialFiltersBar
+                  draftTercero={draftTercero}
+                  setDraftTercero={setDraftTercero}
+                  draftUsuario={draftUsuario}
+                  setDraftUsuario={setDraftUsuario}
+                  onConsultar={consultar}
+                  isFetching={historialFetching}
+                />
+                {historialLoading ? (
+                  <div className="space-y-2 animate-pulse">
+                    <div className="h-10 rounded-lg bg-muted/40" />
+                    <div className="h-64 rounded-lg bg-muted/20" />
+                  </div>
+                ) : (
+                  <TablaHistorial
+                    data={historialData ?? []}
+                    globalFilter={globalFilter}
+                  />
+                )}
+              </div>
             )}
           </div>
 
