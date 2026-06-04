@@ -61,7 +61,6 @@ export async function autorizarCruces(req, res) {
         observaciones: c.observaciones ?? observaciones ?? null,
         }))
 
-        let guardados = []
         if (crucesExitosos.length > 0) {
         guardados = await guardarCrucesAutorizados(crucesExitosos, usuario, ip)
         }
