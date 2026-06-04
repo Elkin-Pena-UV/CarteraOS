@@ -7,12 +7,17 @@ import { obtenerHistorial, type CruceHistorial } from "@/lib/services/crucesServ
 interface CommittedParams {
   tercero: string
   usuario: string
+  tick: number   // ← fuerza re-fetch aunque los filtros no cambien
 }
 
 export function useHistorialCruces() {
   const [draftTercero, setDraftTercero] = useState("")
   const [draftUsuario, setDraftUsuario] = useState("")
-  const [committedParams, setCommittedParams] = useState<CommittedParams>({ tercero: "", usuario: "" })
+  const [committedParams, setCommittedParams] = useState<CommittedParams>({
+    tercero: "",
+    usuario: "",
+    tick: 0,
+  })
 
   const { data, isLoading, isFetching, isError } = useQuery<CruceHistorial[]>({
     queryKey: ["cruces-historial", committedParams],
@@ -20,11 +25,15 @@ export function useHistorialCruces() {
       tercero: committedParams.tercero || undefined,
       usuario: committedParams.usuario || undefined,
     }),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,   // ← siempre re-fetcha cuando la queryKey cambia
   })
 
   function consultar() {
-    setCommittedParams({ tercero: draftTercero.trim(), usuario: draftUsuario.trim() })
+    setCommittedParams(prev => ({
+      tercero: draftTercero.trim(),
+      usuario: draftUsuario.trim(),
+      tick: prev.tick + 1,   // ← garantiza queryKey diferente siempre
+    }))
   }
 
   return {
