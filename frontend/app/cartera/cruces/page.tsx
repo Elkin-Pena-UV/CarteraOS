@@ -47,7 +47,7 @@ export default function CrucesPage() {
   const [globalFilter, setGlobalFilter] = useState('')
   const [autorizados, setAutorizados] = useState<Set<string>>(new Set())
   const [autorizando, setAutorizando] = useState(false)
-  const [autorizandoManualId, setAutorizandoManualId] = useState<string | null>(null)
+  const [autorizandoIds, setAutorizandoIds] = useState<Set<string>>(new Set())
   const [fallidos, setFallidos] = useState<{
     tercero: string
     clave: { tipo: string; valor: string } | null
@@ -181,7 +181,7 @@ export default function CrucesPage() {
   }
 
   async function handleAutorizarManual(fila: FilaGrupoManual) {
-    setAutorizandoManualId(fila.id)
+    setAutorizandoIds(prev => new Set([...prev, fila.id]))
     try {
       const resultado = await autorizarCruces([{
         tercero: fila.tercero,
@@ -216,7 +216,7 @@ export default function CrucesPage() {
         variant: 'destructive',
       })
     } finally {
-      setAutorizandoManualId(null)
+      setAutorizandoIds(prev => { const next = new Set(prev); next.delete(fila.id); return next })
       setDialogManualFila(null)
     }
   }
@@ -467,7 +467,7 @@ export default function CrucesPage() {
                     data={manuales}
                     globalFilter={globalFilter}
                     autorizados={autorizados}
-                    autorizandoId={autorizandoManualId}
+                    autorizandoIds={autorizandoIds}
                     onAutorizar={(fila) => setDialogManualFila(fila)}
                   />
                 </>

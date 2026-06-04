@@ -210,11 +210,11 @@ interface TablaManualesProps {
   globalFilter: string
   onAutorizar?: (fila: FilaGrupoManual) => void
   autorizados?: Set<string>
-  autorizandoId?: string | null
+  autorizandoIds?: Set<string>
 }
 
 export const TablaManuales = forwardRef<TablaManualesRef, TablaManualesProps>(
-  function TablaManuales({ data, globalFilter, onAutorizar, autorizados, autorizandoId }, ref) {
+  function TablaManuales({ data, globalFilter, onAutorizar, autorizados, autorizandoIds }, ref) {
 
   const {
     sorting, setSorting,
@@ -341,7 +341,7 @@ export const TablaManuales = forwardRef<TablaManualesRef, TablaManualesProps>(
       enableHiding: false,
       cell: ({ row }) => {
         const fila = row.original
-        const estaAutorizando = autorizandoId === fila.id
+        const estaAutorizando = autorizandoIds?.has(fila.id)
 
         if (autorizados?.has(fila.id)) {
           return (
@@ -369,7 +369,7 @@ export const TablaManuales = forwardRef<TablaManualesRef, TablaManualesProps>(
         )
       },
     },
-  ], [onAutorizar, autorizados, autorizandoId])
+  ], [onAutorizar, autorizados, autorizandoIds])
 
   const table = useReactTable({
     data,

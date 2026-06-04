@@ -95,7 +95,7 @@ export async function autorizarCruces(
     fallidos: { tercero: string; clave: any; caso: string; status: number; error: string, errores: string[] }[]
   }> {
     const res = await axios.post('/cruce-aut/autorizar', { cruces, observaciones }, {
-      timeout: 120000,
+      timeout: 0,
     })
     return res as any
   }
