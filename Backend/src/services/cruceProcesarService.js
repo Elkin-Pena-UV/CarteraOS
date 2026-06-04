@@ -51,7 +51,7 @@ async function llamarConector(procesados, opts = {}) {
     } catch (err) {
       const status = err.response?.status;
       logger.error(
-        `[cruces] ${url} error tercero=${p.tercero} → clave=${p.clave.tipo}${p.clave.valor} caso=${p.caso} mensaje=${p.respuesta.message} → ${status ?? err.message}`
+         `[cruces] ${url} error tercero=${p.tercero} clave=${p.clave?.tipo ?? ''}${p.clave?.valor ?? ''} caso=${p.caso} → ${status ?? err.message}`
       );
       resultados.push({
         tercero: p.tercero,

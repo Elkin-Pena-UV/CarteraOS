@@ -11,7 +11,10 @@ const getCruceAut = async () => {
     tiempos.conexion = Date.now() - t0;
 
     const t1 = Date.now();
-    const result = await request.query(`SELECT * FROM dbo.v_ti_cruce_aut`);
+    const result = await request.query(`
+      SELECT * FROM dbo.v_ti_cruce_aut
+      WHERE LTRIM(RTRIM(f1_tercero)) NOT IN ('800242106', '890333023')
+    `);
     tiempos.query = Date.now() - t1;
     tiempos.registros = result.recordset.length;
     tiempos.total = Date.now() - t0;

@@ -42,7 +42,7 @@
 const TIPOS_CRUZABLES = new Set(['FVE', 'RC', 'RAC']);
 const esFactura = (d) => d.tipo === 'FVE';
 
-const prioridadTipo = (t) => (t === 'PVC' ? 3 : t === 'OC' ? 2 : 1);
+const prioridadTipo = (t) => (t === 'PVC' ? 3 : t === 'OC' || t === 'FVE' ? 2 : 1);
 
 /**
  * @param {DocNormalizado[]} docs   Documentos ya normalizados (de varios terceros)
@@ -82,8 +82,14 @@ export function emparejar(docs, { umbralConfianza = 0.8 } = {}) {
     const candidatos = [];
     for (const [valor, { fves, rcs }] of porValor) {
       if (fves.length === 0 || rcs.length === 0) continue;
-      const tipoF = fves.some((x) => x.tipo === 'PVC') ? 'PVC' : fves.some((x) => x.tipo === 'OC') ? 'OC' : 'NUM';
-      const tipoR = rcs.some((x) => x.tipo === 'PVC') ? 'PVC' : rcs.some((x) => x.tipo === 'OC') ? 'OC' : 'NUM';
+      const tipoF = fves.some(x => x.tipo === 'PVC') ? 'PVC'
+            : fves.some(x => x.tipo === 'OC')  ? 'OC'
+            : fves.some(x => x.tipo === 'FVE') ? 'FVE'
+            : 'NUM';
+      const tipoR = rcs.some(x => x.tipo === 'PVC') ? 'PVC'
+            : rcs.some(x => x.tipo === 'OC')  ? 'OC'
+            : rcs.some(x => x.tipo === 'FVE') ? 'FVE'
+            : 'NUM';
       const tipo = prioridadTipo(tipoF) <= prioridadTipo(tipoR) ? tipoF : tipoR; // el más débil define el tipo del match
       const confF = Math.max(...fves.map((x) => x.conf));
       const confR = Math.max(...rcs.map((x) => x.conf));

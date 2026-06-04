@@ -7,7 +7,7 @@
 
 /**
  * @typedef {Object} Clave
- * @property {'PVC'|'OC'|'NUM'} tipo
+ * @property {'PVC'|'OC'|'NUM'|'FVE'} tipo
  * @property {string} valor
  * @property {number} confianza   0..1
  */
@@ -57,6 +57,14 @@ export function clavesDesdeNotas(notas) {
     return out;
   }
 
+  // Referencias directas a FVE: "FVE153611", "FVE-153611", "FVE 153611"
+  const fveNums = [...txt.matchAll(/FVE[- ]?0*(\d{4,})/gi)];
+  if (fveNums.length > 0) {
+    const vals = [...new Set(fveNums.map(m => m[1]))];
+    vals.forEach(v => out.push({ tipo: 'FVE', valor: v, confianza: 0.9 }));
+    return out;
+  }
+
   // OC — "OC", "O.C", "Oc"
   const oc = txt.match(/\bO\.?\s*C\.?\s*0*(\d{3,})/i);
   if (oc) out.push({ tipo: 'OC', valor: oc[1], confianza: 0.9 });
@@ -98,6 +106,15 @@ export function normalizar(fila) {
   const tipo = fila.f1_tipo_docto_cruce.trim();
   const esFactura = tipo === 'FVE';
 
+  const claves = esFactura
+    ? clavesDesdeFVE(fila.Pedido_docto, fila.Orden_compra)
+    : clavesDesdeNotas(fila.f1_notas ?? '');
+
+  if (esFactura) {
+    claves.push({ tipo: 'FVE', valor: numDocto(fila.f1_docto_cruce), confianza: 1.0 });
+  }
+
+
   return {
     tercero: fila.f1_tercero.trim(),
     tipo,
@@ -109,8 +126,6 @@ export function normalizar(fila) {
     terceroVend: fila.f1_vend_cliente.trim(),
     saldo: fila.f1_saldo_total,
     notas: fila.f1_notas ?? '',
-    claves: esFactura
-      ? clavesDesdeFVE(fila.Pedido_docto, fila.Orden_compra)
-      : clavesDesdeNotas(fila.f1_notas ?? ''),
+    claves,
   };
 }
