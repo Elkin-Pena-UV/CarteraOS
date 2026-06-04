@@ -2,7 +2,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Play, RefreshCw, Search, CheckCircle2, AlertTriangle, Clock, ShieldCheck, History } from 'lucide-react'
+import { Play, RefreshCw, Search, CheckCircle2, AlertTriangle, Clock, ShieldCheck, History, XCircle } from 'lucide-react'
 import { useCruces } from '@/hooks/use-cruces'
 import {
   adaptProcesados,
@@ -31,6 +31,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 
 type Tab = 'automaticos' | 'manuales' | 'revision' | 'historial'
 
@@ -40,6 +47,16 @@ export default function CrucesPage() {
   const [globalFilter, setGlobalFilter] = useState('')
   const [autorizados, setAutorizados] = useState<Set<string>>(new Set())
   const [autorizando, setAutorizando] = useState(false)
+  const [autorizandoManualId, setAutorizandoManualId] = useState<string | null>(null)
+  const [fallidos, setFallidos] = useState<{
+    tercero: string
+    clave: { tipo: string; valor: string } | null
+    caso: string
+    status: number
+    error: string
+    errores: string[]
+  }[]>([])
+  const [dialogErroresOpen, setDialogErroresOpen] = useState(false)
   const [dialogManualFila, setDialogManualFila] = useState<FilaGrupoManual | null>(null)
   const { toast } = useToast()
   const {
@@ -55,13 +72,16 @@ export default function CrucesPage() {
 
   // Limpiar filtro al cambiar de pestaña
   const handleTabChange = (tab: Tab) => {
-    setActiveTab(tab)
-    setGlobalFilter('')
+  setActiveTab(tab)
+  setGlobalFilter('')
+  if (tab === 'historial') {
+    consultar()
   }
+}
 
-  const procesados   = useMemo(() => adaptProcesados(data?.procesados ?? []),       [data])
-  const manuales     = useMemo(() => adaptGruposManuales(data?.gruposManuales ?? []), [data])
-  const enRevision   = useMemo(() => adaptRevision(data?.revision ?? []),            [data])
+  const procesados = useMemo(() => adaptProcesados(data?.procesados ?? []), [data])
+  const manuales = useMemo(() => adaptGruposManuales(data?.gruposManuales ?? []), [data])
+  const enRevision = useMemo(() => adaptRevision(data?.revision ?? []), [data])
 
   const tabs: { id: Tab; label: string; count: number; icon: React.ElementType; color: string }[] = [
     {
@@ -97,110 +117,98 @@ export default function CrucesPage() {
   const isRunning = isLoading || isFetching
 
   async function handleAutorizarTodos() {
-  setAutorizando(true)
-  try {
-    const payload = procesados.map(p => ({
-      tercero:    p.tercero,
-      claveType:  p.claveType,
-      claveValor: p.claveValor,
-      tipoCruce:  'AUTOMATICO' as const,
-      caso:       p.caso,
-      confianza:  p.confianza,
-      totalFVE:   p.totalFVE,
-      totalRC:    p.totalRC,
-      net:        p.net,
-      nroFVE:     p.nroFVE,
-      nroRC:      p.nroRC,
-      consecsFVE: p.consecsFVE,
-      consecsRC:  p.consecsRC,
-      doc:        p.doc,
-    }))
-
-    const resultado = await autorizarCruces(payload)
-
-    // Marcar como autorizados solo los que Siesa aceptó
-    const exitosos = payload.filter(p =>
-      !resultado.fallidos?.some(
-        f => f.tercero === p.tercero && f.clave?.valor === p.claveValor
-      )
-    )
-    setAutorizados(prev => {
-      const next = new Set(prev)
-      exitosos.forEach(p => next.add(`${p.tercero}-${p.claveType}${p.claveValor}`))
-      return next
-    })
-
-    // Toast según si hubo fallidos o no
-    if (resultado.fallidos?.length > 0) {
-      toast({
-        title: `${resultado.guardados} de ${payload.length} cruces autorizados`,
-        description: `⚠️ ${resultado.fallidos.length} no pudieron enviarse a Siesa:\n${
-          resultado.fallidos.map(f => {
-            const detalle = f.errores?.length > 0
-              ? f.errores.join(' | ')       // ← mensajes exactos de Siesa
-              : f.error ?? `HTTP ${f.status}`
-            return `• ${f.tercero}: ${detalle}`
-          }).join('\n')
-        }`,
-        variant: 'destructive',
-        duration: 8000,
-      })
-    } else {
-      toast({
-        title: 'Cruces autorizados',
-        description: `${resultado.guardados} cruces enviados a Siesa y registrados correctamente.`,
-        duration: 4000,
-      })
-    }
-
-  } catch {
-    toast({
-      title: 'Error al autorizar',
-      description: 'No se pudieron autorizar los cruces.',
-      variant: 'destructive',
-    })
-  } finally {
-    setAutorizando(false)
-  }
-}
-
-  async function handleAutorizarManual(fila: FilaGrupoManual) {
     setAutorizando(true)
     try {
+      const payload = procesados.map(p => ({
+        tercero: p.tercero,
+        claveType: p.claveType,
+        claveValor: p.claveValor,
+        tipoCruce: 'AUTOMATICO' as const,
+        caso: p.caso,
+        confianza: p.confianza,
+        totalFVE: p.totalFVE,
+        totalRC: p.totalRC,
+        net: p.net,
+        nroFVE: p.nroFVE,
+        nroRC: p.nroRC,
+        consecsFVE: p.consecsFVE,
+        consecsRC: p.consecsRC,
+        doc: p.doc,
+      }))
+
+      const resultado = await autorizarCruces(payload)
+
+      // Marcar como autorizados solo los que Siesa aceptó
+      const exitosos = payload.filter(p =>
+        !resultado.fallidos?.some(
+          f => f.tercero === p.tercero && f.clave?.valor === p.claveValor
+        )
+      )
+      setAutorizados(prev => {
+        const next = new Set(prev)
+        exitosos.forEach(p => next.add(`${p.tercero}-${p.claveType}${p.claveValor}`))
+        return next
+      })
+
+      // Toast según si hubo fallidos o no
+      if (resultado.fallidos?.length > 0) {
+        setFallidos(resultado.fallidos)
+        setDialogErroresOpen(true)
+        if (resultado.guardados > 0) {
+          toast({
+            title: `${resultado.guardados} de ${payload.length} cruces autorizados`,
+            description: `${resultado.fallidos.length} no pudieron enviarse. Revisa el detalle de errores.`,
+            duration: 4000,
+          })
+        }
+      } else {
+        toast({
+          title: 'Cruces autorizados',
+          description: `${resultado.guardados} cruces enviados a Siesa y registrados correctamente.`,
+          duration: 4000,
+        })
+      }
+
+    } catch {
+      toast({
+        title: 'Error al autorizar',
+        description: 'No se pudieron autorizar los cruces.',
+        variant: 'destructive',
+      })
+    } finally {
+      setAutorizando(false)
+    }
+  }
+
+  async function handleAutorizarManual(fila: FilaGrupoManual) {
+    setAutorizandoManualId(fila.id)
+    try {
       const resultado = await autorizarCruces([{
-        tercero:    fila.tercero,
-        claveType:  fila.claveType,
+        tercero: fila.tercero,
+        claveType: fila.claveType,
         claveValor: fila.claveValor,
-        tipoCruce:  'MANUAL' as const,
-        confianza:  fila.confianza,
-        totalFVE:   fila.totalFVE,
-        totalRC:    fila.totalRC,
-        net:        fila.netEstimado,
-        nroFVE:     fila.nroFVE,
-        nroRC:      fila.nroRC,
+        tipoCruce: 'MANUAL' as const,
+        confianza: fila.confianza,
+        totalFVE: fila.totalFVE,
+        totalRC: fila.totalRC,
+        net: fila.netEstimado,
+        nroFVE: fila.nroFVE,
+        nroRC: fila.nroRC,
         consecsFVE: fila.consecsFVE,
-        consecsRC:  fila.consecsRC,
-        docs:       fila.docs,   // ← pasar docs para que el backend arme el plano
+        consecsRC: fila.consecsRC,
+        docs: fila.docs,   // ← pasar docs para que el backend arme el plano
       }])
       if (resultado.fallidos?.length > 0) {
-      const f = resultado.fallidos[0]
-      const detalle = f.errores?.length > 0
-        ? f.errores.join(' | ')
-        : f.error ?? `HTTP ${f.status}`
-      toast({
-        title: 'No se pudo autorizar el cruce',
-        description: `• ${f.tercero}: ${detalle}`,
-        variant: 'destructive',
-        duration: 8000,
-      })
-    } else {
-      setAutorizados(prev => new Set([...prev, fila.id]))
-      toast({
-        title: 'Cruce autorizado',
-        description: `Grupo ${fila.claveValor} (${fila.tercero}) enviado a Siesa y registrado correctamente.`,
-        duration: 4000,
-      })
-    }
+        setFallidos(resultado.fallidos)
+        setDialogErroresOpen(true)
+      } else {
+        setAutorizados(prev => new Set([...prev, fila.id]))
+        toast({
+          title: 'Cruce autorizado',
+          description: `Grupo ${fila.claveValor} (${fila.tercero}) enviado a Siesa y registrado correctamente.`,
+          duration: 4000,
+        })
+      }
     } catch {
       toast({
         title: 'Error al autorizar',
@@ -208,244 +216,303 @@ export default function CrucesPage() {
         variant: 'destructive',
       })
     } finally {
-      setAutorizando(false)
+      setAutorizandoManualId(null)
       setDialogManualFila(null)
     }
   }
 
+  const DialogErrores = (
+    <Dialog open={dialogErroresOpen} onOpenChange={setDialogErroresOpen}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-rose-500">
+            <XCircle className="h-5 w-5" />
+            Errores al enviar a Siesa ({fallidos.length})
+          </DialogTitle>
+          <DialogDescription>
+            Los siguientes cruces no pudieron procesarse. Revisa los mensajes y corrígelos manualmente.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="mt-2 max-h-[60vh] overflow-y-auto space-y-3">
+          {fallidos.map((f, i) => (
+            <div
+              key={i}
+              className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3 space-y-1.5"
+            >
+              {/* Cabecera del error */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm font-semibold">{f.tercero}</span>
+                  {f.clave && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-[#ff6600]/20 text-[#ff6600] border border-[#ff6600]/30">
+                      {f.clave.tipo} {f.clave.valor}
+                    </span>
+                  )}
+                  {f.caso && (
+                    <span className="text-xs text-muted-foreground">{f.caso}</span>
+                  )}
+                </div>
+                <span className="text-xs text-rose-400 font-medium shrink-0">
+                  HTTP {f.status}
+                </span>
+              </div>
+
+              {/* Mensajes de error de Siesa */}
+              {f.errores?.length > 0 ? (
+                <ul className="space-y-1">
+                  {f.errores.map((msg, j) => (
+                    <li key={j} className="flex items-start gap-1.5 text-xs text-rose-300">
+                      <span className="mt-0.5 shrink-0">•</span>
+                      <span>{msg}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-rose-300">{f.error}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+
   return (
     <AppShell>
-    <div className="flex flex-col gap-6 p-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Cruce de Pagos</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Seguimiento del pipeline automático FVE ↔ RC/RAC
-          </p>
-        </div>
+      {DialogErrores}
+      <div className="flex flex-col gap-6 p-6">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">Cruce de Pagos</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Seguimiento del pipeline automático FVE ↔ RC/RAC
+            </p>
+          </div>
 
-        <button
-          onClick={ejecutar}
-          disabled={isRunning}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+          <button
+            onClick={ejecutar}
+            disabled={isRunning}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
             bg-[#ff6600] hover:bg-[#e55a00] text-white transition-colors
             disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {isRunning ? (
-            <RefreshCw className="h-4 w-4 animate-spin" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
-          {data ? 'Re-ejecutar análisis' : 'Ejecutar análisis'}
-        </button>
-      </div>
-
-      {/* Estado vacío */}
-      {!data && !isRunning && !isError && (
-        <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 py-16 text-center">
-          <Play className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-50" />
-          <p className="text-sm font-medium text-muted-foreground">
-            Presiona <span className="text-[#ff6600]">Ejecutar análisis</span> para procesar los cruces
-          </p>
-          <p className="text-xs text-muted-foreground/60 mt-1">
-            El pipeline lee la vista v_ti_cruce_aut, empareja documentos y clasifica cada grupo.
-          </p>
+          >
+            {isRunning ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+            {data ? 'Re-ejecutar análisis' : 'Ejecutar análisis'}
+          </button>
         </div>
-      )}
 
-      {/* Error */}
-      {isError && (
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-400">
-          Error al procesar cruces:{' '}
-          {error instanceof Error ? error.message : 'Error desconocido'}
-        </div>
-      )}
-
-      {/* Loading skeleton */}
-      {isRunning && !data && (
-        <div className="space-y-3 animate-pulse">
-          <div className="grid grid-cols-4 gap-3">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-20 rounded-xl bg-muted/40" />
-            ))}
+        {/* Estado vacío */}
+        {!data && !isRunning && !isError && (
+          <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 py-16 text-center">
+            <Play className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-50" />
+            <p className="text-sm font-medium text-muted-foreground">
+              Presiona <span className="text-[#ff6600]">Ejecutar análisis</span> para procesar los cruces
+            </p>
+            <p className="text-xs text-muted-foreground/60 mt-1">
+              El pipeline lee la vista v_ti_cruce_aut, empareja documentos y clasifica cada grupo.
+            </p>
           </div>
-          <div className="h-10 rounded-lg bg-muted/40" />
-          <div className="h-64 rounded-lg bg-muted/20" />
-        </div>
-      )}
+        )}
 
-      {/* Contenido principal */}
-      {data && (
-        <>
-          {/* KPIs */}
-          <KpiCrucesCards resumen={data.resumen} />
+        {/* Error */}
+        {isError && (
+          <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-400">
+            Error al procesar cruces:{' '}
+            {error instanceof Error ? error.message : 'Error desconocido'}
+          </div>
+        )}
 
-          {/* Tabs */}
-          <div className="flex items-center gap-1 border-b border-border/50 pb-0">
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`
+        {/* Loading skeleton */}
+        {isRunning && !data && (
+          <div className="space-y-3 animate-pulse">
+            <div className="grid grid-cols-4 gap-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-20 rounded-xl bg-muted/40" />
+              ))}
+            </div>
+            <div className="h-10 rounded-lg bg-muted/40" />
+            <div className="h-64 rounded-lg bg-muted/20" />
+          </div>
+        )}
+
+        {/* Contenido principal */}
+        {data && (
+          <>
+            {/* KPIs */}
+            <KpiCrucesCards resumen={data.resumen} />
+
+            {/* Tabs */}
+            <div className="flex items-center gap-1 border-b border-border/50 pb-0">
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`
                     flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg
                     border-b-2 transition-colors -mb-px
                     ${isActive
-                      ? `border-[#ff6600] text-foreground bg-muted/20`
-                      : `border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/10`
-                    }
+                        ? `border-[#ff6600] text-foreground bg-muted/20`
+                        : `border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/10`
+                      }
                   `}
-                >
-                  <tab.icon
-                    className={`h-3.5 w-3.5 ${isActive ? tab.color.split(' ')[0] : ''}`}
-                  />
-                  {tab.label}
-                  {tab.count > 0 && (
-                    <span
-                      className={`
+                  >
+                    <tab.icon
+                      className={`h-3.5 w-3.5 ${isActive ? tab.color.split(' ')[0] : ''}`}
+                    />
+                    {tab.label}
+                    {tab.count > 0 && (
+                      <span
+                        className={`
                         ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold
                         ${isActive
-                          ? `bg-[#ff6600]/20 text-[#ff6600]`
-                          : `bg-muted text-muted-foreground`
-                        }
+                            ? `bg-[#ff6600]/20 text-[#ff6600]`
+                            : `bg-muted text-muted-foreground`
+                          }
                       `}
-                    >
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
+                      >
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
 
-            {/* Buscador global alineado a la derecha */}
-            <div className="ml-auto relative mb-1">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Buscar tercero, llave…"
-                value={globalFilter}
-                onChange={(e) => setGlobalFilter(e.target.value)}
-                className="
+              {/* Buscador global alineado a la derecha */}
+              <div className="ml-auto relative mb-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Buscar tercero, llave…"
+                  value={globalFilter}
+                  onChange={(e) => setGlobalFilter(e.target.value)}
+                  className="
                   pl-8 pr-3 py-1.5 rounded-lg text-xs bg-muted/40 border border-border/50
                   placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#ff6600]/50
                   w-52 transition-all
                 "
-              />
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Tabla activa */}
-          <div>
-            {activeTab === 'automaticos' && (
-              <div className="flex flex-col gap-3">
-                <div className="flex justify-end">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <button
-                        disabled={autorizando || procesados.length === 0}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+            {/* Tabla activa */}
+            <div>
+              {activeTab === 'automaticos' && (
+                <div className="flex flex-col gap-3">
+                  <div className="flex justify-end">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button
+                          disabled={autorizando || procesados.length === 0}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
                           bg-emerald-600 hover:bg-emerald-700 text-white transition-colors
                           disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        <ShieldCheck className="h-4 w-4" />
-                        Autorizar todos ({procesados.length})
-                      </button>
-                    </AlertDialogTrigger>
+                        >
+                          <ShieldCheck className="h-4 w-4" />
+                          Autorizar todos ({procesados.length})
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Autorizar cruces automáticos</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Se registrarán {procesados.length} cruces como autorizados. Esta acción queda registrada con tu usuario y la fecha actual.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleAutorizarTodos}>
+                            Confirmar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                  <TablaProcesados data={procesados} globalFilter={globalFilter} />
+                </div>
+              )}
+              {activeTab === 'manuales' && (
+                <>
+                  <AlertDialog
+                    open={dialogManualFila !== null}
+                    onOpenChange={(open) => { if (!open) setDialogManualFila(null) }}
+                  >
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Autorizar cruces automáticos</AlertDialogTitle>
+                        <AlertDialogTitle>Autorizar cruce manual</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Se registrarán {procesados.length} cruces como autorizados. Esta acción queda registrada con tu usuario y la fecha actual.
+                          Se registrará 1 cruce como autorizado para{' '}
+                          <strong>{dialogManualFila?.tercero}</strong> / {dialogManualFila?.claveValor}.
+                          {' '}Esta acción queda registrada con tu usuario y la fecha actual.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleAutorizarTodos}>
+                        <AlertDialogAction
+                          onClick={() => dialogManualFila && handleAutorizarManual(dialogManualFila)}
+                        >
                           Confirmar
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                </div>
-                <TablaProcesados data={procesados} globalFilter={globalFilter} />
-              </div>
-            )}
-            {activeTab === 'manuales' && (
-              <>
-                <AlertDialog
-                  open={dialogManualFila !== null}
-                  onOpenChange={(open) => { if (!open) setDialogManualFila(null) }}
-                >
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Autorizar cruce manual</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Se registrará 1 cruce como autorizado para{' '}
-                        <strong>{dialogManualFila?.tercero}</strong> / {dialogManualFila?.claveValor}.
-                        {' '}Esta acción queda registrada con tu usuario y la fecha actual.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => dialogManualFila && handleAutorizarManual(dialogManualFila)}
-                      >
-                        Confirmar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                <TablaManuales
-                  data={manuales}
-                  globalFilter={globalFilter}
-                  autorizados={autorizados}
-                  onAutorizar={(fila) => setDialogManualFila(fila)}
-                />
-              </>
-            )}
-            {activeTab === 'revision' && (
-              <TablaRevision
-                data={enRevision}
-                globalFilter={globalFilter}
-              />
-            )}
-            {activeTab === 'historial' && (
-              <div className="space-y-4">
-                <HistorialFiltersBar
-                  draftTercero={draftTercero}
-                  setDraftTercero={setDraftTercero}
-                  draftUsuario={draftUsuario}
-                  setDraftUsuario={setDraftUsuario}
-                  onConsultar={consultar}
-                  isFetching={historialFetching}
-                />
-                {historialLoading ? (
-                  <div className="space-y-2 animate-pulse">
-                    <div className="h-10 rounded-lg bg-muted/40" />
-                    <div className="h-64 rounded-lg bg-muted/20" />
-                  </div>
-                ) : (
-                  <TablaHistorial
-                    data={historialData ?? []}
+                  <TablaManuales
+                    data={manuales}
                     globalFilter={globalFilter}
+                    autorizados={autorizados}
+                    autorizandoId={autorizandoManualId}
+                    onAutorizar={(fila) => setDialogManualFila(fila)}
                   />
-                )}
-              </div>
-            )}
-          </div>
+                </>
+              )}
+              {activeTab === 'revision' && (
+                <TablaRevision
+                  data={enRevision}
+                  globalFilter={globalFilter}
+                />
+              )}
+              {activeTab === 'historial' && (
+                <div className="space-y-4">
+                  <HistorialFiltersBar
+                    draftTercero={draftTercero}
+                    setDraftTercero={setDraftTercero}
+                    draftUsuario={draftUsuario}
+                    setDraftUsuario={setDraftUsuario}
+                    onConsultar={consultar}
+                    isFetching={historialFetching}
+                  />
+                  {historialLoading ? (
+                    <div className="space-y-2 animate-pulse">
+                      <div className="h-10 rounded-lg bg-muted/40" />
+                      <div className="h-64 rounded-lg bg-muted/20" />
+                    </div>
+                  ) : (
+                    <TablaHistorial
+                      data={historialData ?? []}
+                      globalFilter={globalFilter}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
 
-          {/* Footer con timestamp */}
-          {isFetching && (
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <RefreshCw className="h-3 w-3 animate-spin" />
-              Actualizando…
-            </p>
-          )}
-        </>
-      )}
-    </div>
+            {/* Footer con timestamp */}
+            {isFetching && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <RefreshCw className="h-3 w-3 animate-spin" />
+                Actualizando…
+              </p>
+            )}
+          </>
+        )}
+      </div>
     </AppShell>
   )
 }

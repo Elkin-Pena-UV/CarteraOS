@@ -53,6 +53,7 @@ import {
   RotateCcw,
   Columns,
   ShieldCheck,
+  RefreshCw,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTableState } from "@/hooks/use-table-state"
@@ -209,10 +210,11 @@ interface TablaManualesProps {
   globalFilter: string
   onAutorizar?: (fila: FilaGrupoManual) => void
   autorizados?: Set<string>
+  autorizandoId?: string | null
 }
 
 export const TablaManuales = forwardRef<TablaManualesRef, TablaManualesProps>(
-  function TablaManuales({ data, globalFilter, onAutorizar, autorizados }, ref) {
+  function TablaManuales({ data, globalFilter, onAutorizar, autorizados, autorizandoId }, ref) {
 
   const {
     sorting, setSorting,
@@ -339,6 +341,8 @@ export const TablaManuales = forwardRef<TablaManualesRef, TablaManualesProps>(
       enableHiding: false,
       cell: ({ row }) => {
         const fila = row.original
+        const estaAutorizando = autorizandoId === fila.id
+
         if (autorizados?.has(fila.id)) {
           return (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 whitespace-nowrap">
@@ -353,15 +357,19 @@ export const TablaManuales = forwardRef<TablaManualesRef, TablaManualesProps>(
             variant="outline"
             size="sm"
             onClick={() => onAutorizar(fila)}
+            disabled={estaAutorizando}
             className="h-7 text-xs gap-1"
           >
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Autorizar
+            {estaAutorizando
+              ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              : <ShieldCheck className="h-3.5 w-3.5" />
+            }
+            {estaAutorizando ? 'Enviando…' : 'Autorizar'}
           </Button>
         )
       },
     },
-  ], [onAutorizar, autorizados])
+  ], [onAutorizar, autorizados, autorizandoId])
 
   const table = useReactTable({
     data,

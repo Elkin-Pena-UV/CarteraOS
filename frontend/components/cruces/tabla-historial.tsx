@@ -254,11 +254,19 @@ export const TablaHistorial = forwardRef<TablaHistorialRef, TablaHistorialProps>
       accessorKey: "fecha_autorizacion",
       header: "Fecha",
       size: 170,
-      cell: ({ row }) => (
-        <span className="font-mono text-xs text-muted-foreground">
-          {new Date(row.getValue("fecha_autorizacion")).toLocaleString('es-CO')}
-        </span>
-      ),
+      cell: ({ row }) => {
+        const raw = row.getValue('fecha_autorizacion') as string
+        // "2026-06-03 10:09:53.687" → "03/06/2026, 10:09:53"
+        if (!raw) return <span>—</span>
+        const [fecha, hora] = raw.split('T').length > 1
+          ? raw.split('T')           // formato ISO
+          : raw.split(' ')           // formato SQL "YYYY-MM-DD HH:mm:ss"
+        const [anio, mes, dia] = fecha.split('-')
+        const horaCorta = hora?.substring(0, 8) ?? ''
+        return (
+          <span className="font-mono text-xs text-muted-foreground">{`${dia}/${mes}/${anio}, ${horaCorta}`}</span>
+        )
+      },
     },
     {
       id: "tercero",
