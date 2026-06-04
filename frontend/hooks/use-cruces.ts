@@ -5,7 +5,7 @@ import { procesarCruces, type ResultadoCruces } from '@/lib/services/crucesServi
 
 export function useCruces() {
   // El pipeline no corre automáticamente: el usuario presiona "Ejecutar análisis"
-  const [enabled, setEnabled] = useState(false)
+  const [enabled, setEnabled] = useState(true)
 
   const query = useQuery<ResultadoCruces>({
     queryKey: ['cruces'],
