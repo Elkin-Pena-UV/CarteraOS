@@ -10,6 +10,8 @@ const dbConfig = {
   server: process.env.DB_HOST_SM_REAL,
   database: process.env.DB_NAME_SM_REAL,
   port: parseInt(process.env.DB_PORT_SM_REAL, 10) || 1433,
+  requestTimeout: 60000,    // tiempo máximo por query (ms) — default: 15000
+  connectionTimeout: 30000, // tiempo máximo para conectar (ms) — default: 15000
   options: {
     encrypt: false, // true para Azure
     trustServerCertificate: true, // necesario para entornos locales
