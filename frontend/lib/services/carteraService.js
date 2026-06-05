@@ -19,3 +19,14 @@ export const getCarteraHoy   = ()       => getCartera('hoy');
 export const getCarteraFecha = (fecha)  => getCartera('fecha', fecha);
 
 export const getCarteraPorTercero = (tercero) => getCartera('hoy', null, tercero);
+
+/**
+ * Invalida el cache del backend y consulta la BD de nuevo.
+ * @param {'hoy' | 'corte' | 'fecha'} modo
+ * @param {string | null} fechaCorte - Requerido si modo='fecha'
+ */
+export const refrescarCarteraBackend = async (modo = 'hoy', fechaCorte = null) => {
+  const params = { modo };
+  if (modo === 'fecha' && fechaCorte) params.fechaCorte = fechaCorte;
+  return await api.post('/cartera/refrescar', {}, { params });
+};
