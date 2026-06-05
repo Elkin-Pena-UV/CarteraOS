@@ -13,7 +13,7 @@ import {
 import { ClientsTable, type Client, type ClientsTableRef } from "@/components/cartera/clients-table"
 import { ClientDrawer } from "@/components/cartera/client-drawer"
 import { AppShell } from "@/components/layout/app-shell"
-import { useCartera } from "@/hooks/use-cartera"
+import { useCartera, useRefrescarCartera } from "@/hooks/use-cartera"
 import {
   adaptCarteraToClients,
   adaptCarteraToKPIs,
@@ -21,8 +21,11 @@ import {
 } from "@/lib/adapters/carteraAdapter"
 import { applyClientFilters } from "@/lib/filters/cartera-filters"
 import { useExportPDF } from '@/hooks/use-export-pdf'
-import { FileDown, Loader2 } from 'lucide-react'
+import { refrescarCarteraBackend } from '@/lib/services/carteraService'
+import { FileDown, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { facturasKeys } from "@/hooks/use-facturas"
+import { useQueryClient } from "@tanstack/react-query"
 
 export default function CarteraDashboard() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
@@ -31,11 +34,29 @@ export default function CarteraDashboard() {
   const [fechaCorte, setFechaCorte] = useState<FechaCorteState>(initialFechaCorte)
   const [sortedClients, setSortedClients] = useState<Client[]>([])
   const tableRef = useRef<ClientsTableRef>(null)
+  const queryClient = useQueryClient()
 
   const { exportarGeneral, exporting } = useExportPDF()
 
   // El hook recibe modo y fecha — react-query cachea cada combinación por separado
-  const { data, loading, error } = useCartera(fechaCorte.modo, fechaCorte.fecha)
+  const { data, loading, error, isFetching } = useCartera(fechaCorte.modo, fechaCorte.fecha)
+  const refrescarCartera = useRefrescarCartera()
+
+  const [isSyncing, setIsSyncing] = useState(false)
+
+  const handleSincronizar = async () => {
+    setIsSyncing(true)
+    try {
+      await refrescarCarteraBackend(
+        fechaCorte.modo,
+        fechaCorte.modo === 'fecha' ? (fechaCorte.fecha ?? null) : null
+      )
+      refrescarCartera()
+      queryClient.invalidateQueries({ queryKey: facturasKeys.all })
+    } finally {
+      setIsSyncing(false)
+    }
+  }
 
   // Adaptar datos crudos del backend → Client[] y KPIs para los cards
   const clients = useMemo(() => adaptCarteraToClients(data ?? []), [data])
@@ -93,18 +114,32 @@ export default function CarteraDashboard() {
               Gestión y seguimiento de cartera de clientes
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportarPDF}
-            disabled={exporting}
-          >
-            {exporting
-              ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              : <FileDown className="mr-2 h-4 w-4" />
-            }
-            {exporting ? 'Generando...' : 'Exportar PDF'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSincronizar}
+              disabled={isSyncing}
+            >
+              {isSyncing
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <RefreshCw className="mr-2 h-4 w-4" />
+              }
+              {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportarPDF}
+              disabled={exporting}
+            >
+              {exporting
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <FileDown className="mr-2 h-4 w-4" />
+              }
+              {exporting ? 'Generando...' : 'Exportar PDF'}
+            </Button>
+          </div>
         </div>
 
         <FiltersBar

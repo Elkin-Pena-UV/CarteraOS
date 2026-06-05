@@ -4,12 +4,12 @@ import { useState, useEffect, useRef } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { RotationTable, type RotationTableHandle } from "@/components/cartera/rotation-table"
 import { FiltersBarCopy } from "@/components/cartera/filters-barcopy"
-import { useRotacion } from "@/hooks/use-rotacion"
+import { useRotacion, useRefrescarRotacion } from "@/hooks/use-rotacion"
 import type { RotacionCliente } from "@/hooks/use-rotacion"
 import type { RotacionFiltros } from "@/lib/services/rotacionService"
 import { useExportPDF } from "@/hooks/use-export-pdf"
 import { parsearCondPagoDias } from "@/lib/utils/rotacionColor"
-import { FileDown, Loader2 } from "lucide-react"
+import { FileDown, Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 /** Convierte el período YYYYMM de la serie al último día del mes → YYYYMMDD */
@@ -31,6 +31,8 @@ export default function RotacionPage() {
   const { data, clientes, loading, error, isFetching } = useRotacion(fechaRef, filtros)
 
   const { exportarRotacion, exportingRotacion } = useExportPDF()
+  const refrescarRotacion = useRefrescarRotacion()
+  const handleSincronizar = () => { refrescarRotacion() }
 
   const clienteActivo = filtros.razonSocial?.trim()
     ? clientes.find((c) =>
@@ -83,18 +85,32 @@ export default function RotacionPage() {
             </p>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportarPDF}
-            disabled={exportingRotacion || data.length === 0}
-          >
-            {exportingRotacion
-              ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              : <FileDown className="mr-2 h-4 w-4" />
-            }
-            {exportingRotacion ? "Generando..." : "Exportar PDF"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSincronizar}
+              disabled={isFetching}
+            >
+              {isFetching
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <RefreshCw className="mr-2 h-4 w-4" />
+              }
+              {isFetching ? 'Sincronizando...' : 'Sincronizar'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportarPDF}
+              disabled={exportingRotacion || data.length === 0}
+            >
+              {exportingRotacion
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <FileDown className="mr-2 h-4 w-4" />
+              }
+              {exportingRotacion ? 'Generando...' : 'Exportar PDF'}
+            </Button>
+          </div>
         </div>
 
         <FiltersBarCopy

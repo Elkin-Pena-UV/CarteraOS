@@ -12,22 +12,24 @@ import {
   type VariationFilters,
   type VariationPeriod,
 } from "@/components/cartera/variation-filters-bar"
-import { useVariacion } from "@/hooks/use-variacion"
+import { useVariacion, useRefrescarVariacion } from "@/hooks/use-variacion"
 import { adaptVariacionToClients } from "@/lib/adapters/variacionAdapter"
 import { applyVariationFilters } from "@/lib/filters/variation-filters"
 import { useExportPDF } from "@/hooks/use-export-pdf"
-import { FileDown, Loader2 } from "lucide-react"
+import { FileDown, Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function VariacionPage() {
   const [filters, setFilters] = useState<VariationFilters>(initialVariationFilters)
 
-  const [draftPeriod, setDraftPeriod]         = useState<VariationPeriod>(initialVariationPeriod)
+  const [draftPeriod, setDraftPeriod] = useState<VariationPeriod>(initialVariationPeriod)
   const [committedPeriod, setCommittedPeriod] = useState<VariationPeriod>(initialVariationPeriod)
 
   const tableRef = useRef<VariationTableRef>(null)
 
   const { exportarVariacion, exportingVariacion } = useExportPDF()
+  const refrescarVariacion = useRefrescarVariacion()
+  const handleSincronizar = () => { refrescarVariacion() }
 
   const fecha = useMemo(
     () => lastDayOfMonthYYYYMMDD(committedPeriod.year, committedPeriod.month),
@@ -39,24 +41,24 @@ export default function VariacionPage() {
     setCommittedPeriod(initialVariationPeriod)
   }
 
-  const { data: rawData, loading, error } = useVariacion(fecha)
-  const allData      = useMemo(() => adaptVariacionToClients(rawData), [rawData])
+  const { data: rawData, loading, error, isFetching, refetch } = useVariacion(fecha)
+  const allData = useMemo(() => adaptVariacionToClients(rawData), [rawData])
   const filteredData = useMemo(() => applyVariationFilters(allData, filters), [allData, filters])
-  
+
 
   const handleExportarPDF = () => {
     if (!tableRef.current?.table) return
 
-     // Filas en el orden que muestra la tabla (respeta sorting activo)
-  const clientesOrdenados = tableRef.current.table
-    .getSortedRowModel()
-    .rows.map(row => row.original)
+    // Filas en el orden que muestra la tabla (respeta sorting activo)
+    const clientesOrdenados = tableRef.current.table
+      .getSortedRowModel()
+      .rows.map(row => row.original)
 
     exportarVariacion({
       fecha,
-      filtros:  filters,
+      filtros: filters,
       clientes: clientesOrdenados,
-      table:    tableRef.current.table,
+      table: tableRef.current.table,
     })
   }
 
@@ -86,18 +88,32 @@ export default function VariacionPage() {
               Comparativo de cartera entre el mes actual y el anterior
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportarPDF}
-            disabled={exportingVariacion || filteredData.length === 0}
-          >
-            {exportingVariacion
-              ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              : <FileDown className="mr-2 h-4 w-4" />
-            }
-            {exportingVariacion ? "Generando..." : "Exportar PDF"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSincronizar}
+              disabled={isFetching}
+            >
+              {isFetching
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <RefreshCw className="mr-2 h-4 w-4" />
+              }
+              {isFetching ? 'Sincronizando...' : 'Sincronizar'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportarPDF}
+              disabled={exportingVariacion || filteredData.length === 0}
+            >
+              {exportingVariacion
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <FileDown className="mr-2 h-4 w-4" />
+              }
+              {exportingVariacion ? "Generando..." : "Exportar PDF"}
+            </Button>
+          </div>
         </div>
 
         {/* ── Filtros ───────────────────────────────────────────────────── */}
