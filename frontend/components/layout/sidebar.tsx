@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useAuth } from '@/lib/contexts/AuthContext'
 import {
   Wallet,
   Users,
@@ -26,6 +27,8 @@ import {
   Building,
   GitMerge,
   type LucideIcon,
+  UserCog,
+  ShieldCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -65,57 +68,68 @@ const menuItems: MenuItem[] = [
       },
     ],
   },
+  // {
+  //   title: "Tesorería",
+  //   icon: Banknote,
+  //   children: [
+  //     {
+  //       title: "Flujo de Caja",
+  //       href: "/tesoreria/flujo",
+  //       icon: TrendingUp,
+  //     },
+  //     {
+  //       title: "Recaudos",
+  //       href: "/tesoreria/recaudos",
+  //       icon: PiggyBank,
+  //     },
+  //     {
+  //       title: "Pagos",
+  //       href: "/tesoreria/pagos",
+  //       icon: CreditCard,
+  //     },
+  //   ],
+  // },
+  // {
+  //   title: "Clientes",
+  //   icon: Users,
+  //   children: [
+  //     {
+  //       title: "Directorio",
+  //       href: "/clientes",
+  //       icon: UserCircle,
+  //     },
+  //     {
+  //       title: "Por Empresa",
+  //       href: "/clientes/empresas",
+  //       icon: Building,
+  //     },
+  //   ],
+  // },
+  // {
+  //   title: "Facturas",
+  //   href: "/facturas",
+  //   icon: Receipt,
+  // },
+  // {
+  //   title: "Reportes",
+  //   href: "/reportes",
+  //   icon: FileBarChart,
+  // },
+  // {
+  //   title: "Documentos",
+  //   href: "/documentos",
+  //   icon: FileText,
+  // },
   {
-    title: "Tesorería",
-    icon: Banknote,
+    title: "Administración",
+    icon: ShieldCheck,
     children: [
       {
-        title: "Flujo de Caja",
-        href: "/tesoreria/flujo",
-        icon: TrendingUp,
-      },
-      {
-        title: "Recaudos",
-        href: "/tesoreria/recaudos",
-        icon: PiggyBank,
-      },
-      {
-        title: "Pagos",
-        href: "/tesoreria/pagos",
-        icon: CreditCard,
+        title: "Usuarios",
+        href: "/admin/usuarios",
+        icon: UserCog,
       },
     ],
-  },
-  {
-    title: "Clientes",
-    icon: Users,
-    children: [
-      {
-        title: "Directorio",
-        href: "/clientes",
-        icon: UserCircle,
-      },
-      {
-        title: "Por Empresa",
-        href: "/clientes/empresas",
-        icon: Building,
-      },
-    ],
-  },
-  {
-    title: "Facturas",
-    href: "/facturas",
-    icon: Receipt,
-  },
-  {
-    title: "Reportes",
-    href: "/reportes",
-    icon: FileBarChart,
-  },
-  {
-    title: "Documentos",
-    href: "/documentos",
-    icon: FileText,
   },
 ]
 
@@ -143,6 +157,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const [popover, setPopover] = useState<PopoverState>({ item: null, position: { top: 0, left: 0 } })
   const popoverRef = useRef<HTMLDivElement>(null)
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const { user } = useAuth()
 
   // Auto-expand groups with active children
   useEffect(() => {
@@ -320,7 +335,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff6600]">
                 <Building2 className="h-5 w-5 text-white" />
               </div>
-              <span className="text-lg font-bold">CarteraOS</span>
+              <span className="text-lg font-bold">FinApp</span>
             </div>
           )}
           {collapsed && (
@@ -332,7 +347,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 overflow-y-auto p-2">
-          {menuItems.map((item) => renderMenuItem(item))}
+          {menuItems
+            .filter((item) => item.title !== 'Administración' || user?.rol === 'admin')
+            .map((item) => renderMenuItem(item))}
         </nav>
 
         {/* Bottom Menu */}
