@@ -8,7 +8,7 @@ export type CarteraItem = {
   f1_tercero_razon_social: string
   f1_id_cond_pago: string
   f1_asesor: string
-  f_02_02: string
+  f1_canal_cliente: string
   f1_cupo: number
   f1_saldo_corriente_total: number
   f1_saldo_vencido1: number
