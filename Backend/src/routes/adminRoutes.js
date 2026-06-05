@@ -3,8 +3,17 @@ import { invalidateCache, clearCache, getCacheStats } from '../middleware/cacheM
 import { getCartera } from '../services/carteraService.js';
 import logger from '../config/logger.js';
 import { getVariacion } from '../services/variacionService.js';
+import { getUsuarios, postUsuario, patchUsuario, patchPassword } from '../controllers/userController.js';
 
 const router = express.Router();
+
+// middleware de rol admin — agregar después de los imports
+const requireAdmin = (req, res, next) => {
+  if (req.user?.rol !== 'admin') {
+    return res.status(403).json({ ok: false, message: 'Acceso restringido a administradores' });
+  }
+  next();
+};
 
 // Estadísticas del cache
 router.get('/cache/stats', (req, res) => {
@@ -145,7 +154,7 @@ router.get('/diagnostico/variacion', async (req, res) => {
 });
 
 // Diagnóstico de performance de rotación — aísla cada query individualmente
-router.get('/diagnostico/rotacion', async (req, res) => {
+router.get('/diagnostico/rotacion', requireAdmin, async (req, res) => {
   const { fecha = '20260430' } = req.query;
   const { sql, poolPromise } = await import('../config/db_sm_real.js');
   const resultados = {};
@@ -266,5 +275,11 @@ router.get('/diagnostico/cond-pago', async (req, res) => {
     res.status(500).json({ ok: false, error: error.message })
   }
 })
+
+
+router.get   ('/usuarios',              requireAdmin, getUsuarios);
+router.post  ('/usuarios',              requireAdmin, postUsuario);
+router.patch ('/usuarios/:id',          requireAdmin, patchUsuario);
+router.patch ('/usuarios/:id/password', requireAdmin, patchPassword);
 
 export default router;
