@@ -31,7 +31,11 @@ async function llamarConector(procesados, opts = {}) {
 
   for (const p of procesados) {
     const datos  = aPayloadConector(p.doc);
-    const payload = { conector: SIESA_SCHEMA, datos };
+    const payload = {
+      environment: process.env.SIESA_ENVIRONMENT ?? 'produccion', // typo intencional de Siesa
+      conector: SIESA_SCHEMA,
+      datos,
+    };
     try {
       const response = await poster(url, payload, {
         headers: {
