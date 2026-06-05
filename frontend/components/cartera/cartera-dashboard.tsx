@@ -16,8 +16,8 @@ import { AppShell } from "@/components/layout/app-shell"
 import { useCartera, useRefrescarCartera } from "@/hooks/use-cartera"
 import {
   adaptCarteraToClients,
-  adaptCarteraToKPIs,
   adaptClientsToAging,
+  adaptClientsToKPIs,
 } from "@/lib/adapters/carteraAdapter"
 import { applyClientFilters } from "@/lib/filters/cartera-filters"
 import { useExportPDF } from '@/hooks/use-export-pdf'
@@ -58,15 +58,17 @@ export default function CarteraDashboard() {
     }
   }
 
-  // Adaptar datos crudos del backend → Client[] y KPIs para los cards
+  // Adaptar datos crudos del backend → Client[]
   const clients = useMemo(() => adaptCarteraToClients(data ?? []), [data])
-  const kpis = useMemo(() => adaptCarteraToKPIs(data ?? []), [data])
 
   // Filtrado único — alimenta tanto la tabla como los gráficos de aging
   const filteredClients = useMemo(
     () => applyClientFilters(clients, draftFilters),
     [clients, draftFilters]
   )
+
+  // KPIs derivados de los clientes ya filtrados
+  const kpis = useMemo(() => adaptClientsToKPIs(filteredClients), [filteredClients])
 
   // Datos de aging derivados de los clientes filtrados
   const agingData = useMemo(() => adaptClientsToAging(filteredClients), [filteredClients])

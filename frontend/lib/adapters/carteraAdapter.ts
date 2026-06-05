@@ -32,15 +32,6 @@ export const adaptCarteraToClients = (items: CarteraItem[]): Client[] => {
   }))
 }
 
-export const adaptCarteraToKPIs = (items: CarteraItem[]) => {
-  const totalCorriente = items.reduce((sum, i) => sum + i.f1_saldo_corriente_total, 0)
-  const totalVencida = items.reduce((sum, i) => sum + i.f1_saldo_vencido_total, 0)
-  const totalCartera = totalCorriente + totalVencida
-  const clientesEnMora = items.filter((i) => i.f1_saldo_vencido_total > 0).length
-  const porcentajeVencida = totalCartera > 0 ? (totalVencida / totalCartera) * 100 : 0
-
-
-  /** Formatea un valor en COP → "123M", "1.2B", etc. para los ejes/tooltips */
 const formatCOP = (value: number): string => {
   if (value === 0) return "$0"
   if (Math.abs(value) >= 1_000_000) {
@@ -54,11 +45,34 @@ const formatCOP = (value: number): string => {
   return `$${value.toLocaleString("es-CO")}`
 }
 
+export const adaptCarteraToKPIs = (items: CarteraItem[]) => {
+  const totalCorriente = items.reduce((sum, i) => sum + i.f1_saldo_corriente_total, 0)
+  const totalVencida = items.reduce((sum, i) => sum + i.f1_saldo_vencido_total, 0)
+  const totalCartera = totalCorriente + totalVencida
+  const clientesEnMora = items.filter((i) => i.f1_saldo_vencido_total > 0).length
+  const porcentajeVencida = totalCartera > 0 ? (totalVencida / totalCartera) * 100 : 0
+
   return {
     totalCorriente: formatCOP(totalCorriente),
     totalVencida: formatCOP(totalVencida),
     clientesEnMora,
     totalClientes: items.length,
+    porcentajeVencida: porcentajeVencida.toFixed(1),
+  }
+}
+
+export const adaptClientsToKPIs = (clients: Client[]) => {
+  const totalCorriente    = clients.reduce((sum, c) => sum + c.current, 0)
+  const totalVencida      = clients.reduce((sum, c) => sum + c.overdue, 0)
+  const totalCartera      = totalCorriente + totalVencida
+  const clientesEnMora    = clients.filter((c) => c.overdue > 0).length
+  const porcentajeVencida = totalCartera > 0 ? (totalVencida / totalCartera) * 100 : 0
+
+  return {
+    totalCorriente:    formatCOP(totalCorriente),
+    totalVencida:      formatCOP(totalVencida),
+    clientesEnMora,
+    totalClientes:     clients.length,
     porcentajeVencida: porcentajeVencida.toFixed(1),
   }
 }

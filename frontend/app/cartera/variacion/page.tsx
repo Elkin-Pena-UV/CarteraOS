@@ -127,7 +127,7 @@ export default function VariacionPage() {
         />
 
         {/* ── KPIs ─────────────────────────────────────────────────────── */}
-        <KPICards data={allData} />
+        <KPICards data={filteredData} />
 
         {/* ── Tabla ────────────────────────────────────────────────────── */}
         <VariationTable ref={tableRef} data={filteredData} fecha={fecha} />

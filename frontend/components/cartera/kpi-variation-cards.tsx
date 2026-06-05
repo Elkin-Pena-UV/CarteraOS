@@ -39,8 +39,8 @@ function KPICard({ title, value, subtitle, trend, accentColor, badge }: KPICardP
         {trend && (
           <div className="mt-3 flex items-center gap-1">
             {trend.positive
-              ? <TrendingUp className="h-4 w-4 text-green-500" />
-              : <TrendingDown className="h-4 w-4 text-red-500" />}
+              ? <TrendingDown className="h-4 w-4 text-green-500" />
+              : <TrendingUp className="h-4 w-4 text-red-500" />}
             <span className={cn("text-xs font-medium", trend.positive ? "text-green-500" : "text-red-500")}>
               {trend.value}
             </span>
