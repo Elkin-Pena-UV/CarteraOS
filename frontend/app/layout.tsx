@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'CarteraOS - Gestión de Cartera',
+  title: 'FinApp - Gestión de Cartera',
   description: 'Plataforma de gestión de cartera y tesorería integrada con ERP Siesa',
   generator: 'v0.app',
   icons: {

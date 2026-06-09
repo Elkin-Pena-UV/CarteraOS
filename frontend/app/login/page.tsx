@@ -48,7 +48,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm space-y-6 p-8 border rounded-xl shadow-sm bg-card">
 
         <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">CarteraOS</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">FinApp</h1>
           <p className="text-sm text-muted-foreground">Inicia sesión para continuar</p>
         </div>
 

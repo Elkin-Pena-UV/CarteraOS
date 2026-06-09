@@ -239,7 +239,6 @@ export function VariationFiltersBar({
                     "Concreteros",
                     "Consorcios",
                     "Constructor",
-                    "Distribución Mayorista",
                     "Distribución Mayorista Retail",
                     "Distribuidor Mayorista",
                     "Ferreteria Grande",

@@ -34,7 +34,7 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
       {/* Breadcrumbs / Search */}
       <div className="flex items-center gap-4">
         <nav className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">CarteraOS</span>
+          <span className="text-muted-foreground">FinApp</span>
           <span className="text-muted-foreground">/</span>
           <span className="font-medium">Dashboard de Cartera</span>
         </nav>
