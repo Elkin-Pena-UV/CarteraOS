@@ -32,7 +32,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { ChevronDown, ChevronUp, Filter, Mail, X, Loader2, Check, ChevronsUpDown } from "lucide-react"
+import { ChevronDown, ChevronUp, Filter, X, Loader2, Check, ChevronsUpDown } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import type { RotacionFiltros } from "@/lib/services/rotacionService"
@@ -99,8 +99,8 @@ function CanalTriggerLabel({ selected }: { selected: string[] }) {
 // ── Valores iniciales (mes anterior al actual) ────────────────────────────────
 
 const mesAnterior = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)
-const initialMonth = monthOptions[mesAnterior.getMonth()].value
-const initialYear = String(mesAnterior.getFullYear())
+export const initialMonth = monthOptions[mesAnterior.getMonth()].value
+export const initialYear = String(mesAnterior.getFullYear())
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -109,23 +109,53 @@ interface FiltersBarCopyProps {
   onLimpiar: () => void
   isFetching?: boolean
   clienteOptions?: { f1_tercero: string; f1_tercero_razon_social: string }[]
+  selectedMonth?: string
+  selectedYear?: string
+  onMonthChange?: (month: string) => void
+  onYearChange?: (year: string) => void
+  selectedCanales?: string[]
+  clientType?: string
+  clientName?: string
+  onCanalesChange?: (v: string[]) => void
+  onClientTypeChange?: (v: string) => void
+  onClientNameChange?: (v: string) => void
 }
 
 
 // ── Componente ────────────────────────────────────────────────────────────────
 
-export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false, clienteOptions }: FiltersBarCopyProps) {
+export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false, clienteOptions, selectedMonth: controlledMonth, selectedYear: controlledYear, onMonthChange, onYearChange, selectedCanales: controlledCanales, clientType: controlledClientType, clientName: controlledClientName, onCanalesChange, onClientTypeChange, onClientNameChange }: FiltersBarCopyProps) {
   const { toast } = useToast()
   const [isExpanded, setIsExpanded] = useState(true)
 
-  // Periodo
-  const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth)
-  const [selectedYear, setSelectedYear] = useState<string>(initialYear)
+  // Periodo — controlled/uncontrolled: use props when provided, fall back to internal state
+  const [internalMonth, setInternalMonth] = useState<string>(initialMonth)
+  const [internalYear, setInternalYear]   = useState<string>(initialYear)
 
-  // Filtros
-  const [selectedCanales, setSelectedCanales] = useState<string[]>([])
-  const [clientType, setClientType] = useState<string>("")
-  const [clientName, setClientName] = useState<string>("")
+  const selectedMonth = controlledMonth ?? internalMonth
+  const selectedYear  = controlledYear  ?? internalYear
+
+  const handleMonthChange = (val: string) => {
+    setInternalMonth(val)
+    onMonthChange?.(val)
+  }
+  const handleYearChange = (val: string) => {
+    setInternalYear(val)
+    onYearChange?.(val)
+  }
+
+  // Filtros — controlled/uncontrolled pattern
+  const [internalCanales, setInternalCanales]       = useState<string[]>([])
+  const [internalClientType, setInternalClientType] = useState<string>("")
+  const [internalClientName, setInternalClientName] = useState<string>("")
+
+  const selectedCanales = controlledCanales    ?? internalCanales
+  const clientType      = controlledClientType ?? internalClientType
+  const clientName      = controlledClientName ?? internalClientName
+
+  const handleCanalesChange    = (v: string[]) => { setInternalCanales(v);    onCanalesChange?.(v) }
+  const handleClientTypeChange = (v: string)   => { setInternalClientType(v); onClientTypeChange?.(v) }
+  const handleClientNameChange = (v: string)   => { setInternalClientName(v); onClientNameChange?.(v) }
 
   // Estado del combo de clientes
   const [clientComboOpen, setClientComboOpen] = useState(false)
@@ -153,18 +183,14 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false, cli
 
   // ── Limpiar filtros ───────────────────────────────────────────────────────
   const handleClearFilters = () => {
-    setSelectedMonth(initialMonth)
-    setSelectedYear(initialYear)
-    setSelectedCanales([])
-    setClientType("")
-    setClientName("")
+    handleMonthChange(initialMonth)
+    handleYearChange(initialYear)
+    handleCanalesChange([])
+    handleClientTypeChange("")
+    handleClientNameChange("")
     onLimpiar()
     setClientComboOpen(false)
     toast({ title: "Filtros limpiados", description: "Se han removido todos los filtros." })
-  }
-
-  const handleExportExcel = () => {
-    toast({ title: "Enviando reporte", description: "El reporte se enviará en unos segundos..." })
   }
 
   return (
@@ -200,7 +226,7 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false, cli
             <div className="flex items-end gap-1">
               <div className="min-w-[130px] space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Mes</Label>
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <Select value={selectedMonth} onValueChange={handleMonthChange}>
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Mes" />
                   </SelectTrigger>
@@ -214,7 +240,7 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false, cli
 
               <div className="min-w-[110px] space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Año</Label>
-                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <Select value={selectedYear} onValueChange={handleYearChange}>
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Año" />
                   </SelectTrigger>
@@ -264,8 +290,8 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false, cli
                       key={value}
                       checked={selectedCanales.includes(value)}
                       onCheckedChange={(checked) =>
-                        setSelectedCanales((prev) =>
-                          checked ? [...prev, value] : prev.filter((c) => c !== value)
+                        handleCanalesChange(
+                          checked ? [...selectedCanales, value] : selectedCanales.filter((c) => c !== value)
                         )
                       }
                       onSelect={(e) => e.preventDefault()}
@@ -280,7 +306,7 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false, cli
             {/* ── Condición de pago ──────────────────────────────────────── */}
             <div className="min-w-[160px] space-y-1.5">
               <Label className="text-xs text-muted-foreground">Condición de pago</Label>
-              <Select value={clientType} onValueChange={setClientType}>
+              <Select value={clientType} onValueChange={handleClientTypeChange}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
@@ -324,7 +350,7 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false, cli
                         {/* Opción vacía para limpiar */}
                         <CommandItem
                           value="__todos__"
-                          onSelect={() => { setClientName(""); setClientComboOpen(false) }}
+                          onSelect={() => { handleClientNameChange(""); setClientComboOpen(false) }}
                         >
                           <Check className={cn("mr-2 h-4 w-4", clientName === "" ? "opacity-100" : "opacity-0")} />
                           Todos los clientes
@@ -334,7 +360,7 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false, cli
                             key={`${c.f1_tercero}-${i}`}
                             value={`${c.f1_tercero_razon_social} ${c.f1_tercero}`}
                             onSelect={() => {
-                              setClientName(c.f1_tercero_razon_social)
+                              handleClientNameChange(c.f1_tercero_razon_social)
                               setClientComboOpen(false)
                             }}
                           >
@@ -362,10 +388,6 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false, cli
               <Button variant="ghost" onClick={handleClearFilters} className="h-9">
                 <X className="mr-2 h-4 w-4" />
                 Limpiar
-              </Button>
-              <Button variant="outline" onClick={handleExportExcel} className="h-9">
-                <Mail className="mr-2 h-4 w-4" />
-                Enviar reporte
               </Button>
             </div>
 

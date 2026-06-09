@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useMemo, useRef } from "react"
+import { useMemo, useRef } from "react"
+import { usePersistedFilters } from "@/hooks/use-persisted-filters"
 import { AppShell } from "@/components/layout/app-shell"
 import { VariationTable, type VariationTableRef } from "@/components/cartera/variation-table"
 import { KPICards } from "@/components/cartera/kpi-variation-cards"
@@ -20,10 +21,19 @@ import { FileDown, Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function VariacionPage() {
-  const [filters, setFilters] = useState<VariationFilters>(initialVariationFilters)
+  const { filters, setFilters, reset: resetFilters } = usePersistedFilters<VariationFilters>(
+    "variacion:filters",
+    initialVariationFilters
+  )
 
-  const [draftPeriod, setDraftPeriod] = useState<VariationPeriod>(initialVariationPeriod)
-  const [committedPeriod, setCommittedPeriod] = useState<VariationPeriod>(initialVariationPeriod)
+  const { filters: period, setFilters: setPeriod, reset: resetPeriod } = usePersistedFilters<VariationPeriod>(
+    "variacion:period",
+    initialVariationPeriod
+  )
+  const {
+    filters: committedPeriod,
+    setFilters: setCommittedPeriod,
+  } = usePersistedFilters<VariationPeriod>("variacion:committedPeriod", initialVariationPeriod)
 
   const tableRef = useRef<VariationTableRef>(null)
 
@@ -37,7 +47,7 @@ export default function VariacionPage() {
   )
 
   const handleClearPeriod = () => {
-    setDraftPeriod(initialVariationPeriod)
+    resetPeriod()
     setCommittedPeriod(initialVariationPeriod)
   }
 
@@ -120,9 +130,9 @@ export default function VariacionPage() {
         <VariationFiltersBar
           filters={filters}
           onFiltersChange={setFilters}
-          period={draftPeriod}
-          onPeriodChange={setDraftPeriod}
-          onConsultar={() => setCommittedPeriod(draftPeriod)}
+          period={period}
+          onPeriodChange={setPeriod}
+          onConsultar={() => setCommittedPeriod(period)}
           onClearPeriod={handleClearPeriod}
         />
 

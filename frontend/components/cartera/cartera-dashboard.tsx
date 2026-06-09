@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useRef, useState } from "react"
+import { usePersistedFilters } from "@/hooks/use-persisted-filters"
 import { KPICards } from "@/components/cartera/kpi-cards"
 import { AgingCharts } from "@/components/cartera/aging-charts"
 import {
@@ -30,8 +31,14 @@ import { useQueryClient } from "@tanstack/react-query"
 export default function CarteraDashboard() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [draftFilters, setDraftFilters] = useState<ClientFilters>(initialClientFilters)
-  const [fechaCorte, setFechaCorte] = useState<FechaCorteState>(initialFechaCorte)
+  const { filters: draftFilters, setFilters: setDraftFilters } = usePersistedFilters<ClientFilters>(
+    "cartera:filters",
+    initialClientFilters
+  )
+  const { filters: fechaCorte, setFilters: setFechaCorte } = usePersistedFilters<FechaCorteState>(
+    "cartera:fechaCorte",
+    initialFechaCorte
+  )
   const [sortedClients, setSortedClients] = useState<Client[]>([])
   const tableRef = useRef<ClientsTableRef>(null)
   const queryClient = useQueryClient()

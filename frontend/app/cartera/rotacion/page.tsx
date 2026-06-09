@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { usePersistedFilters } from "@/hooks/use-persisted-filters"
 import { AppShell } from "@/components/layout/app-shell"
 import { RotationTable, type RotationTableHandle } from "@/components/cartera/rotation-table"
-import { FiltersBarCopy } from "@/components/cartera/filters-barcopy"
+import { FiltersBarCopy, initialMonth, initialYear } from "@/components/cartera/filters-barcopy"
 import { useRotacion, useRefrescarRotacion } from "@/hooks/use-rotacion"
 import type { RotacionCliente } from "@/hooks/use-rotacion"
 import type { RotacionFiltros } from "@/lib/services/rotacionService"
@@ -23,8 +24,51 @@ function periodoToFechaCorte(periodo: string | number): string {
 }
 
 export default function RotacionPage() {
-  const [fechaRef, setFechaRef] = useState<string | null>(null)
-  const [filtros, setFiltros]   = useState<RotacionFiltros>({})
+  // fechaRef — wrapped in object because usePersistedFilters requires T extends object
+  const { filters: fechaRefState, setFilters: setFechaRefState } = usePersistedFilters<{ v: string | null }>(
+    "rotacion:fechaRef",
+    { v: null }
+  )
+  const fechaRef = fechaRefState.v
+  const setFechaRef = (v: string | null) => setFechaRefState({ v })
+
+  // period — month + year persisted together as one object
+  const { filters: periodState, setFilters: setPeriodState } = usePersistedFilters<{ month: string; year: string }>(
+    "rotacion:period",
+    { month: initialMonth, year: initialYear }
+  )
+  const setSelectedMonth = (month: string) => setPeriodState(prev => ({ ...prev, month }))
+  const setSelectedYear  = (year: string)  => setPeriodState(prev => ({ ...prev, year }))
+
+  const { filters: filtros, setFilters: setFiltros } = usePersistedFilters<RotacionFiltros>(
+    "rotacion:filtros",
+    {}
+  )
+
+  // canales — wrapped because array spread in usePersistedFilters produces index-keyed object, not []
+  const { filters: canalesState, setFilters: setCanalesState } = usePersistedFilters<{ v: string[] }>(
+    "rotacion:canales",
+    { v: [] }
+  )
+  const selectedCanales = canalesState.v
+  const setSelectedCanales = (v: string[]) => setCanalesState({ v })
+
+  // clientType — wrapped because string is a primitive (T extends object)
+  const { filters: clientTypeState, setFilters: setClientTypeState } = usePersistedFilters<{ v: string }>(
+    "rotacion:clientType",
+    { v: "" }
+  )
+  const clientType = clientTypeState.v
+  const setClientType = (v: string) => setClientTypeState({ v })
+
+  // clientName — wrapped because string is a primitive (T extends object)
+  const { filters: clientNameState, setFilters: setClientNameState } = usePersistedFilters<{ v: string }>(
+    "rotacion:clientName",
+    { v: "" }
+  )
+  const clientName = clientNameState.v
+  const setClientName = (v: string) => setClientNameState({ v })
+
   const [clientesCatalogo, setClientesCatalogo] = useState<RotacionCliente[]>([])
   const tableRef = useRef<RotationTableHandle>(null)
 
@@ -58,6 +102,11 @@ export default function RotacionPage() {
   const handleLimpiar = () => {
     setFechaRef(null)
     setFiltros({})
+    setSelectedMonth(initialMonth)
+    setSelectedYear(initialYear)
+    setSelectedCanales([])
+    setClientType("")
+    setClientName("")
   }
 
   const handleExportarPDF = () => {
@@ -114,6 +163,16 @@ export default function RotacionPage() {
         </div>
 
         <FiltersBarCopy
+          selectedMonth={periodState.month}
+          selectedYear={periodState.year}
+          onMonthChange={setSelectedMonth}
+          onYearChange={setSelectedYear}
+          selectedCanales={selectedCanales}
+          clientType={clientType}
+          clientName={clientName}
+          onCanalesChange={setSelectedCanales}
+          onClientTypeChange={setClientType}
+          onClientNameChange={setClientName}
           onConsultar={handleConsultar}
           onLimpiar={handleLimpiar}
           isFetching={isFetching}
