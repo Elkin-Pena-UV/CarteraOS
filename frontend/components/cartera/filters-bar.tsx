@@ -18,7 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { CalendarIcon, X, Mail, ChevronDown, ChevronUp } from "lucide-react"
+import { CalendarIcon, X, ChevronDown, ChevronUp } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -123,10 +123,6 @@ export function FiltersBar({
     onChange(initialClientFilters)
     onFechaCorteChange(initialFechaCorte)
     toast({ title: "Filtros limpiados", description: "Se han removido todos los filtros." })
-  }
-
-  const handleExportExcel = () => {
-    toast({ title: "Enviando reporte", description: "El reporte se enviará en unos segundos..." })
   }
 
   // Selección desde el calendario
@@ -284,10 +280,6 @@ export function FiltersBar({
               <Button variant="ghost" onClick={handleClearFilters} className="h-9">
                 <X className="mr-2 h-4 w-4" />
                 Limpiar
-              </Button>
-              <Button variant="outline" onClick={handleExportExcel} className="h-9">
-                <Mail className="mr-2 h-4 w-4" />
-                Enviar reporte
               </Button>
             </div>
 
