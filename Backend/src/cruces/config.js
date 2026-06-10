@@ -14,7 +14,7 @@
  * @property {string} ccosto         Centro de costo del ajuste
  * @property {string} cia            Compañía
  * @property {string} co             Centro de operación
- * @property {string} tipoDoc        Tipo de documento (Nota Interna)
+ * @property {string} tipoDoc        Tipo de documento (RCA)
  * @property {string} un             Unidad de negocio
  */
 
@@ -28,6 +28,6 @@ export const configCruceDefault = {
   ccosto: '204505',
   cia: '001',
   co: '001',
-  tipoDoc: 'NI',
+  tipoDoc: 'RCA',
   un: '01',
 };
