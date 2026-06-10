@@ -15,6 +15,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useTheme } from "next-themes"
 import { useAuth } from "@/lib/contexts/AuthContext"
 
+const ROL_LABELS: Record<string, string> = {
+  admin:              'Administrador',
+  auxiliar_contable:  'Aux. Gestión Contable',
+  analista_tesoreria: 'Analista de Tesorería',
+  jefe_tesoreria:     'Jefe de Tesorería y Cartera',
+}
+
 interface TopbarProps {
   sidebarCollapsed: boolean
 }
@@ -84,7 +91,7 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
               </Avatar>
               <div className="hidden text-left md:block">
                 <p className="text-sm font-medium">{user?.nombre ?? user?.username}</p>
-                <p className="text-xs text-muted-foreground capitalize">{user?.rol}</p>
+                <p className="text-xs text-muted-foreground">{user?.rol ? (ROL_LABELS[user.rol] ?? user.rol) : ''}</p>
               </div>
             </Button>
           </DropdownMenuTrigger>
