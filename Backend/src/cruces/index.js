@@ -85,7 +85,7 @@ export function procesarLote(filas, opts = {}) {
     }
     const fechaDoc = fechaResolver(g.docs);
     const { caso, net, doc, plano } = procesarGrupo(g.docs, g.clave, fechaDoc, cfg);
-    procesados.push({ tercero: g.tercero, clave: g.clave, confianza: g.confianza, caso, net, doc, plano });
+    procesados.push({ tercero: g.tercero, razonSocial: g.docs[0]?.razonSocial ?? '', clave: g.clave, confianza: g.confianza, caso, net, doc, plano });
   }
 
   return { procesados, gruposManuales, revision };
