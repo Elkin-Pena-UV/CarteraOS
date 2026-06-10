@@ -3,6 +3,7 @@ import axios from '@/lib/axios'
 
 export interface DocNormalizado {
   tercero: string
+  razonSocial?: string
   tipo: 'FVE' | 'RC' | 'RAC'
   auxiliar: string
   consecCruce: number
@@ -32,6 +33,7 @@ export type CasoCruce =
 
 export interface CruceProcessado {
   tercero: string
+  razonSocial?: string
   clave: { tipo: string; valor: string; confianza: number }
   confianza: number
   caso: CasoCruce

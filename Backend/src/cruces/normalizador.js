@@ -15,6 +15,7 @@
 /**
  * @typedef {Object} DocNormalizado
  * @property {string} tercero       NIT del cliente
+ * @property {string} razonSocial  Razón social del cliente
  * @property {'FVE'|'RC'|'RAC'} tipo
  * @property {string} auxiliar      "13050505" | "28050505"
  * @property {string} consecCruce   Consecutivo del docto, sin ceros: "156607"
@@ -117,6 +118,7 @@ export function normalizar(fila) {
 
   return {
     tercero: fila.f1_tercero.trim(),
+    razonSocial: (fila.f1_tercero_razon_social ?? '').trim(),
     tipo,
     auxiliar: fila.f1_auxiliar.trim(),
     consecCruce: numDocto(fila.f1_docto_cruce),

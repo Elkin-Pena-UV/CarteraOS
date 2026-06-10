@@ -67,7 +67,7 @@ const STICKY_COLS: string[] = []
 const PINNED_END: string[] = []
 
 const DEFAULT_COLUMN_ORDER = [
-  'tercero', 'tipo', 'consecCruce', 'saldo',
+  'tercero', 'razonSocial', 'tipo', 'consecCruce', 'saldo',
   'fechaDocto', 'fechaVcto', 'claves', 'motivo', 'notas',
 ]
 
@@ -232,6 +232,15 @@ export const TablaRevision = forwardRef<TablaRevisionRef, TablaRevisionProps>(
       header: "Tercero",
       size: 120,
       cell: ({ row }) => <span className="font-mono text-sm">{row.getValue("tercero")}</span>,
+    },
+    {
+      id: "razonSocial",
+      accessorKey: "razonSocial",
+      header: "Razón Social",
+      size: 220,
+      cell: ({ row }) => (
+        <span className="text-sm">{row.getValue("razonSocial") || "—"}</span>
+      ),
     },
     {
       id: "tipo",

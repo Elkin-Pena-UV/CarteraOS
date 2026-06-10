@@ -69,7 +69,7 @@ const STICKY_COLS = ['claveValor']
 const PINNED_END: string[] = ['accion']
 
 const DEFAULT_COLUMN_ORDER = [
-  'tercero', 'claveValor', 'confianza', 'nroDocs',
+  'tercero', 'razonSocial', 'claveValor', 'confianza', 'nroDocs',
   'totalFVE', 'totalRC', 'netEstimado',
   'consecsFVE', 'consecsRC', 'motivoManual', 'accion',
 ]
@@ -239,6 +239,15 @@ export const TablaManuales = forwardRef<TablaManualesRef, TablaManualesProps>(
       header: "Tercero",
       size: 120,
       cell: ({ row }) => <span className="font-mono text-sm">{row.getValue("tercero")}</span>,
+    },
+    {
+      id: "razonSocial",
+      accessorKey: "razonSocial",
+      header: "Razón Social",
+      size: 220,
+      cell: ({ row }) => (
+        <span className="text-sm">{row.getValue("razonSocial") || "—"}</span>
+      ),
     },
     {
       id: "claveValor",

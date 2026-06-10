@@ -11,6 +11,7 @@ import type {
 export interface FilaCruceAuto {
   id: string           // tercero + clave
   tercero: string
+  razonSocial: string
   claveType: string    // PVC | OC
   claveValor: string
   confianza: number    // 0-1
@@ -31,6 +32,7 @@ export interface FilaCruceAuto {
 export interface FilaGrupoManual {
   id: string
   tercero: string
+  razonSocial: string
   claveType: string
   claveValor: string
   confianza: number    // razón por la que quedó manual (< umbral)
@@ -50,6 +52,7 @@ export interface FilaGrupoManual {
 export interface FilaRevision {
   id: string
   tercero: string
+  razonSocial: string
   tipo: string
   consecCruce: number
   saldo: number
@@ -79,6 +82,7 @@ export function adaptProcesados(procesados: CruceProcessado[]): FilaCruceAuto[] 
     return {
       id: `${p.tercero}-${p.clave.tipo}${p.clave.valor}`,
       tercero: p.tercero,
+      razonSocial: (p as any).razonSocial ?? '',
       claveType: p.clave.tipo,
       claveValor: p.clave.valor,
       confianza: p.confianza,
@@ -108,6 +112,7 @@ export function adaptGruposManuales(grupos: GrupoCruce[]): FilaGrupoManual[] {
     return {
       id: `manual-${g.tercero}-${g.clave.tipo}${g.clave.valor}`,
       tercero: g.tercero,
+      razonSocial: g.docs[0]?.razonSocial ?? '',
       claveType: g.clave.tipo,
       claveValor: g.clave.valor,
       confianza: g.confianza,
@@ -129,6 +134,7 @@ export function adaptRevision(revision: ItemRevision[]): FilaRevision[] {
   return revision.map((r, i) => ({
     id: `rev-${r.doc.tercero}-${r.doc.consecCruce}-${i}`,
     tercero: r.doc.tercero,
+    razonSocial: r.doc.razonSocial ?? '',
     tipo: r.doc.tipo,
     consecCruce: r.doc.consecCruce,
     saldo: r.doc.saldo,

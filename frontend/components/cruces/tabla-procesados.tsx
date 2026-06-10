@@ -72,7 +72,7 @@ const STICKY_COLS = ['claveValor']
 const PINNED_END: string[] = []
 
 const DEFAULT_COLUMN_ORDER = [
-  'tercero', 'claveValor', 'caso', 'confianza',
+  'tercero', 'razonSocial', 'claveValor', 'caso', 'confianza',
   'totalFVE', 'totalRC', 'net',
   'consecsFVE', 'consecsRC', 'requiereAjuste',
 ]
@@ -259,6 +259,15 @@ export const TablaProcesados = forwardRef<TablaProcesadosRef, TablaProcesadosPro
       header: "Tercero",
       size: 120,
       cell: ({ row }) => <span className="font-mono text-sm">{row.getValue("tercero")}</span>,
+    },
+    {
+      id: "razonSocial",
+      accessorKey: "razonSocial",
+      header: "Razón Social",
+      size: 220,
+      cell: ({ row }) => (
+        <span className="text-sm">{row.getValue("razonSocial") || "—"}</span>
+      ),
     },
     {
       id: "claveValor",
