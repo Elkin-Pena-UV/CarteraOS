@@ -93,6 +93,7 @@ interface FiltersBarProps {
   onChange: (nextFilters: ClientFilters) => void
   fechaCorte: FechaCorteState
   onFechaCorteChange: (next: FechaCorteState) => void
+  asesoresOptions?: string[]
 }
 
 function MultiSelectTrigger({ selected, placeholder }: { selected: string[]; placeholder: string }) {
@@ -110,6 +111,7 @@ export function FiltersBar({
   onChange,
   fechaCorte,
   onFechaCorteChange,
+  asesoresOptions = [],
 }: FiltersBarProps) {
   const { toast } = useToast()
   const [isExpanded, setIsExpanded] = useState(true)
@@ -243,10 +245,13 @@ export function FiltersBar({
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-48" align="start">
+                <DropdownMenuContent className="w-64" align="start">
                   <DropdownMenuLabel className="text-xs text-muted-foreground">Asesor</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {["Carlos Méndez", "María González", "Pedro Ramírez", "Laura Torres"].map((asesor) => (
+                  {asesoresOptions.length === 0 && (
+                    <p className="px-3 py-2 text-xs text-muted-foreground">Cargando asesores...</p>
+                  )}
+                  {asesoresOptions.map((asesor) => (
                     <DropdownMenuCheckboxItem
                       key={asesor}
                       checked={value.advisor.includes(asesor)}

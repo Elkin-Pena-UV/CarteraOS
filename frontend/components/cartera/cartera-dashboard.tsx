@@ -14,7 +14,11 @@ import {
 import { ClientsTable, type Client, type ClientsTableRef } from "@/components/cartera/clients-table"
 import { ClientDrawer } from "@/components/cartera/client-drawer"
 import { AppShell } from "@/components/layout/app-shell"
-import { useCartera, useRefrescarCartera } from "@/hooks/use-cartera"
+import {
+  useCarteraAsesor,
+  useAsesoresDisponibles,
+  useRefrescarCarteraAsesor,
+} from "@/hooks/use-cartera-asesor"
 import {
   adaptCarteraToClients,
   adaptClientsToAging,
@@ -22,7 +26,7 @@ import {
 } from "@/lib/adapters/carteraAdapter"
 import { applyClientFilters } from "@/lib/filters/cartera-filters"
 import { useExportPDF } from '@/hooks/use-export-pdf'
-import { refrescarCarteraBackend } from '@/lib/services/carteraService'
+import { refrescarCarteraAsesorBackend } from '@/lib/services/carteraAsesorService'
 import { FileDown, Loader2, RefreshCw, Send } from 'lucide-react'
 import { EmailReporteDialog, type EmailReporteItem } from '@/components/cartera/email-reporte-dialog'
 import { Button } from '@/components/ui/button'
@@ -30,57 +34,88 @@ import { facturasKeys } from "@/hooks/use-facturas"
 import { useQueryClient } from "@tanstack/react-query"
 import { formatFechaAsunto } from "@/lib/formatters"
 
+// ── Tipo del committed de asesores ────────────────────────────────────────────
+type CommittedAsesores = { v: string[] }
+const initialCommittedAsesores: CommittedAsesores = { v: [] }
+
 export default function CarteraDashboard() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const { filters: draftFilters, setFilters: setDraftFilters } = usePersistedFilters<ClientFilters>(
-    "cartera:filters",
-    initialClientFilters
-  )
-  const { filters: fechaCorte, setFilters: setFechaCorte } = usePersistedFilters<FechaCorteState>(
-    "cartera:fechaCorte",
-    initialFechaCorte
-  )
-  const [sortedClients, setSortedClients] = useState<Client[]>([])
-  const tableRef = useRef<ClientsTableRef>(null)
-  const queryClient = useQueryClient()
-
-  const { exportarGeneral, exporting } = useExportPDF()
+  const [drawerOpen, setDrawerOpen]         = useState(false)
+  const [sortedClients, setSortedClients]   = useState<Client[]>([])
+  const [isSyncing, setIsSyncing]           = useState(false)
   const [emailDialogOpen, setEmailDialogOpen] = useState(false)
 
-  // El hook recibe modo y fecha — react-query cachea cada combinación por separado
-  const { data, loading, error, isFetching } = useCartera(fechaCorte.modo, fechaCorte.fecha)
-  const refrescarCartera = useRefrescarCartera()
+  const tableRef   = useRef<ClientsTableRef>(null)
+  const queryClient = useQueryClient()
 
-  const [isSyncing, setIsSyncing] = useState(false)
+  // ── Filtros draft (UI) ────────────────────────────────────────────────────
+  const { filters: draftFilters, setFilters: setDraftFilters } = usePersistedFilters<ClientFilters>(
+    "cartera:filters",
+    initialClientFilters,
+  )
 
+  // ── Fecha de corte ────────────────────────────────────────────────────────
+  const { filters: fechaCorte, setFilters: setFechaCorte } = usePersistedFilters<FechaCorteState>(
+    "cartera:fechaCorte",
+    initialFechaCorte,
+  )
+
+  // ── Asesores committed — solo estos disparan el fetch ─────────────────────
+  // Se actualizan cuando el usuario cambia el filtro de asesor en el filterbar
+  const { filters: committedAsesores, setFilters: setCommittedAsesores } =
+    usePersistedFilters<CommittedAsesores>("cartera:committedAsesores", initialCommittedAsesores)
+
+  // Sincroniza draft → committed cada vez que cambia el advisor en el filterbar
+  const handleFiltersChange = (next: ClientFilters) => {
+    setDraftFilters(next)
+    // Si el asesor cambió → actualizar committed para disparar fetch
+    if (JSON.stringify(next.advisor) !== JSON.stringify(draftFilters.advisor)) {
+      setCommittedAsesores({ v: next.advisor })
+    }
+  }
+
+  // ── Fetch principal — usa carteraAsesor con filtro de asesor opcional ─────
+  const { data, loading, error, isFetching } = useCarteraAsesor(
+    fechaCorte.modo,
+    fechaCorte.fecha,
+    committedAsesores.v,
+  )
+
+  // ── Lista de asesores para el dropdown ───────────────────────────────────
+  const { asesores: asesoresOptions } = useAsesoresDisponibles(
+    fechaCorte.modo,
+    fechaCorte.fecha,
+  )
+
+  const refrescarCarteraAsesor = useRefrescarCarteraAsesor()
+  const { exportarGeneral, exporting } = useExportPDF()
+
+  // ── Sincronizar ───────────────────────────────────────────────────────────
   const handleSincronizar = async () => {
     setIsSyncing(true)
     try {
-      await refrescarCarteraBackend(
+      await refrescarCarteraAsesorBackend(
         fechaCorte.modo,
-        fechaCorte.modo === 'fecha' ? (fechaCorte.fecha ?? null) : null
+        fechaCorte.modo === 'fecha' ? (fechaCorte.fecha ?? null) : null,
+        committedAsesores.v.length > 0 ? committedAsesores.v : null,
       )
-      refrescarCartera()
+      refrescarCarteraAsesor()
       queryClient.invalidateQueries({ queryKey: facturasKeys.all })
     } finally {
       setIsSyncing(false)
     }
   }
 
-  // Adaptar datos crudos del backend → Client[]
+  // ── Adaptar y filtrar ─────────────────────────────────────────────────────
+  // advisor ya viene filtrado desde el backend — se excluye del filtrado local
   const clients = useMemo(() => adaptCarteraToClients(data ?? []), [data])
 
-  // Filtrado único — alimenta tanto la tabla como los gráficos de aging
   const filteredClients = useMemo(
-    () => applyClientFilters(clients, draftFilters),
-    [clients, draftFilters]
+    () => applyClientFilters(clients, { ...draftFilters, advisor: [] }),
+    [clients, draftFilters],
   )
 
-  // KPIs derivados de los clientes ya filtrados
-  const kpis = useMemo(() => adaptClientsToKPIs(filteredClients), [filteredClients])
-
-  // Datos de aging derivados de los clientes filtrados
+  const kpis     = useMemo(() => adaptClientsToKPIs(filteredClients),  [filteredClients])
   const agingData = useMemo(() => adaptClientsToAging(filteredClients), [filteredClients])
 
   const handleViewClient = (client: Client) => {
@@ -88,6 +123,7 @@ export default function CarteraDashboard() {
     setDrawerOpen(true)
   }
 
+  // ── Loading / error ───────────────────────────────────────────────────────
   if (loading) return (
     <AppShell>
       <div className="flex h-96 items-center justify-center">
@@ -104,6 +140,7 @@ export default function CarteraDashboard() {
     </AppShell>
   )
 
+  // ── Export PDF ────────────────────────────────────────────────────────────
   const handleExportarPDF = () => {
     if (!tableRef.current) return
     exportarGeneral({
@@ -124,7 +161,7 @@ export default function CarteraDashboard() {
       current: 'current', overdue: 'overdue', totalBalance: 'totalBalance',
       totalCop: 'totalCop', overcapacity: 'overcapacity',
     }
-    const table = tableRef.current.table
+    const table    = tableRef.current.table
     const clientes = sortedClients.length > 0 ? sortedClients : filteredClients
     const columnas = table
       .getVisibleLeafColumns()
@@ -172,6 +209,7 @@ export default function CarteraDashboard() {
     }]
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <AppShell>
       <div className="space-y-6">
@@ -191,8 +229,7 @@ export default function CarteraDashboard() {
             >
               {isSyncing
                 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                : <RefreshCw className="mr-2 h-4 w-4" />
-              }
+                : <RefreshCw className="mr-2 h-4 w-4" />}
               {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
             </Button>
             <Button
@@ -203,8 +240,7 @@ export default function CarteraDashboard() {
             >
               {exporting
                 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                : <FileDown className="mr-2 h-4 w-4" />
-              }
+                : <FileDown className="mr-2 h-4 w-4" />}
               {exporting ? 'Generando...' : 'Exportar PDF'}
             </Button>
             <Button
@@ -221,17 +257,22 @@ export default function CarteraDashboard() {
 
         <FiltersBar
           value={draftFilters}
-          onChange={setDraftFilters}
+          onChange={handleFiltersChange}
           fechaCorte={fechaCorte}
-          onFechaCorteChange={setFechaCorte}
+          onFechaCorteChange={(next) => {
+            setFechaCorte(next)
+            // Al cambiar fecha, limpiar asesores committed para evitar
+            // un fetch con asesores de la fecha anterior
+            setCommittedAsesores(initialCommittedAsesores)
+            setDraftFilters(prev => ({ ...prev, advisor: [] }))
+          }}
+          asesoresOptions={asesoresOptions}
         />
 
         <KPICards kpis={kpis} />
 
-        {/* Gráficos de aging — reaccionan a los mismos filtros que la tabla */}
         <AgingCharts data={agingData} />
 
-        {/* ClientsTable recibe los datos ya filtrados */}
         <ClientsTable
           ref={tableRef}
           data={filteredClients}
