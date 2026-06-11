@@ -15,6 +15,7 @@ import authRoutes from './routes/authRoutes.js';
 import requireAuth from './middleware/auth.js';
 import cruceAutRoutes from './routes/cruceAutRoutes.js';
 import emailRoutes from './routes/emailRoutes.js'
+import carteraAsesorRoutes from './routes/carteraAsesorRoutes.js';
 // import carteraAux from './routes/carteraAuxRoutes.js';
 // import rotRoutes from './routes/rotRoutes.js';
 
@@ -65,6 +66,7 @@ app.use('/api/rotacion', requireAuth , rotacionRoutes);
 app.use('/api/cruce-aut', requireAuth, cruceAutRoutes); 
 // app.use('/api/cartera-aux', requireAuth , carteraAux);
 // app.use('/api/rot', requireAuth , rotRoutes);
+app.use('/api/cartera-asesor', requireAuth, carteraAsesorRoutes);
 app.use('/api/export',    exportRoutes);
 app.use('/api/email', emailRoutes);
 
