@@ -66,3 +66,14 @@ export const formatDate = (dateString: string | null | undefined): string => {
   if (isNaN(date.getTime())) return "-"
   return dateFormatter.format(date)
 }
+
+export function formatFechaAsunto(fecha: string | null | undefined): string {
+  if (!fecha) return 'hoy'
+  const clean = fecha.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')
+  const [year, month, day] = clean.split('-').map(Number)
+  return new Date(year, month - 1, day).toLocaleDateString('es-CO', {
+    day:   'numeric',
+    month: 'long',
+    year:  'numeric',
+  })
+}
