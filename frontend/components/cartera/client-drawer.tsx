@@ -1,6 +1,7 @@
 "use client"
 
-import { X, Phone, Mail, Building2, User, Calendar, Loader2, ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react"
+import { X, Phone, Mail, Send, Building2, User, Calendar, Loader2, ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react"
+import { EmailReporteDialog, type EmailReporteItem } from "@/components/cartera/email-reporte-dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -67,6 +68,7 @@ export function ClientDrawer({ client, open, onClose, fechaCorte }: ClientDrawer
   // 🆕 Estado de ordenamiento
   const [sorting, setSorting] = useState<SortState>({ field: null, direction: null })
   const { exportarCliente, exportingCliente } = useExportPDF()
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false)
 
   // 🆕 Reiniciar página cuando cambia el cliente o se abre el drawer
   useEffect(() => {
@@ -115,6 +117,30 @@ export function ClientDrawer({ client, open, onClose, fechaCorte }: ClientDrawer
       facturas:   sortedFacturas,
       fechaCorte,
     })
+  }
+
+  const buildEmailReportes = (): EmailReporteItem[] => {
+    if (!client) return []
+    const fecha = fechaCorte.fecha ?? new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    return [
+      {
+        tipo:        'cliente',
+        label:       'Cartera por cliente',
+        descripcion: `Detalle de facturas — ${sortedFacturas.length} facturas`,
+        requerido:   true,
+        nombre:      `reporte_cliente_${client.nit}_${fecha}.pdf`,
+        payload: {
+          meta: {
+            fechaCorte: fechaCorte.fecha ?? null,
+            modoCorte:  fechaCorte.modo,
+            generadoEn: new Date().toISOString(),
+          },
+          cliente:  client,
+          facturas: sortedFacturas,
+        },
+      },
+      // variacion y rotacion: agregar aquí cuando se conecten los datos al drawer
+    ]
   }
 
   // 🆕 Toggle de columna
@@ -210,9 +236,10 @@ export function ClientDrawer({ client, open, onClose, fechaCorte }: ClientDrawer
               <Phone className="mr-2 h-4 w-4" />
               Llamar
             </Button>
+
+            {/* Descargar PDF */}
             <Button
               variant="outline"
-              className="flex-1"
               onClick={handleExportarCliente}
               disabled={exportingCliente || loading}
             >
@@ -220,9 +247,29 @@ export function ClientDrawer({ client, open, onClose, fechaCorte }: ClientDrawer
                 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 : <Mail className="mr-2 h-4 w-4" />
               }
-              {exportingCliente ? 'Generando...' : `Enviar reporte (${sortedFacturas.length} facturas)`}
+              {exportingCliente ? "Generando..." : "Descargar PDF"}
+            </Button>
+
+            {/* Enviar por email */}
+            <Button
+              className="bg-[#ff6600] text-white hover:bg-[#e65c00]"
+              onClick={() => setEmailDialogOpen(true)}
+              disabled={loading}
+            >
+              <Send className="mr-2 h-4 w-4" />
+              Enviar reporte
             </Button>
           </div>
+
+          {client && (
+            <EmailReporteDialog
+              open={emailDialogOpen}
+              onClose={() => setEmailDialogOpen(false)}
+              titulo={`${client.name} — NIT ${client.nit}`}
+              asuntoDefault={`Reporte de Cartera — ${client.name} — ${fechaCorte.fecha ?? 'hoy'}`}
+              reportes={emailDialogOpen ? buildEmailReportes() : []}
+            />
+          )}
 
           {/* Summary Cards */}
           <div className="mt-6 grid grid-cols-2 gap-4">

@@ -10,7 +10,8 @@ import type { RotacionCliente } from "@/hooks/use-rotacion"
 import type { RotacionFiltros } from "@/lib/services/rotacionService"
 import { useExportPDF } from "@/hooks/use-export-pdf"
 import { parsearCondPagoDias } from "@/lib/utils/rotacionColor"
-import { FileDown, Loader2, RefreshCw } from "lucide-react"
+import { FileDown, Loader2, RefreshCw, Send } from "lucide-react"
+import { EmailReporteDialog, type EmailReporteItem } from "@/components/cartera/email-reporte-dialog"
 import { Button } from "@/components/ui/button"
 
 /** Convierte el período YYYYMM de la serie al último día del mes → YYYYMMDD */
@@ -75,6 +76,7 @@ export default function RotacionPage() {
   const { data, clientes, loading, error, isFetching } = useRotacion(fechaRef, filtros)
 
   const { exportarRotacion, exportingRotacion } = useExportPDF()
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false)
   const refrescarRotacion = useRefrescarRotacion()
   const handleSincronizar = () => { refrescarRotacion() }
 
@@ -122,6 +124,72 @@ export default function RotacionPage() {
     exportarRotacion({ fechaCorte: fecha, filtros, serie: data, condPagoDias, sorting, modoRot })
   }
 
+  const buildEmailReportes = (): EmailReporteItem[] => {
+    if (data.length === 0) return []
+    const ultimo   = data[data.length - 1]
+    const fecha    = fechaRef ?? periodoToFechaCorte(ultimo.periodo)
+    const sorting  = tableRef.current?.table.getState().sorting ?? []
+    const modoRot  = tableRef.current?.modoRot ?? "anual"
+
+    const SORT_KEY_MAP: Record<string, string> = {
+      periodo: 'periodo', cartera: 'cartera', ventaBruta: 'ventaBruta',
+      rebate: 'rebate', ventaNeta: 'ventaNeta', promedioVentas3m: 'promedioVentas3m',
+      acumuladoVenta12m: 'acumuladoVenta12m', rotCxC: 'rotCxC',
+    }
+    const serieSorted = sorting.length > 0
+      ? [...data].sort((a, b) => {
+          for (const s of sorting) {
+            const key = SORT_KEY_MAP[s.id] as keyof typeof a
+            if (!key) continue
+            const av = a[key] as number | string
+            const bv = b[key] as number | string
+            const cmp = av < bv ? -1 : av > bv ? 1 : 0
+            if (cmp !== 0) return s.desc ? -cmp : cmp
+          }
+          return 0
+        })
+      : [...data]
+
+    const kpis = {
+      rotCxCActual:        modoRot === "mensual" ? (ultimo?.rotCxCMensual ?? 0) : (ultimo?.rotCxC ?? 0),
+      rotCxCMensualActual: ultimo?.rotCxCMensual   ?? 0,
+      carteraActual:       ultimo?.cartera          ?? 0,
+      promedioVentas3m:    ultimo?.promedioVentas3m ?? 0,
+      acumuladoVenta12m:   ultimo?.acumuladoVenta12m ?? 0,
+      totalPeriodos:       data.length,
+      condPagoDias:        condPagoDias ?? null,
+    }
+
+    let sufijo = 'general'
+    if (filtros.razonSocial?.trim()) sufijo = filtros.razonSocial.trim().replace(/\s+/g, '_').toLowerCase().slice(0, 30)
+    else if (filtros.canal?.length)  sufijo = filtros.canal.join('-')
+    else if (filtros.condPago?.length) sufijo = filtros.condPago.join('-').toLowerCase()
+
+    return [{
+      tipo:        'rotacion',
+      label:       'Rotación de Cartera',
+      descripcion: `Período ${fecha} — con filtros activos`,
+      requerido:   true,
+      nombre:      `reporte_rotacion_${sufijo}_${fecha}.pdf`,
+      payload: {
+        meta: {
+          fechaCorte: fecha,
+          generadoEn: new Date().toISOString(),
+          totalPeriodos: data.length,
+          filtrosActivos: {
+            canal:       filtros.canal?.length       ? filtros.canal       : null,
+            condPago:    filtros.condPago?.length     ? filtros.condPago    : null,
+            razonSocial: filtros.razonSocial?.trim()  || null,
+          },
+          condPagoDias: kpis.condPagoDias ?? null,
+          modoRot,
+        },
+        kpis,
+        serie: serieSorted,
+      },
+    }]
+  }
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -158,6 +226,15 @@ export default function RotacionPage() {
                 : <FileDown className="mr-2 h-4 w-4" />
               }
               {exportingRotacion ? 'Generando...' : 'Exportar PDF'}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setEmailDialogOpen(true)}
+              disabled={data.length === 0}
+              className="bg-[#ff6600] text-white hover:bg-[#e65c00]"
+            >
+              <Send className="mr-2 h-4 w-4" />
+              Enviar reporte
             </Button>
           </div>
         </div>
@@ -196,6 +273,14 @@ export default function RotacionPage() {
           <RotationTable ref={tableRef} data={data} fechaRef={fechaRef} isFetching={isFetching} condPagoDias={condPagoDias} />
         )}
       </div>
+
+      <EmailReporteDialog
+        open={emailDialogOpen}
+        onClose={() => setEmailDialogOpen(false)}
+        titulo="Rotación de Cartera"
+        asuntoDefault={`Reporte de Rotación de Cartera — ${fechaRef ?? 'último período'}`}
+        reportes={emailDialogOpen ? buildEmailReportes() : []}
+      />
     </AppShell>
   )
 }
