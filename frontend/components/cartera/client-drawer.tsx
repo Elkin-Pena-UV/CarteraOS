@@ -214,11 +214,23 @@ export function ClientDrawer({ client, open, onClose, fechaCorte }: ClientDrawer
         <div className="h-[calc(100%-80px)] overflow-y-auto p-6">
           {/* Client Info */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
-              <User className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Asesor</p>
-                <p className="text-sm font-medium">{client.advisor}</p>
+            <div className="flex items-start gap-3 rounded-lg bg-muted/50 p-3">
+              <User className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground mb-1">
+                  {client.advisors.length > 1 ? "Asesores" : "Asesor"}
+                </p>
+                {client.advisors.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">Sin asesor</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1">
+                    {client.advisors.map((a) => (
+                      <Badge key={a} variant="secondary" className="text-xs font-normal">
+                        {a}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">

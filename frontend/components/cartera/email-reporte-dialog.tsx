@@ -12,13 +12,14 @@
 //                requerido=true → siempre adjunto (no se puede quitar)
 //                requerido=false → checkbox opcional
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Send, Loader2, FileText, X } from "lucide-react"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Button }   from "@/components/ui/button"
@@ -46,6 +47,13 @@ export interface EmailReporteItem {
   descripcion: string
   /** true = siempre incluido (sin checkbox). false = opcional (con checkbox) */
   requerido:   boolean
+}
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function destinatariosValidos(destinatario: string): boolean {
+  const lista = destinatario.split(',').map(d => d.trim()).filter(Boolean)
+  return lista.length > 0 && lista.every(d => EMAIL_REGEX.test(d))
 }
 
 export interface EmailReporteDialogProps {
@@ -89,6 +97,17 @@ export function EmailReporteDialog({
   const [enviando,  setEnviando]  = useState(false)
   const [resultado, setResultado] = useState<{ ok: boolean; mensaje: string } | null>(null)
 
+  useEffect(() => {
+  if (open) {
+    setAsunto(asuntoDefault)
+    setCuerpo("")
+    setDestinatario(GRUPO_GMAIL_DEFAULT)
+    setSeleccionados(Object.fromEntries(reportes.map(r => [r.nombre, true])))
+    setResultado(null)
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [open, asuntoDefault])
+
   // Reportes que se van a adjuntar (requeridos siempre + opcionales marcados)
   const reportesSeleccionados = reportes.filter(
     r => r.requerido || seleccionados[r.nombre]
@@ -99,13 +118,13 @@ export function EmailReporteDialog({
   // Submit
   // ─────────────────────────────────────────────
   const handleEnviar = async () => {
-    if (!destinatario.trim() || !destinatario.includes("@")) return
+    if (!destinatariosValidos(destinatario)) return
     setEnviando(true)
     setResultado(null)
 
     try {
       const response = await (api.post("/email/reporte", {
-        destinatario: destinatario.trim(),
+        destinatario: destinatario.split(',').map(d => d.trim()).filter(Boolean).join(', '),
         asunto:       asunto.trim(),
         cuerpo:       cuerpo.trim(),
         reportes: reportesSeleccionados.map(r => ({
@@ -152,6 +171,9 @@ export function EmailReporteDialog({
             <Send className="h-4 w-4 text-[#ff6600]" />
             Enviar reporte por correo
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Formulario para enviar el reporte por correo electrónico
+          </DialogDescription>
           <p className="text-sm text-muted-foreground">{titulo}</p>
         </DialogHeader>
 
@@ -178,12 +200,15 @@ export function EmailReporteDialog({
               <Label htmlFor="email-dest">Destinatario</Label>
               <Input
                 id="email-dest"
-                type="email"
-                placeholder="grupo@cementossanmarcos.com"
+                type="text"
+                placeholder="correo1@empresa.com, correo2@empresa.com"
                 value={destinatario}
                 onChange={(e) => setDestinatario(e.target.value)}
                 disabled={enviando}
               />
+              <p className="text-xs text-muted-foreground">
+              Puedes ingresar varios correos separados por coma
+              </p>
             </div>
 
             {/* Asunto */}
@@ -277,7 +302,7 @@ export function EmailReporteDialog({
               </Button>
               <Button
                 onClick={handleEnviar}
-                disabled={enviando || !destinatario.trim() || !destinatario.includes("@") || adjuntosCount === 0}
+                disabled={enviando || !destinatariosValidos(destinatario) || adjuntosCount === 0}
                 className="bg-[#ff6600] text-white hover:bg-[#e65c00]"
               >
                 {enviando
