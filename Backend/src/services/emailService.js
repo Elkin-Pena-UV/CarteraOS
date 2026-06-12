@@ -116,12 +116,10 @@ export async function enviarReporteEmail({ destinatario, asunto, cuerpo, generad
 
   // ── 1. Generar todos los PDFs en paralelo ──────────────────────────────
   logger.info(`[Email] Generando ${reportes.length} PDF(s) para enviar a ${destinatario}...`);
-  console.log('[Email] Reportes recibidos:', reportes.map(r => ({ nombre: r.nombre, descripcion: r.descripcion })));
 
   const adjuntos = await Promise.all(
     reportes.map(({ tipo, payload, nombre, descripcion }) => generarAdjunto(tipo, payload, nombre, descripcion ?? nombre))
   );
-  console.log('[Email] Adjuntos:', adjuntos.map(a => ({ nombre: a.filename, descripcion: a.descripcion })));
 
   // ── 2. Construir el cuerpo del correo ──────────────────────────────────
   const nombreEmpresa = 'CEMENTOS SAN MARCOS S.A.S';

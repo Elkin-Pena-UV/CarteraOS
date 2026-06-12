@@ -29,10 +29,21 @@ export async function enviarReporte(req, res, next) {
     const { destinatario, asunto, cuerpo, reportes } = req.body;
 
     // ── Validaciones básicas ──────────────────────────────────────────────
-    if (!destinatario || typeof destinatario !== 'string' || !destinatario.includes('@')) {
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!destinatario || typeof destinatario !== 'string') {
       return res.status(400).json({
         ok: false,
-        message: 'El campo "destinatario" es requerido y debe ser un email válido.',
+        message: 'El campo "destinatario" es requerido.',
+      });
+    }
+
+    const listaDestinatarios = destinatario.split(',').map(d => d.trim()).filter(Boolean);
+
+    if (listaDestinatarios.length === 0 || !listaDestinatarios.every(d => EMAIL_REGEX.test(d))) {
+      return res.status(400).json({
+        ok: false,
+        message: 'El campo "destinatario" debe contener uno o más correos válidos separados por coma.',
       });
     }
 
