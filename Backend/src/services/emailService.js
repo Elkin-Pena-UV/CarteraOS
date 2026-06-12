@@ -98,7 +98,7 @@ async function generarAdjunto(tipo, payload, nombre, descripcion) {
  * @returns {Promise<{ ok: boolean, mensaje: string }>}
  */
 function formatearFecha(fecha) {
-  if (!fecha) return 'la fecha indicada'
+  if (!fecha) return 'día de hoy'
   const clean = String(fecha).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')
   const [y, m, d] = clean.split('-').map(Number)
   return new Date(y, m - 1, d).toLocaleDateString('es-CO', {
