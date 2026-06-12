@@ -236,7 +236,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             )}
           >
             <item.icon className={cn("h-5 w-5 shrink-0", isChildActive && "text-[#ff6600]")} />
-            <span className="flex-1 text-left">{item.title}</span>
+            <span className="flex-1 text-left whitespace-nowrap overflow-hidden">{item.title}</span>
             {item.badge && (
               <span className="rounded-full bg-[#ff6600] px-2 py-0.5 text-xs font-semibold text-white">
                 {item.badge}
@@ -308,7 +308,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         />
         {!collapsed && (
           <>
-            <span className="flex-1">{item.title}</span>
+            <span className="flex-1 whitespace-nowrap overflow-hidden">{item.title}</span>
             {item.badge && (
               <span className="rounded-full bg-[#ff6600] px-2 py-0.5 text-xs font-semibold text-white">
                 {item.badge}
@@ -329,13 +329,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
       >
         {/* Logo */}
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
+        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4 overflow-hidden">
           {!collapsed && (
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff6600]">
                 <Building2 className="h-5 w-5 text-white" />
               </div>
-              <span className="text-lg font-bold">FinApp</span>
+              <span className="text-lg font-bold whitespace-nowrap overflow-hidden">FinApp</span>
             </div>
           )}
           {collapsed && (
@@ -346,14 +346,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 overflow-y-auto p-2">
+        <nav className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden p-2">
           {menuItems
             .filter((item) => item.title !== 'Administración' || user?.rol === 'admin')
             .map((item) => renderMenuItem(item))}
         </nav>
 
         {/* Bottom Menu */}
-        <div className="border-t border-sidebar-border p-2">
+        <div className="border-t border-sidebar-border p-2 overflow-hidden">
           {bottomMenuItems.map((item) => {
             const isActive = pathname === item.href
             return (
@@ -369,7 +369,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 )}
               >
                 <item.icon className="h-5 w-5 shrink-0" />
-                {!collapsed && <span>{item.title}</span>}
+                {!collapsed && <span className="whitespace-nowrap overflow-hidden">{item.title}</span>}
               </Link>
             )
           })}
