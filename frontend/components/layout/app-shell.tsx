@@ -1,22 +1,22 @@
 "use client"
 
-import { useState } from "react"
 import { Sidebar } from "./sidebar"
 import { Topbar } from "./topbar"
 import { cn } from "@/lib/utils"
+import { useSidebarState } from "@/lib/contexts/SidebarContext"
 
 interface AppShellProps {
   children: React.ReactNode
 }
 
 export function AppShell({ children }: AppShellProps) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const { sidebarCollapsed, toggleSidebar } = useSidebarState()
 
   return (
     <div className="min-h-screen bg-background">
       <Sidebar
         collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onToggle={toggleSidebar}
       />
       <Topbar sidebarCollapsed={sidebarCollapsed} />
       <main

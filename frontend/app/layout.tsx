@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider } from '@/lib/contexts/AuthContext'
+import { SidebarStateProvider } from '@/lib/contexts/SidebarContext'
 import './globals.css'
 
 const geist = Geist({
@@ -54,7 +55,9 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <AuthProvider>
-              {children}
+              <SidebarStateProvider>
+                {children}
+              </SidebarStateProvider>
               <Toaster />
             </AuthProvider>
           </ThemeProvider>
