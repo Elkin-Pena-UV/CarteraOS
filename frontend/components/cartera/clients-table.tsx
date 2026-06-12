@@ -64,7 +64,7 @@ import type { ClientFilters } from "./filters-bar"
 export type Client = {
   nit: string
   name: string
-  advisor: string
+  advisors: string[]
   paymentCondition: string
   channel: string
   quota: number

@@ -7,7 +7,7 @@ export const adaptCarteraToClients = (items: CarteraItem[]): Client[] => {
     nit: item.f1_tercero,
     name: item.f1_tercero_razon_social,
     paymentCondition: item.f1_id_cond_pago,
-    advisor: item.f1_asesor,
+    advisors: (item as any).f1_asesores ?? [],
     channel: item.f1_canal_cliente,
     quota: item.f1_cupo,
     current: item.f1_saldo_corriente_total,

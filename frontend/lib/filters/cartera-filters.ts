@@ -19,12 +19,7 @@ export function applyClientFilters(clients: Client[], filters: ClientFilters): C
       if (!match) return false
     }
 
-    if (filters.advisor.length > 0) {
-      const match = filters.advisor.some((a) =>
-        client.advisor.toLowerCase().includes(a.toLowerCase())
-      )
-      if (!match) return false
-    }
+    if (filters.advisor.length > 0 && !client.advisors.some(a => filters.advisor.includes(a))) return false
 
     if (normalizedName) {
       const nameMatches = client.name.toLowerCase().includes(normalizedName)
