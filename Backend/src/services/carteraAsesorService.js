@@ -32,15 +32,26 @@ const agruparComoGeneral = (rows) => {
     const clave = `${row.f1_tercero?.trim()}||${row.f1_id_cond_pago?.trim()}||${row.f1_canal_cliente?.trim()}`;
     let acc = mapa.get(clave);
 
+    // Si no existe aún una entrada para esta combinación, la inicializamos con los datos del primer registro encontrado
+    
     if (!acc) {
       acc = { ...row };
       delete acc.f1_razon_vend_cliente;
+      acc.f1_asesores = [];
       for (const c of CAMPOS_SUMABLES) acc[c] = 0;
       mapa.set(clave, acc);
     }
 
+    // Sumar campos numéricos
+
     for (const c of CAMPOS_SUMABLES) {
       acc[c] += Number(row[c] ?? 0);
+    }
+
+    // Extraemos el asesor (vendedor) y lo agregamos al array de asesores únicos
+    const asesorRaw = row.f1_razon_vend_cliente?.trim();
+    if (asesorRaw && !acc.f1_asesores.includes(asesorRaw)) {
+      acc.f1_asesores.push(asesorRaw);
     }
 
     for (const f of ['f1_fecha_docto_min', 'f1_fecha_vcto_min']) {
