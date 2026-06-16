@@ -1,6 +1,7 @@
 import {
   guardarCrucesAutorizados,
   obtenerHistorialCruces,
+  verificarCrucesExistentes,
 } from '../services/cruceAutorizarService.js'
 import { enviarAConector } from '../services/cruceProcesarService.js'
 import { procesarGrupo } from '../cruces/index.js'
@@ -19,6 +20,21 @@ export async function autorizarCruces(req, res) {
     // Usuario de la sesión (ajusta según tu sistema de auth)
     const usuario = req.user?.username ?? req.user?.nombre ?? req.user?.email ?? 'desconocido'
     const ip      = req.ip ?? req.headers['x-forwarded-for'] ?? null
+
+    // Guard: reject if any cruce was already authorized
+    const duplicados = await verificarCrucesExistentes(cruces)
+    if (duplicados.length > 0) {
+      return res.status(409).json({
+        ok: false,
+        error: 'Uno o más cruces ya fueron autorizados previamente.',
+        duplicados: duplicados.map(d => ({
+          tercero:        d.tercero,
+          clave:          `${d.clave_tipo} ${d.clave_valor}`,
+          autorizadoPor:  d.autorizado_por,
+          fecha:          d.fecha_autorizacion,
+        })),
+      })
+    }
 
     // Para cruces manuales que traen docs pero no doc, generar el doc
     const crucesConDoc = cruces.map(c => {

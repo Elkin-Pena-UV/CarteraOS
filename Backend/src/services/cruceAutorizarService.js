@@ -1,3 +1,8 @@
+// DB CONSTRAINT (applied manually):
+// ALTER TABLE ti_cruce_autorizado
+//   ADD CONSTRAINT UQ_cruce_autorizado UNIQUE (tercero, clave_tipo, clave_valor);
+// This prevents duplicate authorizations at the database level.
+
 import { poolPromise } from '../config/db.js'
 import logger from '../config/logger.js'
 
@@ -83,4 +88,42 @@ export async function obtenerHistorialCruces({ tercero, desde, hasta, tipo, usua
   `)
 
   return result.recordset
+}
+
+/**
+ * Checks whether any of the given cruces already exist in ti_cruce_autorizado.
+ * Returns the records found (empty array = none exist).
+ * @param {Array} cruces - array with { tercero, claveType, claveValor }
+ */
+export async function verificarCrucesExistentes(cruces) {
+  const pool = await poolPromise
+  const duplicados = []
+
+  for (const c of cruces) {
+    const r = await pool.request()
+      .input('tercero',    c.tercero)
+      .input('clave_tipo', c.claveType)
+      .input('clave_valor', c.claveValor)
+      .query(`
+        SELECT TOP 1
+          tercero, clave_tipo, clave_valor,
+          autorizado_por, fecha_autorizacion
+        FROM ti_cruce_autorizado
+        WHERE tercero     = @tercero
+          AND clave_tipo  = @clave_tipo
+          AND clave_valor = @clave_valor
+      `)
+
+    if (r.recordset.length > 0) {
+      duplicados.push({
+        tercero:            r.recordset[0].tercero,
+        clave_tipo:         r.recordset[0].clave_tipo,
+        clave_valor:        r.recordset[0].clave_valor,
+        autorizado_por:     r.recordset[0].autorizado_por,
+        fecha_autorizacion: r.recordset[0].fecha_autorizacion,
+      })
+    }
+  }
+
+  return duplicados
 }
