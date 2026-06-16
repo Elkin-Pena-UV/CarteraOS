@@ -10,7 +10,6 @@ import api from '@/lib/axios'
 
 type LoginResponse = {
   ok: boolean
-  token: string
   user: { id: number; username: string; nombre: string; rol: string }
 }
 
@@ -31,7 +30,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const data = await api.post('/auth/login', { username, password }) as unknown as LoginResponse
-      login(data.user, data.token)
+      login(data.user)
     } catch (err: any) {
       toast({
         variant: 'destructive',
