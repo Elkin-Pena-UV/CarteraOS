@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from "cors";
+import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import carteraRoutes from './routes/carteraRoutes.js';
 import facturasRoutes from './routes/facturasRoutes.js';
@@ -38,12 +39,13 @@ app.use(compression({
     }
 }));
 
-app.use(cors({ 
-    origin: "*",
+app.use(cors({
+    origin: process.env.CORS_ORIGIN,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true // 🔧 Permitir envío de cookies de sesión
+    allowedHeaders: ["Content-Type"],
+    credentials: true,
 }));
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' })); // Aumentar límite para firmas base64
 
 // Ruta de salud de la API

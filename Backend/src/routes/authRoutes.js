@@ -1,10 +1,12 @@
 import express from 'express';
-import { login, me } from '../controllers/authController.js';
+import { login, refresh, logout, me } from '../controllers/authController.js';
 import requireAuth from '../middleware/auth.js';
 
 const router = express.Router();
 
 router.post('/login', login);
-router.get('/me', requireAuth, me);   // útil para verificar sesión desde el frontend
+router.post('/refresh', refresh);
+router.post('/logout', logout);
+router.get('/me', requireAuth, me);
 
 export default router;
