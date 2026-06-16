@@ -26,14 +26,14 @@ function setAuthCookies(res, accessToken, refreshToken) {
   });
   res.cookie('refreshToken', refreshToken, {
     ...cookieBase,
-    path: '/api/auth',
+    path: '/',
     maxAge: parseExpiry(process.env.REFRESH_TOKEN_EXPIRES_IN || '8h'),
   });
 }
 
 function clearAuthCookies(res) {
   res.clearCookie('accessToken', { ...cookieBase, path: '/' });
-  res.clearCookie('refreshToken', { ...cookieBase, path: '/api/auth' });
+  res.clearCookie('refreshToken', { ...cookieBase, path: '/' });
 }
 
 export const login = async (req, res, next) => {
