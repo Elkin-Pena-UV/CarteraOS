@@ -169,12 +169,22 @@ export default function CrucesPage() {
         })
       }
 
-    } catch {
-      toast({
-        title: 'Error al autorizar',
-        description: 'No se pudieron autorizar los cruces.',
-        variant: 'destructive',
-      })
+    } catch (err: any) {
+      const data = err?.response?.data
+      if (data?.duplicados?.length > 0) {
+        toast({
+          title: 'Cruces ya autorizados',
+          description: `${data.duplicados.length} cruce(s) ya fueron autorizados previamente por otro usuario. Recarga la página para ver el estado actualizado.`,
+          variant: 'destructive',
+          duration: 6000,
+        })
+      } else {
+        toast({
+          title: 'Error al autorizar',
+          description: 'No se pudieron autorizar los cruces.',
+          variant: 'destructive',
+        })
+      }
     } finally {
       setAutorizando(false)
     }
@@ -209,12 +219,22 @@ export default function CrucesPage() {
           duration: 4000,
         })
       }
-    } catch {
-      toast({
-        title: 'Error al autorizar',
-        description: 'No se pudo autorizar el cruce.',
-        variant: 'destructive',
-      })
+    } catch (err: any) {
+      const data = err?.response?.data
+      if (data?.duplicados?.length > 0) {
+        toast({
+          title: 'Cruce ya autorizado',
+          description: `Este cruce ya fue autorizado previamente por ${data.duplicados[0]?.autorizadoPor ?? 'otro usuario'}. Recarga la página para ver el estado actualizado.`,
+          variant: 'destructive',
+          duration: 6000,
+        })
+      } else {
+        toast({
+          title: 'Error al autorizar',
+          description: 'No se pudo autorizar el cruce.',
+          variant: 'destructive',
+        })
+      }
     } finally {
       setAutorizandoIds(prev => { const next = new Set(prev); next.delete(fila.id); return next })
       setDialogManualFila(null)
@@ -435,7 +455,12 @@ export default function CrucesPage() {
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>
-                  <TablaProcesados data={procesados} globalFilter={globalFilter} />
+                  <TablaProcesados
+                    data={procesados}
+                    globalFilter={globalFilter}
+                    autorizados={autorizados}
+                    autorizando={autorizando}
+                  />
                 </div>
               )}
               {activeTab === 'manuales' && (

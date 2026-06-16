@@ -56,6 +56,8 @@ import {
   Columns,
   AlertCircle,
   CheckCircle2,
+  ShieldCheck,
+  RefreshCw,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTableState } from "@/hooks/use-table-state"
@@ -69,12 +71,12 @@ const VISIBILITY_STORAGE_KEY = 'cruces_procesados_column_visibility'
 const STORAGE_KEY = 'cruces_procesados_column_order'
 const PINNED_START = ['tercero', 'claveValor']
 const STICKY_COLS = ['claveValor']
-const PINNED_END: string[] = []
+const PINNED_END: string[] = ['accion']
 
 const DEFAULT_COLUMN_ORDER = [
   'tercero', 'razonSocial', 'claveValor', 'caso', 'confianza',
   'totalFVE', 'totalRC', 'net',
-  'consecsFVE', 'consecsRC', 'requiereAjuste',
+  'consecsFVE', 'consecsRC', 'requiereAjuste', 'accion',
 ]
 
 // ── Ref ───────────────────────────────────────────────────────────────────────
@@ -231,10 +233,12 @@ function DragOverlayContent({ columnId, columns }: { columnId: string; columns: 
 interface TablaProcesadosProps {
   data: FilaCruceAuto[]
   globalFilter: string
+  autorizados?: Set<string>
+  autorizando?: boolean
 }
 
 export const TablaProcesados = forwardRef<TablaProcesadosRef, TablaProcesadosProps>(
-  function TablaProcesados({ data, globalFilter }, ref) {
+  function TablaProcesados({ data, globalFilter, autorizados, autorizando }, ref) {
 
   const {
     sorting, setSorting,
@@ -363,7 +367,39 @@ export const TablaProcesados = forwardRef<TablaProcesadosRef, TablaProcesadosPro
           <CheckCircle2 className="h-4 w-4 text-emerald-500/50 mx-auto" />
         ),
     },
-  ], [])
+    {
+      id: "accion",
+      header: "Acción",
+      size: 140,
+      enableSorting: false,
+      enableResizing: false,
+      enableHiding: false,
+      cell: ({ row }) => {
+        const fila = row.original
+        const estaAutorizado = autorizados?.has(fila.id)
+        const estaAutorizando = autorizando
+
+        if (estaAutorizado) {
+          return (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 whitespace-nowrap">
+              <ShieldCheck className="h-3 w-3" />
+              Autorizado ✓
+            </span>
+          )
+        }
+
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-muted/40 text-muted-foreground border border-border/40 whitespace-nowrap">
+            {estaAutorizando
+              ? <RefreshCw className="h-3 w-3 animate-spin" />
+              : <ShieldCheck className="h-3 w-3 opacity-40" />
+            }
+            {estaAutorizando ? "Autorizando…" : "Pendiente"}
+          </span>
+        )
+      },
+    },
+  ], [autorizados, autorizando])
 
   const table = useReactTable({
     data,
