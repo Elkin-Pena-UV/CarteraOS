@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -43,10 +43,12 @@ export const initialVariationFilters: VariationFilters = {
 }
 
 // Mes actual como periodo inicial
-const now = new Date()
-export const initialVariationPeriod: VariationPeriod = {
-  year: now.getFullYear(),
-  month: now.getMonth() + 1,
+export function getInitialVariationPeriod(): VariationPeriod {
+  const now = new Date()
+  return {
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+  }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -81,8 +83,10 @@ function periodLabel(period: VariationPeriod): string {
 }
 
 // Años disponibles: año actual y los 2 anteriores
-const currentYear = now.getFullYear()
-const YEARS = [currentYear - 2, currentYear - 1, currentYear]
+function getYears(): number[] {
+  const currentYear = new Date().getFullYear()
+  return [currentYear - 2, currentYear - 1, currentYear]
+}
 
 // ── Helper multi-select trigger ──────────────────────────────────────────────
 function MultiSelectTrigger({ selected, placeholder }: { selected: string[], placeholder: string }) {
@@ -117,6 +121,7 @@ export function VariationFiltersBar({
 }: VariationFiltersBarProps) {
   const { toast } = useToast()
   const [isExpanded, setIsExpanded] = useState(true)
+  const YEARS = useMemo(() => getYears(), [])
 
   const update = <K extends keyof VariationFilters>(key: K, val: VariationFilters[K]) =>
     onFiltersChange({ ...filters, [key]: val })

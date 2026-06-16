@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -54,11 +54,6 @@ const monthOptions = [
   { value: "diciembre", label: "Diciembre", num: 12 },
 ]
 
-const currentYear = String(new Date().getFullYear())
-const yearOptions = Array.from({ length: 8 }, (_, i) =>
-  String(Number(currentYear) - 5 + i)
-)
-
 // Valores que el backend busca con .includes(value.toLowerCase())
 // sobre el campo f1_canal ("01 - COMERCIALIZADOR", "02 - INDUSTRIAL", etc.)
 const CANAL_OPTIONS = [
@@ -98,9 +93,19 @@ function CanalTriggerLabel({ selected }: { selected: string[] }) {
 
 // ── Valores iniciales (mes anterior al actual) ────────────────────────────────
 
-const mesAnterior = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)
-export const initialMonth = monthOptions[mesAnterior.getMonth()].value
-export const initialYear = String(mesAnterior.getFullYear())
+export function getPreviousMonthPeriod(): { month: string; year: string } {
+  const d = new Date()
+  const mesAnterior = new Date(d.getFullYear(), d.getMonth() - 1, 1)
+  return {
+    month: monthOptions[mesAnterior.getMonth()].value,
+    year: String(mesAnterior.getFullYear()),
+  }
+}
+
+// Use the FIRST month option as a static SSR-safe placeholder.
+// The real value is set client-side via useState initializer.
+export const initialMonth = monthOptions[0].value  // "enero" — static, no Date()
+export const initialYear  = "2025"                 // static, no Date()
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -127,10 +132,16 @@ interface FiltersBarCopyProps {
 export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false, clienteOptions, selectedMonth: controlledMonth, selectedYear: controlledYear, onMonthChange, onYearChange, selectedCanales: controlledCanales, clientType: controlledClientType, clientName: controlledClientName, onCanalesChange, onClientTypeChange, onClientNameChange }: FiltersBarCopyProps) {
   const { toast } = useToast()
   const [isExpanded, setIsExpanded] = useState(true)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+  const yearOptions = useMemo(() => {
+    const cy = new Date().getFullYear()
+    return Array.from({ length: 8 }, (_, i) => String(cy - 5 + i))
+  }, [])
 
   // Periodo — controlled/uncontrolled: use props when provided, fall back to internal state
-  const [internalMonth, setInternalMonth] = useState<string>(initialMonth)
-  const [internalYear, setInternalYear]   = useState<string>(initialYear)
+  const [internalMonth, setInternalMonth] = useState<string>(() => getPreviousMonthPeriod().month)
+  const [internalYear, setInternalYear]   = useState<string>(() => getPreviousMonthPeriod().year)
 
   const selectedMonth = controlledMonth ?? internalMonth
   const selectedYear  = controlledYear  ?? internalYear
@@ -183,8 +194,9 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false, cli
 
   // ── Limpiar filtros ───────────────────────────────────────────────────────
   const handleClearFilters = () => {
-    handleMonthChange(initialMonth)
-    handleYearChange(initialYear)
+    const { month: resetMonth, year: resetYear } = getPreviousMonthPeriod()
+    handleMonthChange(resetMonth)
+    handleYearChange(resetYear)
     handleCanalesChange([])
     handleClientTypeChange("")
     handleClientNameChange("")
@@ -201,7 +213,9 @@ export function FiltersBarCopy({ onConsultar, onLimpiar, isFetching = false, cli
         <div>
           <p className="text-sm font-semibold">Filtros de rotación</p>
           {isExpanded && (
-            <p className="text-xs text-muted-foreground">Periodo actual: {periodLabel}</p>
+            <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+              {mounted ? `Periodo actual: ${periodLabel}` : ""}
+            </p>
           )}
         </div>
         <Button

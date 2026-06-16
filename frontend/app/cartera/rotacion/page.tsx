@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { usePersistedFilters } from "@/hooks/use-persisted-filters"
 import { AppShell } from "@/components/layout/app-shell"
 import { RotationTable, type RotationTableHandle } from "@/components/cartera/rotation-table"
-import { FiltersBarCopy, initialMonth, initialYear } from "@/components/cartera/filters-barcopy"
+import { FiltersBarCopy, getPreviousMonthPeriod } from "@/components/cartera/filters-barcopy"
 import { useRotacion, useRefrescarRotacion } from "@/hooks/use-rotacion"
 import type { RotacionCliente } from "@/hooks/use-rotacion"
 import type { RotacionFiltros } from "@/lib/services/rotacionService"
@@ -36,7 +36,7 @@ export default function RotacionPage() {
   // period — month + year persisted together as one object
   const { filters: periodState, setFilters: setPeriodState } = usePersistedFilters<{ month: string; year: string }>(
     "rotacion:period",
-    { month: initialMonth, year: initialYear }
+    { month: "enero", year: "2025" }
   )
   const setSelectedMonth = (month: string) => setPeriodState(prev => ({ ...prev, month }))
   const setSelectedYear  = (year: string)  => setPeriodState(prev => ({ ...prev, year }))
@@ -104,8 +104,9 @@ export default function RotacionPage() {
   const handleLimpiar = () => {
     setFechaRef(null)
     setFiltros({})
-    setSelectedMonth(initialMonth)
-    setSelectedYear(initialYear)
+    const { month: resetMonth, year: resetYear } = getPreviousMonthPeriod()
+    setSelectedMonth(resetMonth)
+    setSelectedYear(resetYear)
     setSelectedCanales([])
     setClientType("")
     setClientName("")

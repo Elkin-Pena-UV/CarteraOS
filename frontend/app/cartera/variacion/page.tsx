@@ -8,7 +8,7 @@ import { KPICards } from "@/components/cartera/kpi-variation-cards"
 import {
   VariationFiltersBar,
   initialVariationFilters,
-  initialVariationPeriod,
+  getInitialVariationPeriod,
   lastDayOfMonthYYYYMMDD,
   type VariationFilters,
   type VariationPeriod,
@@ -29,12 +29,12 @@ export default function VariacionPage() {
 
   const { filters: period, setFilters: setPeriod, reset: resetPeriod } = usePersistedFilters<VariationPeriod>(
     "variacion:period",
-    initialVariationPeriod
+    getInitialVariationPeriod()
   )
   const {
     filters: committedPeriod,
     setFilters: setCommittedPeriod,
-  } = usePersistedFilters<VariationPeriod>("variacion:committedPeriod", initialVariationPeriod)
+  } = usePersistedFilters<VariationPeriod>("variacion:committedPeriod", getInitialVariationPeriod())
 
   const tableRef = useRef<VariationTableRef>(null)
 
@@ -50,7 +50,7 @@ export default function VariacionPage() {
 
   const handleClearPeriod = () => {
     resetPeriod()
-    setCommittedPeriod(initialVariationPeriod)
+    setCommittedPeriod(getInitialVariationPeriod())
   }
 
   const { data: rawData, loading, error, isFetching, refetch } = useVariacion(fecha)
