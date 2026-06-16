@@ -1,7 +1,9 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import axios from 'axios'
+import api from '@/lib/axios'
 
 type User = {
   id: number
@@ -12,49 +14,62 @@ type User = {
 
 type AuthContextType = {
   user: User | null
-  token: string | null
-  login: (user: User, token: string) => void
+  login: (user: User) => void
   logout: () => void
   isAuthenticated: boolean
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL as string
+const rawOpts  = { withCredentials: true }
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser]   = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const router = useRouter()
 
-  // Restaurar sesión al recargar la página
+  // Restore session on load using raw axios — intentionally bypasses the api
+  // interceptor so a failed session-restore never fires redirectToLogin(), which
+  // would race with an in-progress login and bounce the user back to /login.
   useEffect(() => {
-    const storedToken = localStorage.getItem('token')
-    const storedUser  = localStorage.getItem('user')
-    if (storedToken && storedUser) {
-      setToken(storedToken)
-      setUser(JSON.parse(storedUser))
+    const restoreSession = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/auth/me`, rawOpts)
+        setUser(res.data.user)
+      } catch (err: any) {
+        if (err.response?.data?.code === 'TOKEN_EXPIRED') {
+          // Access cookie expired but refresh may still be valid — try once.
+          try {
+            await axios.post(`${API_BASE}/auth/refresh`, {}, rawOpts)
+            const res = await axios.get(`${API_BASE}/auth/me`, rawOpts)
+            setUser(res.data.user)
+          } catch {
+            // Refresh also failed — not authenticated, stay on current page.
+          }
+        }
+        // UNAUTHORIZED, network error, etc. — stay logged out, no redirect.
+      }
     }
+    restoreSession()
   }, [])
 
-  const login = (user: User, token: string) => {
-    localStorage.setItem('token', token)
-    localStorage.setItem('user', JSON.stringify(user))
-    document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 8}` // 8 horas
-    setToken(token)
+  const login = useCallback((user: User) => {
     setUser(user)
-    router.push('/')
-  }
+    startTransition(() => { router.push('/') })
+  }, [router])
 
-  const logout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    document.cookie = 'token=; path=/; max-age=0'
-    setToken(null)
+  const logout = useCallback(async () => {
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      // Cookie clear failed server-side; proceed with client cleanup regardless.
+    }
     setUser(null)
-    router.push('/login')
-  }
+    startTransition(() => { router.push('/login') })
+  }, [router])
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   )

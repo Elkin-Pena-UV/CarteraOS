@@ -5,7 +5,7 @@ const PUBLIC_ROUTES = ['/login']
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
-  const token = req.cookies.get('token')?.value
+  const token = req.cookies.get('accessToken')?.value
 
   const isPublic = PUBLIC_ROUTES.some((r) => pathname.startsWith(r))
 
