@@ -36,6 +36,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const res = await axios.get(`${API_BASE}/auth/me`, rawOpts)
         setUser(res.data.user)
+        if (window.location.pathname === '/login') {
+          startTransition(() => { router.push('/') })
+        }
       } catch (err: any) {
         if (err.response?.data?.code === 'TOKEN_EXPIRED') {
           // Access cookie expired but refresh may still be valid — try once.
@@ -43,15 +46,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await axios.post(`${API_BASE}/auth/refresh`, {}, rawOpts)
             const res = await axios.get(`${API_BASE}/auth/me`, rawOpts)
             setUser(res.data.user)
+            if (window.location.pathname === '/login') {
+              startTransition(() => { router.push('/') })
+            }
           } catch {
-            // Refresh also failed — not authenticated, stay on current page.
+            // No refresh token (e.g. just logged out) or it's invalid — this is
+            // an expected "not authenticated" state, not an error.
+            console.log('[AuthContext] restoreSession: no valid session, staying logged out')
           }
         }
         // UNAUTHORIZED, network error, etc. — stay logged out, no redirect.
       }
     }
     restoreSession()
-  }, [])
+  }, [router])
 
   const login = useCallback((user: User) => {
     setUser(user)
