@@ -21,6 +21,13 @@ export function applyClientFilters(clients: Client[], filters: ClientFilters): C
 
     if (filters.advisor.length > 0 && !client.advisors.some(a => filters.advisor.includes(a))) return false
 
+    if (
+      filters.paymentCondition.length > 0 &&
+      !filters.paymentCondition.includes(String(client.paymentCondition))
+    ) {
+      return false
+    }
+
     if (normalizedName) {
       const nameMatches = client.name.toLowerCase().includes(normalizedName)
       const nitNormalized = client.nit

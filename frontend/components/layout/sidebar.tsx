@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -13,7 +14,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Building2,
   TrendingUp,
   Receipt,
   Banknote,
@@ -329,18 +329,26 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
       >
         {/* Logo */}
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4 overflow-hidden">
+        <div className={cn(
+          "flex h-16 items-center justify-center gap-3 border-b border-sidebar-border overflow-hidden",
+          collapsed ? "px-2" : "px-4"
+        )}>
           {!collapsed && (
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff6600]">
-                <Building2 className="h-5 w-5 text-white" />
+            <>
+              <div className="flex h-12 items-center gap-2.5 rounded-lg bg-white px-2 py-2">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white p-2">
+                  <Image src="/logo.png" alt="FinApp" width={44} height={44} className="h-full w-full object-contain" priority />
+                </div>
+                <span className="text-xl whitespace-nowrap overflow-hidden font-berkshire text-[#ff6600]">FinApp</span>
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white p-2">
+                <Image src="/csm-logo.png" alt="Cementos San Marcos" width={40} height={40} unoptimized className="h-10 w-10 shrink-0 object-contain"/>
+                </div>
               </div>
-              <span className="text-lg font-bold whitespace-nowrap overflow-hidden">FinApp</span>
-            </div>
+            </>
           )}
           {collapsed && (
-            <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff6600]">
-              <Building2 className="h-5 w-5 text-white" />
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-white p-1">
+              <Image src="/logo.png" alt="FinApp" width={36} height={36} className="h-full w-full object-contain" priority />
             </div>
           )}
         </div>

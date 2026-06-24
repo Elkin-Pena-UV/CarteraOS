@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Providers } from './providers'
 import { Geist, Geist_Mono } from 'next/font/google'
+import localFont from 'next/font/local'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
@@ -16,6 +17,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-geist-mono",
 });
+
+const berkshireSwash = localFont({
+  src: './fonts/BerkshireSwash-Regular.ttf',
+  weight: '400',
+  style: 'normal',
+  variable: '--font-berkshire-swash',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'FinApp - Gestión de Cartera',
@@ -45,7 +54,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className={`${geist.variable} ${geistMono.variable}`} suppressHydrationWarning>
+    <html lang="es" className={`${geist.variable} ${geistMono.variable} ${berkshireSwash.variable}`} suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased" suppressHydrationWarning>
         <Providers>
           <ThemeProvider

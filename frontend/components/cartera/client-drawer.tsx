@@ -355,10 +355,10 @@ export function ClientDrawer({ client, open, onClose, fechaCorte }: ClientDrawer
                       <TableRow>
                         <SortableHead field="f1_docto_causacion">Nro Factura</SortableHead>
                         <SortableHead field="f1_saldo_corriente_total" className="text-right">Corriente</SortableHead>
-                        <SortableHead field="f1_saldo_vencido1" className="text-right">Vencido 1</SortableHead>
-                        <SortableHead field="f1_saldo_vencido2" className="text-right">Vencido 2</SortableHead>
-                        <SortableHead field="f1_saldo_vencido3" className="text-right">Vencido 3</SortableHead>
-                        <SortableHead field="f1_saldo_vencido4" className="text-right">Vencido 4</SortableHead>
+                        <SortableHead field="f1_saldo_vencido1" className="text-right">Vencido 1-30</SortableHead>
+                        <SortableHead field="f1_saldo_vencido2" className="text-right">Vencido 31-60</SortableHead>
+                        <SortableHead field="f1_saldo_vencido3" className="text-right">Vencido 61-90</SortableHead>
+                        <SortableHead field="f1_saldo_vencido4" className="text-right">Vencido 90+</SortableHead>
                         <SortableHead field="f1_saldo_vencido_total" className="text-right">Saldo Vencido</SortableHead>
                         <SortableHead field="f1_saldo_total" className="text-right">Saldo Total</SortableHead>
                       </TableRow>

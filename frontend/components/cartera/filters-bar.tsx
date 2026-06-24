@@ -32,6 +32,7 @@ import type { ModoFechaCorte } from "@/hooks/use-cartera"
 export type ClientFilters = {
   channel: string[]
   advisor: string[]
+  paymentCondition: string[]
   clientName: string
   minValue: string
   maxValue: string
@@ -45,6 +46,7 @@ export type FechaCorteState = {
 export const initialClientFilters: ClientFilters = {
   channel: [],
   advisor: [],
+  paymentCondition: [],
   clientName: "",
   minValue: "",
   maxValue: "",
@@ -94,10 +96,18 @@ interface FiltersBarProps {
   fechaCorte: FechaCorteState
   onFechaCorteChange: (next: FechaCorteState) => void
   asesoresOptions?: string[]
+  condicionesPagoOptions?: string[]
 }
 
 function MultiSelectTrigger({ selected, placeholder }: { selected: string[]; placeholder: string }) {
   if (selected.length === 0) return <span className="text-muted-foreground">{placeholder}</span>
+  if (selected.length === 1) return <span>{selected[0]}</span>
+  return <span>{selected[0]} <span className="text-muted-foreground">+{selected.length - 1}</span></span>
+}
+
+function PaymentConditionTrigger({ selected, total }: { selected: string[]; total: number }) {
+  if (selected.length === 0 || (total > 0 && selected.length === total))
+    return <span className="text-muted-foreground">Todas</span>
   if (selected.length === 1) return <span>{selected[0]}</span>
   return <span>{selected[0]} <span className="text-muted-foreground">+{selected.length - 1}</span></span>
 }
@@ -112,6 +122,7 @@ export function FiltersBar({
   fechaCorte,
   onFechaCorteChange,
   asesoresOptions = [],
+  condicionesPagoOptions = [],
 }: FiltersBarProps) {
   const { toast } = useToast()
   const [isExpanded, setIsExpanded] = useState(true)
@@ -264,6 +275,68 @@ export function FiltersBar({
                       onSelect={(e) => e.preventDefault()}
                     >
                       {asesor}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* ── Condición de pago ──────────────────────────────────────── */}
+            <div className="min-w-[160px] space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Condición de pago</Label>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="h-9 w-full justify-between font-normal">
+                    <PaymentConditionTrigger selected={value.paymentCondition} total={condicionesPagoOptions.length} />
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="max-h-72 w-56 overflow-y-auto" align="start">
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">Condición de pago</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {/* Acciones rápidas */}
+                  <div className="flex items-center gap-1 px-2 py-1.5">
+                    <Button
+                      variant="ghost" size="sm" className="h-7 flex-1 px-2 text-xs"
+                      onClick={() => updateFilter("paymentCondition", [...condicionesPagoOptions])}
+                    >
+                      Todas
+                    </Button>
+                    <Button
+                      variant="ghost" size="sm" className="h-7 flex-1 px-2 text-xs"
+                      onClick={() =>
+                        updateFilter(
+                          "paymentCondition",
+                          condicionesPagoOptions.filter((c) => !value.paymentCondition.includes(c))
+                        )
+                      }
+                    >
+                      Invertir
+                    </Button>
+                    <Button
+                      variant="ghost" size="sm" className="h-7 flex-1 px-2 text-xs"
+                      onClick={() => updateFilter("paymentCondition", [])}
+                    >
+                      Limpiar
+                    </Button>
+                  </div>
+                  <DropdownMenuSeparator />
+                  {condicionesPagoOptions.length === 0 && (
+                    <p className="px-3 py-2 text-xs text-muted-foreground">Sin condiciones disponibles</p>
+                  )}
+                  {condicionesPagoOptions.map((cond) => (
+                    <DropdownMenuCheckboxItem
+                      key={cond}
+                      checked={value.paymentCondition.includes(cond)}
+                      onCheckedChange={(checked) =>
+                        updateFilter("paymentCondition", checked
+                          ? [...value.paymentCondition, cond]
+                          : value.paymentCondition.filter((c) => c !== cond)
+                        )
+                      }
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      {cond}
                     </DropdownMenuCheckboxItem>
                   ))}
                 </DropdownMenuContent>

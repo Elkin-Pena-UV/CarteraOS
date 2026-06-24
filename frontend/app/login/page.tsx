@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { useAuth } from '@/lib/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,9 +47,12 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-sm space-y-6 p-8 border rounded-xl shadow-sm bg-card">
 
-        <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">FinApp</h1>
-          <p className="text-sm text-muted-foreground">Inicia sesión para continuar</p>
+        <div className="space-y-3 text-center">
+          <Image src="/logo.png" alt="FinApp" width={80} height={80} className="mx-auto h-20 w-20 object-contain" priority />
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight">FinApp</h1>
+            <p className="text-sm text-muted-foreground">Inicia sesión para continuar</p>
+          </div>
         </div>
 
         <div className="space-y-4">

@@ -110,6 +110,17 @@ export default function CarteraDashboard() {
   // advisor ya viene filtrado desde el backend — se excluye del filtrado local
   const clients = useMemo(() => adaptCarteraToClients(data ?? []), [data])
 
+  const condicionesPagoOptions = useMemo(() => {
+    const set = new Set<string>()
+    for (const c of clients) {
+      const v = c.paymentCondition
+      if (v !== null && v !== undefined && String(v).trim() !== "") {
+        set.add(String(v))
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es", { numeric: true }))
+  }, [clients])
+
   const filteredClients = useMemo(
     () => applyClientFilters(clients, { ...draftFilters, advisor: [] }),
     [clients, draftFilters],
@@ -267,6 +278,7 @@ export default function CarteraDashboard() {
             setDraftFilters(prev => ({ ...prev, advisor: [] }))
           }}
           asesoresOptions={asesoresOptions}
+          condicionesPagoOptions={condicionesPagoOptions}
         />
 
         <KPICards kpis={kpis} />
