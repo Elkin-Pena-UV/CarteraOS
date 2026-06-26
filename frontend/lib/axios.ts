@@ -1,6 +1,17 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL as string
+// En el navegador derivamos la URL de la API del host actual, así funciona
+// tanto en localhost como por IP de red (p.ej. 192.168.19.195) sin reconstruir.
+// En SSR/build se usa el valor de NEXT_PUBLIC_API_URL como respaldo.
+export function resolveBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    const port = process.env.NEXT_PUBLIC_API_PORT || '8028'
+    return `${window.location.protocol}//${window.location.hostname}:${port}/api`
+  }
+  return process.env.NEXT_PUBLIC_API_URL as string
+}
+
+const BASE_URL = resolveBaseUrl()
 
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,

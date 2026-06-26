@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
-import api from '@/lib/axios'
+import api, { resolveBaseUrl } from '@/lib/axios'
 
 type User = {
   id: number
@@ -21,7 +21,7 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL as string
+const API_BASE = resolveBaseUrl()
 const rawOpts  = { withCredentials: true }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
