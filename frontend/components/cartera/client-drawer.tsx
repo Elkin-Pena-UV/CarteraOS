@@ -243,11 +243,11 @@ export function ClientDrawer({ client, open, onClose, fechaCorte }: ClientDrawer
           </div>
 
           {/* Contact Actions */}
-          <div className="mt-4 flex gap-2">
-            <Button variant="outline" className="flex-1">
+          <div className="mt-4 flex gap-2 justify-end">
+            {/* <Button variant="outline" className="flex-1">
               <Phone className="mr-2 h-4 w-4" />
               Llamar
-            </Button>
+            </Button> */}
 
             {/* Descargar PDF */}
             <Button
