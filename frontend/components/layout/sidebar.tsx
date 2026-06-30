@@ -341,7 +341,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 </div>
                 <span className="text-xl whitespace-nowrap overflow-hidden font-berkshire text-[#ff6600]">FinApp</span>
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white p-2">
-                <Image src="/csm-logo.png" alt="Cementos San Marcos" width={40} height={40} unoptimized className="h-10 w-10 shrink-0 object-contain"/>
+                <Image src="/csm-logo.png" alt="Cementos San Marcos" width={40} height={40} unoptimized className="h-full w-full object-contain" style={{ width: "auto", height: "auto" }} />
                 </div>
               </div>
             </>
