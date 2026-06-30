@@ -1,8 +1,10 @@
 import {
-  Document, Page, View, Text, Image, StyleSheet, Svg, Circle, G,
+  Document, Page, View, Text, Image, StyleSheet, Svg, Circle, G, Font,
 } from '@react-pdf/renderer';
 import React from 'react';
 import { EMPRESA, LOGO_DATA_URI } from './brand.js';
+
+Font.registerHyphenationCallback((word) => [word]);
 
 const ce = React.createElement;
 
@@ -219,7 +221,7 @@ function Header({ meta, cliente }) {
       ce(View, null,
         ce(Text, { style: s.headerTitle }, cliente.name ?? '—'),
         ce(Text, { style: s.headerNit   }, `NIT: ${cliente.nit ?? '—'}`),
-        ce(Text, { style: s.headerSub   }, 'CarteraOS · Reporte Individual de Cliente'),
+        ce(Text, { style: s.headerSub   }, 'FinApp · Reporte Individual de Cliente'),
       ),
       ce(View, { style: s.brandBox },
         ce(Image, { src: LOGO_DATA_URI, style: s.logo }),
@@ -231,13 +233,14 @@ function Header({ meta, cliente }) {
         ce(Text, { style: s.metaLabel }, 'Fecha de corte'),
         ce(Text, { style: s.metaValue }, `${meta.modoCorte === 'hoy' ? 'Hoy · ' : ''}${formatFecha(meta.fechaCorte)}`),
       ),
-      ce(View, { style: s.metaBox },
-        ce(Text, { style: s.metaLabel }, 'Asesor'),
-        ce(Text, { style: s.metaValue }, cliente.advisor ?? '—'),
+      ce(View, { style: [s.metaBox, { flex: 1.7 }] },
+        ce(Text, { style: s.metaLabel }, (cliente.advisors?.length ?? 0) > 1 ? 'Asesores' : 'Asesor'),
+        ce(Text, { style: s.metaValue },
+          cliente.advisors?.length ? cliente.advisors.join(', ') : '—'),
       ),
       ce(View, { style: s.metaBox },
         ce(Text, { style: s.metaLabel }, 'Canal'),
-        ce(Text, { style: s.metaValue }, cliente.channel ?? '—'),
+        ce(Text, { style: s.metaValue }, (cliente.channel ?? '—').replace(/^\s*\d+\s*-\s*/, '')),
       ),
       ce(View, { style: s.metaBox },
         ce(Text, { style: s.metaLabel }, 'Generado por'),
@@ -338,7 +341,7 @@ function InfoYDonut({ cliente, facturas }) {
         ce(Text, { style: [s.infoVal, { color: ORANGE }] }, formatCOP(cliente.quota)),
       ),
       ce(View, { style: s.infoRow },
-        ce(Text, { style: s.infoKey }, 'Sobrecupo'),
+        ce(Text, { style: s.infoKey }, (cliente.overcapacity || 0) > 0 ? 'Sobrecupo' : (cliente.overcapacity || 0) < 0 ? 'Cupo disponible' : 'Sin cupo'),
         ce(Text, { style: [s.infoVal, { color: (cliente.overcapacity || 0) > 0 ? RED : '#374151' }] },
           formatCOP(cliente.overcapacity),
         ),
@@ -495,7 +498,7 @@ function TablaFacturas({ facturas }) {
 
 function Footer({ meta, cliente }) {
   return ce(View, { style: s.footer, fixed: true },
-    ce(Text, { style: s.footerText }, `CarteraOS — Reporte Cliente: ${cliente.name ?? '—'}`),
+    ce(Text, { style: s.footerText }, `FinApp — Reporte Cliente: ${cliente.name ?? '—'}`),
     ce(Text, { style: s.footerText }, `Corte: ${formatFechaCorta(meta.fechaCorte)} · ${meta.generadoPor ?? ''}`),
     ce(Text, { style: s.footerText, render: ({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}` }),
   );

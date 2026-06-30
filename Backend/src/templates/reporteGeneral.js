@@ -204,7 +204,7 @@ function Header({ meta }) {
       ce(View, null,
         ce(Text, { style: s.headerTitle },   'Dashboard de Cartera — Resumen General'),
         ce(Text, { style: s.headerCompany }, EMPRESA),
-        ce(Text, { style: s.headerSub },     'CarteraOS · Gestión y seguimiento de cartera de clientes'),
+        ce(Text, { style: s.headerSub },     'FinApp · Gestión y seguimiento de cartera de clientes'),
       ),
     ),
     ce(View, { style: s.metaRow },
@@ -422,7 +422,7 @@ function TablaClientes({ clientes, columnas, sorting = [] }) {
 
 function Footer({ meta }) {
   return ce(View, { style: s.footer, fixed: true },
-    ce(Text, { style: s.footerText }, 'CarteraOS — Reporte Resumen General'),
+    ce(Text, { style: s.footerText }, 'FinApp — Reporte Resumen General'),
     ce(Text, { style: s.footerText }, `Corte: ${formatFecha(meta.fechaCorte)} · ${meta.generadoPor ?? ''}`),
     ce(Text, { style: s.footerText, render: ({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}` }),
   );

@@ -157,7 +157,7 @@ export async function enviarReporteEmail({ destinatario, asunto, cuerpo, generad
     attachments: adjuntos.map(({ filename, content, contentType, descripcion }) => ({ filename, content, contentType, description: descripcion })),
     headers: {
     'X-Priority': '3',
-    'X-Mailer':   'CarteraOS',
+    'X-Mailer':   'FinApp',
     },
   });
 

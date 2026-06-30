@@ -251,7 +251,7 @@ function Header({ meta }) {
             ce(View, { style: s.headerLeft },
                 ce(Text, { style: s.headerTitle },   'Variación de Cartera'),
                 ce(Text, { style: s.headerCompany }, EMPRESA),
-                ce(Text, { style: s.headerSub },      `CarteraOS · Comparativo ${mesAnterior} → ${mesFecha}`),
+                ce(Text, { style: s.headerSub },      `FinApp · Comparativo ${mesAnterior} → ${mesFecha}`),
             ),
         ),
         ce(View, { style: s.metaRow },
@@ -686,7 +686,7 @@ function TablaVariacion({ clientes, columnas, sorting = [] }) {
 
 function Footer({ meta }) {
     return ce(View, { style: s.footer, fixed: true },
-        ce(Text, { style: s.footerText }, 'CarteraOS — Reporte Variación de Cartera'),
+        ce(Text, { style: s.footerText }, 'FinApp — Reporte Variación de Cartera'),
         ce(Text, { style: s.footerText }, `Período: ${formatMes(meta.fechaCorte)} · ${meta.generadoPor ?? ''}`),
         ce(Text, { style: s.footerText, render: ({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}` }),
     );

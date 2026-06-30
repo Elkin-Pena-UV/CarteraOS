@@ -447,7 +447,7 @@ function Footer({ meta }) {
     const tags = buildFiltrosActivos(filtros);
     const scope = tags.length === 0 ? 'General' : tags.map(t => `${t.label}: ${t.value}`).join(' · ');
     return ce(View, { style: s.footer, fixed: true },
-        ce(Text, { style: s.footerText }, `CarteraOS — Reporte Rotación de Cartera`),
+        ce(Text, { style: s.footerText }, `FinApp — Reporte Rotación de Cartera`),
         ce(Text, { style: s.footerText }, `Corte: ${formatMes(meta.fechaCorte)} · ${scope} · ${meta.generadoPor ?? ''}`),
         ce(Text, { style: s.footerText, render: ({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}` }),
     );
