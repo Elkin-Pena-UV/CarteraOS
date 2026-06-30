@@ -62,7 +62,7 @@ import type { FilaRevision } from "@/lib/adapters/crucesAdapter"
 const NON_HIDEABLE: string[] = []
 const VISIBILITY_STORAGE_KEY = 'cruces_revision_column_visibility'
 const STORAGE_KEY = 'cruces_revision_column_order'
-const PINNED_START = ['tercero', 'tipo']
+const PINNED_START = ['tercero']
 const STICKY_COLS: string[] = []
 const PINNED_END: string[] = []
 
@@ -246,7 +246,7 @@ export const TablaRevision = forwardRef<TablaRevisionRef, TablaRevisionProps>(
       id: "tipo",
       accessorKey: "tipo",
       header: "Tipo",
-      size: 80,
+      size: 100,
       cell: ({ row }) => {
         const tipo = row.getValue("tipo") as string
         const cls = TIPO_COLORS[tipo] ?? 'bg-muted text-muted-foreground border-border'
@@ -341,7 +341,7 @@ export const TablaRevision = forwardRef<TablaRevisionRef, TablaRevisionProps>(
     columnResizeMode: "onChange",
     enableColumnPinning: true,
     initialState: {
-      columnPinning: { left: ['tercero', 'tipo'] },
+      columnPinning: { left: ['tercero'] },
     },
   })
 
